@@ -30,8 +30,15 @@ aiohttp = ">=3.9,<4"
 matplotlib = ">=3.10.8,<4"
 plotly = ">=6.5.2,<7"
 seaborn = ">=0.13.2,<0.14"
+scikit-learn = ">=1.8,<2"
+xgboost = ">=3.2,<4"
+lightgbm = ">=4.6,<5"
+pytorch-cpu = ">=2.10,<3"
+optuna = ">=4.7,<5"
+shap = ">=0.50,<1"
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 markers = [
     "network: tests that require internet access (deselect with -m 'not network')",
 ]
