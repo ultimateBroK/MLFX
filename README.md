@@ -295,8 +295,11 @@ Thu thập tick     →  ETL & Resample   →  Feature Engineering   →  Labeli
 # Quản lý môi trường với Pixi (khuyến nghị)
 pixi install
 
-# Tải dữ liệu XAUUSD từ 2015 đến nay
-python download_gold.py
+# Tải dữ liệu XAUUSD từ 2015 đến nay (Mặc định)
+pixi run python pipeline/download_data.py
+
+# Hoặc tải Crypto
+# pixi run python pipeline/download_data.py --symbol BTCUSD --asset-class crypto
 ```
 
 **Yêu cầu**: Python ≥ 3.13, Pixi
@@ -305,7 +308,7 @@ python download_gold.py
 
 ## Roadmap
 
-- [x] Phase 1: Thu thập dữ liệu tick XAUUSD từ Dukascopy (`download_gold.py`)
+- [x] Phase 1: Thu thập dữ liệu tick đa năng (`pipeline/download_data.py`)
 - [x] Phase 2: Kỹ thuật nhúng tín hiệu (ICT Killzone, Support/Resistance + Pivot Points)
 - [x] Phase 3: ETL & Feature Engineering Pipeline (Resample OHLCV, tính toán 130+ features)
 - [x] Phase 4: Labeling + Training mô hình Machine Learning (KNN, XGBoost, LSTM)

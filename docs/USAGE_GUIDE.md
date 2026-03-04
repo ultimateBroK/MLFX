@@ -30,7 +30,7 @@ Tải toàn bộ tick data thô của XAUUSD. Dữ liệu sẽ tự động lưu
 
 ```bash
 # Chạy download
-pixi run python pipeline/download_gold.py
+pixi run python pipeline/pipeline/download_data.py
 ```
 > *Tips*: Hỗ trợ dừng lại giữa chừng và chạy tiếp. Tiến độ được lưu ở file `completed_months.json`.
 

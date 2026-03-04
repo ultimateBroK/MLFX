@@ -11,17 +11,24 @@ from datetime import date, datetime
 import aiohttp
 import polars as pl
 
-# ── Config ───────────────────────────────────────────────────────────────────
-SYMBOL = "XAUUSD"
-START_YEAR = 2015
-START_MONTH = 1
-OUTPUT_DIR = f"data/raw/{SYMBOL}"
-STATE_FILE = os.path.join(OUTPUT_DIR, "completed_months.json")
-MAX_CONCURRENT = 20  # simultaneous aiohttp connections
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+# ── Config (Defaults, overridden by argparse) ──────────────────────────────
 BASE_URL = "https://datafeed.dukascopy.com/datafeed"
+
+# Global config variables injected by main()
+CONFIG = {
+    "SYMBOL": "XAUUSD",
+    "START_YEAR": 2015,
+    "START_MONTH": 1,
+    "OUTPUT_DIR": "data/raw/XAUUSD",
+    "STATE_FILE": "data/raw/XAUUSD/completed_months.json",
+    "MAX_CONCURRENT": 20,
+    "ASSET_CLASS": "fx",
+    "FORCE": False,
+}
+
+
+def get_state_file() -> str:
+    return CONFIG["STATE_FILE"]
 
 
 # ── State (single JSON) ───────────────────────────────────────────────────────
@@ -29,8 +36,9 @@ BASE_URL = "https://datafeed.dukascopy.com/datafeed"
 
 
 def load_state() -> dict:
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE) as f:
+    state_file = get_state_file()
+    if os.path.exists(state_file):
+        with open(state_file) as f:
             data = json.load(f)
         # Migrate old format: list of strings → dict
         if isinstance(data, list):
@@ -42,7 +50,8 @@ def load_state() -> dict:
 
 
 def _write_state(state: dict) -> None:
-    with open(STATE_FILE, "w") as f:
+    state_file = get_state_file()
+    with open(state_file, "w") as f:
         json.dump(state, f, indent=2, sort_keys=True)
 
 
@@ -52,13 +61,17 @@ def save_state(state: dict) -> None:
 
 def migrate_old_markers(state: dict) -> dict:
     """One-time: absorb old *.parquet.complete files into JSON, then remove them."""
-    old = [f for f in os.listdir(OUTPUT_DIR) if f.endswith(".parquet.complete")]
+    out_dir = CONFIG["OUTPUT_DIR"]
+    if not os.path.exists(out_dir):
+        return state
+
+    old = [f for f in os.listdir(out_dir) if f.endswith(".parquet.complete")]
     for marker in old:
         key = marker.replace(".parquet.complete", "")
         state.setdefault(key, {"rows": -1, "missing_hours": 0})
-        os.remove(os.path.join(OUTPUT_DIR, marker))
+        os.remove(os.path.join(out_dir, marker))
     if old:
-        print(f"Migrated {len(old)} old markers → {STATE_FILE}")
+        print(f"Migrated {len(old)} old markers → {get_state_file()}")
     return state
 
 
@@ -107,7 +120,7 @@ def fetch_hour(
     year: int, month_idx: int, day: int, hour: int, retries: int = 4, timeout: int = 30
 ) -> "bytes | None | str":
     """Sync single-hour fetch. Returns bytes | None (404) | 'TIMEOUT'."""
-    url = f"{BASE_URL}/{SYMBOL}/{year:04d}/{month_idx:02d}/{day:02d}/{hour:02d}h_ticks.bi5"
+    url = f"{BASE_URL}/{CONFIG['SYMBOL']}/{year:04d}/{month_idx:02d}/{day:02d}/{hour:02d}h_ticks.bi5"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     for attempt in range(retries):
         try:
@@ -141,7 +154,7 @@ async def _fetch_one(
     month: int,
 ) -> "pl.DataFrame | None | str":
     """Async fetch + decompress + parse for one hour. Returns DataFrame | None | 'TIMEOUT'."""
-    url = f"{BASE_URL}/{SYMBOL}/{y:04d}/{mi:02d}/{d:02d}/{h:02d}h_ticks.bi5"
+    url = f"{BASE_URL}/{CONFIG['SYMBOL']}/{y:04d}/{mi:02d}/{d:02d}/{h:02d}h_ticks.bi5"
     async with sem:
         for attempt in range(4):
             try:
@@ -168,8 +181,8 @@ async def _fetch_one(
 
 
 async def _fetch_hours_async(slots: list, month: int) -> tuple[list, int]:
-    sem = asyncio.Semaphore(MAX_CONCURRENT)
-    connector = aiohttp.TCPConnector(limit=MAX_CONCURRENT, ttl_dns_cache=300)
+    sem = asyncio.Semaphore(CONFIG["MAX_CONCURRENT"])
+    connector = aiohttp.TCPConnector(limit=CONFIG["MAX_CONCURRENT"], ttl_dns_cache=300)
     headers = {"User-Agent": "Mozilla/5.0"}
 
     async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
@@ -203,27 +216,42 @@ def fetch_hours(slots: list, month: int) -> list:
 
 
 def all_slots(year: int, month: int) -> list:
-    """All tradeable hour slots in month.
-    Skips: all Saturday + Sunday before 21:00 UTC (gold market closed)."""
+    """All tradeable hour slots in month."""
     mi = month - 1
-    return [
-        (year, mi, d, h)
-        for d in range(1, calendar.monthrange(year, month)[1] + 1)
-        for h in range(24)
-        if not (date(year, month, d).weekday() == 5)  # skip Sat
-        and not (date(year, month, d).weekday() == 6 and h < 21)  # skip Sun 00-20h
-    ]
+    days_in_month = calendar.monthrange(year, month)[1]
+
+    if CONFIG["ASSET_CLASS"] == "crypto":
+        # Crypto matches 24/7 (do not filter out weekends)
+        return [
+            (year, mi, d, h) for d in range(1, days_in_month + 1) for h in range(24)
+        ]
+    else:
+        # FX defaults: Skips Saturday + Sunday before 21:00 UTC (market closed).
+        return [
+            (year, mi, d, h)
+            for d in range(1, days_in_month + 1)
+            for h in range(24)
+            if not (date(year, month, d).weekday() == 5)  # skip Sat
+            and not (date(year, month, d).weekday() == 6 and h < 21)  # skip Sun 00-20h
+        ]
 
 
 def weekday_slots(year: int, month: int) -> list:
-    """Mon–Fri all 24h slots (used for repair gap detection)."""
+    """Mon–Fri all 24h slots (used for repair gap detection). Crypto returns 24/7 slots."""
     mi = month - 1
-    return [
-        (year, mi, d, h)
-        for d in range(1, calendar.monthrange(year, month)[1] + 1)
-        if date(year, month, d).weekday() < 5
-        for h in range(24)
-    ]
+    days_in_month = calendar.monthrange(year, month)[1]
+
+    if CONFIG["ASSET_CLASS"] == "crypto":
+        return [
+            (year, mi, d, h) for d in range(1, days_in_month + 1) for h in range(24)
+        ]
+    else:
+        return [
+            (year, mi, d, h)
+            for d in range(1, days_in_month + 1)
+            if date(year, month, d).weekday() < 5
+            for h in range(24)
+        ]
 
 
 # ── Repair ────────────────────────────────────────────────────────────────────
@@ -287,23 +315,79 @@ def repair_month(year: int, month: int, file_path: str) -> tuple[int, int]:
 
 
 def main():
-    now = datetime.now()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Universal Dukascopy Tick Downloader")
+    parser.add_argument(
+        "--symbol",
+        type=str,
+        default="XAUUSD",
+        help="Trading symbol (e.g. BTCUSD, XAUUSD, EURUSD)",
+    )
+    parser.add_argument("--start-year", type=int, default=2015, help="Start year")
+    parser.add_argument("--start-month", type=int, default=1, help="Start month (1-12)")
+    parser.add_argument(
+        "--end-year", type=int, default=datetime.now().year, help="End year"
+    )
+    parser.add_argument(
+        "--end-month", type=int, default=datetime.now().month, help="End month (1-12)"
+    )
+    parser.add_argument(
+        "--asset-class",
+        type=str,
+        choices=["fx", "crypto"],
+        default="fx",
+        help="Asset type (fx drops weekends, crypto does 24/7)",
+    )
+    parser.add_argument(
+        "--concurrency", type=int, default=20, help="Max concurrent downloads"
+    )
+    parser.add_argument(
+        "--force-repair",
+        action="store_true",
+        help="Force complete verification instead of skipping verified months",
+    )
+
+    args = parser.parse_args()
+
+    # Update CONFIG
+    CONFIG["SYMBOL"] = args.symbol
+    CONFIG["START_YEAR"] = args.start_year
+    CONFIG["START_MONTH"] = args.start_month
+    CONFIG["ASSET_CLASS"] = args.asset_class
+    CONFIG["MAX_CONCURRENT"] = args.concurrency
+    CONFIG["FORCE"] = args.force_repair
+
+    out_dir = f"data/raw/{args.symbol}"
+    CONFIG["OUTPUT_DIR"] = out_dir
+    CONFIG["STATE_FILE"] = os.path.join(out_dir, "completed_months.json")
+    os.makedirs(out_dir, exist_ok=True)
+
     state = migrate_old_markers(load_state())
 
-    print(f"Downloading {SYMBOL} from {START_YEAR} to present...\n")
+    print(
+        f"Downloading {args.symbol} ({args.asset_class.upper()}) from {args.start_year}-{args.start_month:02d} to {args.end_year}-{args.end_month:02d}..."
+    )
 
-    for year in range(START_YEAR, now.year + 1):
-        m_start = START_MONTH if year == START_YEAR else 1
-        m_end = now.month if year == now.year else 12
+    for year in range(args.start_year, args.end_year + 1):
+        m_start = args.start_month if year == args.start_year else 1
+        m_end = args.end_month if year == args.end_year else 12
 
         for month in range(m_start, m_end + 1):
             key = f"{year}-{month:02d}"
-            file_path = os.path.join(OUTPUT_DIR, f"{key}.parquet")
-            is_past = not (year == now.year and month == now.month)
+            file_path = os.path.join(CONFIG["OUTPUT_DIR"], f"{key}.parquet")
+            is_past = not (
+                year == datetime.now().year and month == datetime.now().month
+            )
             entry = state.get(key)
 
             # ── Already complete → skip ────────────────────────────────────
-            if is_past and entry and entry["missing_hours"] == 0:
+            if (
+                is_past
+                and entry
+                and entry["missing_hours"] == 0
+                and not CONFIG["FORCE"]
+            ):
                 rows = entry["rows"]
                 print(f"Skip     {key}  rows={rows:>10,}  missing=0 ✓")
                 continue
