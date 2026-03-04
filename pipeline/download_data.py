@@ -386,6 +386,7 @@ def main():
                 is_past
                 and entry
                 and entry["missing_hours"] == 0
+                and os.path.exists(file_path)
                 and not CONFIG["FORCE"]
             ):
                 rows = entry["rows"]
