@@ -1,0 +1,27 @@
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# Agent
+.agent/*
+
+# Data
+data/*
+
+# Logs
+logs/*
+/download.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Docs
+docs/*
+
+# Pytest cache
+.pytest_cache/*
+
+# Venv
+.venv/*
