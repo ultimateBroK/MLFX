@@ -56,7 +56,7 @@ def main():
     parser.add_argument(
         "--outdir",
         type=str,
-        default="reports",
+        default="outputs/reports",
         help="Output directory for the generated charts",
     )
 

@@ -6,8 +6,8 @@ KNN baseline classifier for XAUUSD direction prediction.
 Uses TimeSeriesSplit cross-validation (no data leakage).
 Saves model as joblib and metrics as JSON.
 
-Output: models/saved/{symbol}/{tf}/knn_{label_col}.joblib
-        models/saved/{symbol}/{tf}/knn_{label_col}_metrics.json
+Output: outputs/models/{symbol}/{tf}/knn_{label_col}.joblib
+        outputs/models/{symbol}/{tf}/knn_{label_col}_metrics.json
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 logger = logging.getLogger(__name__)
 
 LABELS_DIR = Path("data/labels")
-SAVED_DIR = Path("models/saved")
+SAVED_DIR = Path("outputs/models")
 
 # Default feature columns — all numeric, no OHLCV raw prices
 FEATURE_BLACKLIST = {

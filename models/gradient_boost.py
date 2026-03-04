@@ -8,10 +8,10 @@ Features:
   - Feature importance plotting + SHAP value analysis
   - Unified interface for XGB / LGB backend
 
-Output: models/saved/{symbol}/{tf}/{backend}_{label_col}.model
-        models/saved/{symbol}/{tf}/{backend}_{label_col}_metrics.json
-        models/saved/{symbol}/{tf}/{backend}_{label_col}_importance.png
-        models/saved/{symbol}/{tf}/{backend}_{label_col}_shap.png
+Output: outputs/models/{symbol}/{tf}/{backend}_{label_col}.model
+        outputs/models/{symbol}/{tf}/{backend}_{label_col}_metrics.json
+        outputs/models/{symbol}/{tf}/{backend}_{label_col}_importance.png
+        outputs/models/{symbol}/{tf}/{backend}_{label_col}_shap.png
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from sklearn.model_selection import TimeSeriesSplit
 logger = logging.getLogger(__name__)
 
 LABELS_DIR = Path("data/labels")
-SAVED_DIR = Path("models/saved")
+SAVED_DIR = Path("outputs/models")
 
 FEATURE_BLACKLIST = {
     "timestamp",

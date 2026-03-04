@@ -13,8 +13,8 @@ Classes (remapped for cross-entropy):
     1 → NEUTRAL (original 0)
     2 → LONG (original +1)
 
-Output: models/saved/{symbol}/{tf}/lstm_{label_col}.pt
-        models/saved/{symbol}/{tf}/lstm_{label_col}_metrics.json
+Output: outputs/models/{symbol}/{tf}/lstm_{label_col}.pt
+        outputs/models/{symbol}/{tf}/lstm_{label_col}_metrics.json
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from torch.utils.data import DataLoader, TensorDataset
 logger = logging.getLogger(__name__)
 
 LABELS_DIR = Path("data/labels")
-SAVED_DIR = Path("models/saved")
+SAVED_DIR = Path("outputs/models")
 
 FEATURE_BLACKLIST = {
     "timestamp",

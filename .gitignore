@@ -8,10 +8,10 @@
 # Data and Output
 data/*
 !data/.gitkeep
-models/saved/*
-!models/saved/.gitkeep
-reports/*
-!reports/.gitkeep
+outputs/models/*
+!outputs/models/.gitkeep
+outputs/reports/*
+!outputs/reports/.gitkeep
 
 # Logs
 logs/*
