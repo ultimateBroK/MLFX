@@ -2,6 +2,11 @@
 
 Dự án này là một Data Pipeline và Machine Learning Engine chuyên biệt cho việc giao dịch **XAUUSD (Vàng)**. Tất cả các script đều được quản lý tự động bởi `pixi` và Polars, giúp xử lý hàng chục năm tick data chỉ tóm gọn trong RAM laptop.
 
+> 📚 **BẠN LÀ NGƯỜI MỚI (NEWBIE)? Hãy đọc các tài liệu sau trước khi gõ code:**
+> 1. Tránh "tẩu hỏa nhập ma" về lý thuyết, đọc: [NOOB_GUIDE.md](NOOB_GUIDE.md) (Giải Phẫu Tổng Quan Hệ Thống).
+> 2. Gặp từ lóng bằng tiếng Anh không hiểu, đọc: [GLOSSARY.md](GLOSSARY.md) (Từ Điển Thuật Ngữ).
+> 3. Code bị lỗi bung bét đỏ lè, đọc: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (Sổ Tay Cấp Cứu).
+
 ---
 
 ## 1. Cài đặt Môi trường (Cần thiết trước khi chạy)
