@@ -111,6 +111,8 @@ def simulate_trades(
                         pnl_r = (exit_price - entry_price) / risk_dist
                     else:
                         pnl_r = (entry_price - exit_price) / risk_dist
+                else:
+                    pnl_r = 0.0
                 reason = "TIME"
 
             if exit_price is not None:

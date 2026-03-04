@@ -43,9 +43,23 @@ class TestResampleToOhlcv:
         ts = result["timestamp"].to_list()
         assert ts == sorted(ts), "Timestamps not sorted"
 
-    def test_5m_has_more_bars_than_1h(self, sample_ticks):
-        bars_1h = resample_to_ohlcv(sample_ticks, period="1h")
-        bars_5m = resample_to_ohlcv(sample_ticks, period="5m")
+    def test_5m_has_more_bars_than_1h(self):
+        # Create a sample tick stream with many ticks (say 300) spanning 2 hours
+        base = datetime(2024, 1, 8, 0, tzinfo=timezone.utc)
+        timestamps = [
+            base + timedelta(minutes=i % 120, seconds=i % 60) for i in range(300)
+        ]
+        df = pl.DataFrame(
+            {
+                "timestamp": timestamps,
+                "bid": [2000.0 + i * 0.1 for i in range(300)],
+                "ask": [2000.2 + i * 0.1 for i in range(300)],
+            }
+        ).sort("timestamp")
+
+        # Disable min_ticks safeguard so we don't accidentally drop tiny bars in testing
+        bars_1h = resample_to_ohlcv(df, period="1h", min_ticks=1)
+        bars_5m = resample_to_ohlcv(df, period="5m", min_ticks=1)
         assert len(bars_5m) > len(bars_1h)
 
     def test_empty_input_returns_empty_schema(self):

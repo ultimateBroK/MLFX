@@ -233,8 +233,12 @@ ML_FX/
 │   └── skills/
 │       ├── ict-analysis/SKILL.md
 │       └── risk-management/SKILL.md
+├── outputs/            # Generated assets
+│   ├── reports/        # Backtest reports, heatmaps
+│   └── models/         # Saved model .json files, SHAP plots
 ├── data/
 │   ├── raw/XAUUSD/     # Tick Parquet ✅
+│   ├── raw/BTCUSD/     # Tick Parquet ✅
 │   ├── ohlcv/          # Resampled OHLCV
 │   └── features/       # Feature DataFrames
 └── docs/
