@@ -5,11 +5,17 @@
 # Agent
 .agent/*
 
-# Data
+# Data and Output
 data/*
+!data/.gitkeep
+models/saved/*
+!models/saved/.gitkeep
+reports/*
+!reports/.gitkeep
 
 # Logs
 logs/*
+!logs/.gitkeep
 /download.log
 
 # Environment variables
@@ -17,11 +23,22 @@ logs/*
 .env.local
 .env.*.local
 
-# Docs
-docs/*
-
 # Pytest cache
 .pytest_cache/*
+.coverage
+htmlcov/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
 
 # Venv
 .venv/*
+env/
+venv/
