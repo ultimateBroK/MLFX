@@ -22,6 +22,11 @@ ML_FX là hệ thống phân tích và dự đoán giá tài chính end-to-end, 
 ---
 
 ## Cấu trúc dự án
+> 📚 **Tài liệu cho người mới bắt đầu**: Nếu bạn muốn tự chạy Bot hoặc chưa hiểu về Machine Learning/Trading. Xin đọc:
+> - [Giải Phẫu Hệ Thống & Nguyên Lý Bot](docs/NOOB_GUIDE.md)
+> - [Hướng dẫn Setup & Cẩm nang Lệnh (Cheatsheet)](docs/USAGE_GUIDE.md)
+> - [Từ Điển Thuật Ngữ](docs/GLOSSARY.md)
+> - [Khắc phục Lỗi Cứng Cổ](docs/TROUBLESHOOTING.md)
 
 ```
 ML_FX/
@@ -300,16 +305,13 @@ python download_gold.py
 
 ## Roadmap
 
-- [x] ICT Killzone feature engineering — `indicator/killzone.py`
-- [x] Support/Resistance + Pivot Points — `indicator/sr_pp.py`
-- [x] Thu thập dữ liệu tick XAUUSD từ Dukascopy (`download_gold.py`)
-- [ ] ETL pipeline: resample tick → OHLCV (1m, 5m, 15m, 1H, 4H) + Order Blocks/FVG
-- [ ] Feature pipeline: killzone + S/R + PP + TA-Lib (RSI, MACD, ATR, EMA)
-- [ ] Labeling + Training: KNN → XGBoost → LSTM
-- [ ] Backtesting — Sharpe, drawdown, win rate, walk-forward
-- [ ] Visualization — signal overlay + equity curve
-- [ ] AI Agent (Agno 6-step): LMStudio, ReasoningTools, RAG, Toolkit, LearningMachine, Skills
-- [ ] Mở rộng sang Forex + Crypto
+- [x] Phase 1: Thu thập dữ liệu tick XAUUSD từ Dukascopy (`download_gold.py`)
+- [x] Phase 2: Kỹ thuật nhúng tín hiệu (ICT Killzone, Support/Resistance + Pivot Points)
+- [x] Phase 3: ETL & Feature Engineering Pipeline (Resample OHLCV, tính toán 130+ features)
+- [x] Phase 4: Labeling + Training mô hình Machine Learning (KNN, XGBoost, LSTM)
+- [x] Phase 5: Backtesting Engine giả lập Risk:Reward và Sinh báo cáo đồ thị (Plotly, Matplotlib)
+- [ ] Phase 6: AI Agent (Agno 6-step) — Chatbot giao tiếp tự nhiên dựa trên tín hiệu mô hình
+- [ ] Phase 7: Mở rộng sang Forex + Crypto
 
 ---
 
