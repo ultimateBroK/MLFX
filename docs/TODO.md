@@ -213,6 +213,7 @@ ML_FX/
 │   ├── sr_pp.py
 │   └── __init__.py
 ├── pipeline/           # ETL + labeling
+│   ├── download_data.py
 │   ├── resample.py
 │   ├── features.py
 │   └── labels.py
@@ -220,7 +221,8 @@ ML_FX/
 │   ├── knn.py
 │   ├── gradient_boost.py
 │   └── lstm.py
-├── eval/               # Backtesting
+├── eval/               # Backtesting & Reports
+│   ├── run_eval.py
 │   └── backtest.py
 ├── viz/                # Visualization
 │   └── charts.py
@@ -235,13 +237,19 @@ ML_FX/
 │       └── risk-management/SKILL.md
 ├── outputs/            # Generated assets
 │   ├── reports/        # Backtest reports, heatmaps
-│   └── models/         # Saved model .json files, SHAP plots
+│   └── models/         # Saved model .joblib, .pt, .json files, SHAP plots
 ├── data/
-│   ├── raw/XAUUSD/     # Tick Parquet ✅
-│   ├── raw/BTCUSD/     # Tick Parquet ✅
+│   ├── raw/            # Tick Parquet ✅
+│   │   ├── XAUUSD/     
+│   │   └── BTCUSD/     
 │   ├── ohlcv/          # Resampled OHLCV
-│   └── features/       # Feature DataFrames
-└── docs/
+│   ├── features/       # Feature DataFrames
+│   └── labels/         # Labeled datasets
+└── docs/               # Hệ thống tài liệu 
+    ├── NOOB_GUIDE.md          
+    ├── USAGE_GUIDE.md         
+    ├── TROUBLESHOOTING.md     
+    ├── GLOSSARY.md            
     └── TODO.md         # This file
 ```
 

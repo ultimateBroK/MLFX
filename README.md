@@ -36,7 +36,8 @@ ML_FX/
 │   ├── killzone.py                     # ICT Killzone: 5 sessions, pivot H/L, DWM levels, avg range
 │   └── sr_pp.py                        # S/R patterns (r/r2/s/s2), role reversal, 6 Pivot Point types
 │
-├── pipeline/                           # Phase 3 📋 — ETL Pipeline
+├── pipeline/                           # Phase 1 & 3 📋 — ETL Pipeline
+│   ├── download_data.py                # Script kéo data Dukascopy Universal (FX, Crypto)
 │   ├── resample.py                     # Tick → OHLCV (1m/5m/15m/1H/4H/1D), mid price
 │   ├── features.py                     # killzone + sr_pp + TA-Lib + Order Blocks + FVG
 │   └── labels.py                       # LONG/SHORT/NEUTRAL labeling (ATR-based threshold)
@@ -47,7 +48,8 @@ ML_FX/
 │   └── lstm.py                         # LSTM (PyTorch) — sequence 50–200 bars
 │
 ├── eval/                               # Phase 5 📋 — Evaluation
-│   └── backtest.py                     # Walk-forward, Sharpe, drawdown, win rate, R:R
+│   ├── backtest.py                     # Walk-forward, Sharpe, drawdown, win rate, R:R
+│   └── run_eval.py                     # Script tổng hợp report và chạy backtest
 │
 ├── viz/                                # Phase 5 📋 — Visualization
 │   └── charts.py                       # Plotly candles + S/R overlay, Matplotlib equity curve
@@ -64,20 +66,29 @@ ML_FX/
 │       └── risk-management/
 │           └── SKILL.md               # SL/TP vs pp_s1/r1, position size vs confidence
 │
-├── data/
-│   ├── raw/
-│   │   └── XAUUSD/                    # Phase 1 ✅ — Tick Parquet từ Dukascopy
-│   │       ├── 2015-01.parquet
-│   │       ├── ...
-│   │       └── completed_months.json  # Trạng thái download + missing hours
-│   ├── ohlcv/                         # Phase 3 — Resampled OHLCV (per symbol/tf)
-│   └── features/                      # Phase 3 — Feature DataFrames (per symbol/tf)
+├── outputs/                            # Thư mục chứa kết quả sinh ra tự động (Tạo ra khi chạy system)
+│   ├── reports/                        # Backtest reports, Heatmaps, Equity curves
+│   └── models/                         # Saved ML model (.json, .joblib), SHAP plots
 │
-├── docs/
+├── data/
+│   ├── raw/                            # Phase 1 ✅ — Tick Parquet từ Dukascopy
+│   │   ├── XAUUSD/                    
+│   │   │   ├── 2015-01.parquet
+│   │   │   ├── ...
+│   │   │   └── completed_months.json  # Trạng thái download + missing hours
+│   │   └── BTCUSD/                    # Ví dụ tải file Crypto
+│   ├── ohlcv/                         # Phase 3 — Resampled OHLCV (per symbol/tf)
+│   ├── features/                      # Phase 3 — Feature DataFrames (per symbol/tf)
+│   └── labels/                        # Phase 3 — Data đã phân nhãn (LONG/SHORT/NEUTRAL)
+│
+├── docs/                               # Bộ tài liệu dự án
+│   ├── NOOB_GUIDE.md                  # Hướng dẫn chi tiết nguyên lý
+│   ├── USAGE_GUIDE.md                 # Cách chạy lệnh
+│   ├── TROUBLESHOOTING.md             # Cách fix lỗi
+│   ├── GLOSSARY.md                    # Từ điển thuật ngữ
 │   └── TODO.md                        # Kế hoạch 7 phase chi tiết
 │
-├── download_gold.py                    # Phase 1 ✅ — Async Dukascopy downloader
-├── main.py                             # Entry point
+├── main.py                             # Entry point / Coordinator server
 └── pyproject.toml                      # Pixi workspace (Polars, TA-Lib, Agno, ChromaDB…)
 ```
 
