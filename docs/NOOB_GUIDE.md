@@ -26,6 +26,12 @@ Nó cứ làm như thế hàng tỷ nến trong 10 năm qua.
 Đây là lúc phép màu xuất hiện. Bạn tung rổ dữ liệu (Features + Labels) cho XGBoost hoặc LSTM. Lúc này AI sẽ học một quy tắc ngầm định như sau:
 > *"À! Tôi nhận ra cứ mỗi khi MACD cắt lên + RSI ở mốc 30 + Đang là phiên giao dịch London... thì tỉ lệ nến sau mang nhãn LONG là tới 70%!"*
 
+### 5️⃣ Chơi Nháp (Backtest & Evaluation)
+AI học xong phải thi thử. Chẳng ai dại gì đem Bot sinh viên chưa tốt nghiệp ra đánh Forex thật.
+Hệ thống sẽ chạy một chương trình "Mô phỏng giao dịch" (Backtest). Nó tua ngược lại quá khứ, vờ như chưa biết tương lai, rồi bảo AI đặt lệnh dựa theo Risk/Reward (Ví dụ: Chấp nhận mất 100$ để ăn 150$).
+Khi chạy xong, nó sẽ in ra cho bạn Cúp Tốt Nghiệp: Bot này win được bao nhiêu phần trăm, đường cong tài sản đi lên hay cắm đầu xuống đất (Equity Curve).
+Đọc thêm ở [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) để biết cách xem cúp.
+
 ---
 
 ## 🎯 Tư Duy Đúng Cần Nắm Rõ Khi Dùng Bot

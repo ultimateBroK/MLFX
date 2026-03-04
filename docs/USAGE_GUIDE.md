@@ -101,6 +101,25 @@ pixi run python models/lstm.py --symbol XAUUSD --tf 1H --label label_10 --epochs
 
 ## 4. Backtest & Vẽ biểu đồ hiệu suất (Evaluation)
 
-Sau khi tạo mô hình, đưa dự đoán hoặc nhãn vào Backtester để giả lập Trade thực tế bằng luật Risk:Reward (Ví dụ Risk 1R, target Reward 1.5R):
+Sau khi tạo mô hình, đưa dự đoán hoặc nhãn vào Backtester để giả lập Trade thực tế bằng luật Risk:Reward (Ví dụ Risk 1R, target Reward 1.5R).
+Hệ thống sẽ không in rối mắt mà xuất ra 3 tấm ảnh/biểu đồ tuyệt đẹp cất trong thư mục `reports/` để bạn xem thành quả.
 
-Đọc [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) để biết cách chạy báo cáo Performance (Gồm *HTML Candlestick*, *Equity Max Drawdown* và *Session Radar*).
+Để chạy giả lập cho 1 file data (Ví dụ tháng 02/2026), hãy gõ 1 lệnh duy nhất này vào Terminal:
+
+```bash
+pixi run python -c "
+import polars as pl; from eval.backtest import simulate_trades, compute_metrics; from viz.charts import generate_full_report; from pathlib import Path
+
+# Đọc thử file tháng 02 năm 2026
+df = pl.read_parquet('data/labels/XAUUSD/1H/2026-02.parquet')
+
+# Vào lệnh TP 1.5R, SL 1.0R
+trades = simulate_trades(df, signal_col='label_5', tp_r=1.5, sl_r=1.0)
+print('Kết quả giao dịch:', compute_metrics(trades))
+
+# Bấm nút In báo cáo
+generate_full_report('XAUUSD', '1H', df, trades, 'label_5_R15', Path('reports'))
+"
+```
+
+Sau khi Terminal in ra chữ O.K, hãy đọc [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) để biết cách xem 3 file Biểu đồ vừa được tạo ra ở thư mục `reports/`.
