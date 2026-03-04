@@ -48,12 +48,16 @@ def ohlcv_with_atr() -> pl.DataFrame:
 
 
 class TestAddLabels:
+    """Test standard evaluation criteria for trading label calculations."""
+
     def test_label_columns_created(self, ohlcv_with_atr):
+        """Test insertion of new label horizon columns directly."""
         result = add_labels(ohlcv_with_atr, horizons=HORIZONS)
         for n in HORIZONS:
             assert f"label_{n}" in result.columns, f"label_{n} missing"
 
     def test_close_ahead_columns_created(self, ohlcv_with_atr):
+        """Test corresponding trailing structural metrics generated out from calculations."""
         result = add_labels(ohlcv_with_atr, horizons=[5])
         assert "close_ahead_5" in result.columns
 
@@ -75,6 +79,7 @@ class TestAddLabels:
         assert tail.is_null().all(), f"Last {horizon} rows of {col} must be null"
 
     def test_dtype_is_int8(self, ohlcv_with_atr):
+        """Test proper typed format applied effectively against dataset generation operations."""
         result = add_labels(ohlcv_with_atr, horizons=[5])
         assert result["label_5"].dtype == pl.Int8
 
@@ -106,24 +111,30 @@ class TestAddLabels:
 
 
 class TestComputeClassBalance:
+    """Suite to trace frequency distributions amongst labeled data pools."""
+
     def test_balance_keys_present(self, ohlcv_with_atr):
+        """Test existence of basic count dictionaries outputs keys format requirement."""
         df = add_labels(ohlcv_with_atr, horizons=[10]).drop_nulls("label_10")
         balance = compute_class_balance(df, "label_10")
         assert "counts" in balance
         assert "ratios" in balance
 
     def test_counts_sum_to_total(self, ohlcv_with_atr):
+        """Ensure absolute metrics calculate symmetrically across dimensions."""
         df = add_labels(ohlcv_with_atr, horizons=[10]).drop_nulls("label_10")
         balance = compute_class_balance(df, "label_10")
         assert sum(balance["counts"].values()) == len(df)
 
     def test_ratios_sum_to_one(self, ohlcv_with_atr):
+        """Ensure probability density metric ratio elements equal unity."""
         df = add_labels(ohlcv_with_atr, horizons=[10]).drop_nulls("label_10")
         balance = compute_class_balance(df, "label_10")
         total = sum(balance["ratios"].values())
         assert abs(total - 1.0) < 0.01, f"Ratios sum {total} != 1.0"
 
     def test_empty_frame_returns_zeros(self):
+        """Ensure missing entries fallback to zeroes explicitly."""
         empty = pl.DataFrame({"label_10": pl.Series([], dtype=pl.Int8)})
         balance = compute_class_balance(empty, "label_10")
         assert all(v == 0 for v in balance["counts"].values())
@@ -133,7 +144,10 @@ class TestComputeClassBalance:
 
 
 class TestTrainTestSplit:
+    """Ensure data splits allocate samples effectively preventing leakage occurrences."""
+
     def test_sizes_correct(self, ohlcv_with_atr):
+        """Assert resulting allocation limits exactly map input fractions requirements."""
         df = add_labels(ohlcv_with_atr, horizons=[5])
         train, test = stratified_train_test_split(df, "label_5", test_size=0.2)
         n = len(df)
@@ -149,6 +163,7 @@ class TestTrainTestSplit:
         )
 
     def test_no_rows_lost(self, ohlcv_with_atr):
+        """Validate sample total equality representing exact partitioning matching sizes."""
         df = add_labels(ohlcv_with_atr, horizons=[5])
         train, test = stratified_train_test_split(df, "label_5", test_size=0.2)
         assert len(train) + len(test) == len(df)

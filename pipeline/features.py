@@ -48,6 +48,16 @@ def _add_ta(df: pl.DataFrame, name: str, values: np.ndarray) -> pl.DataFrame:
 
 
 def add_rsi(df: pl.DataFrame, period: int = 14) -> pl.DataFrame:
+    """
+    Calculate the Relative Strength Index (RSI).
+
+    Args:
+        df: Polars DataFrame containing a 'close' array.
+        period: Lookback period for RSI.
+
+    Returns:
+        A new DataFrame with the 'rsi_<period>' column added.
+    """
     c = df["close"].to_numpy()
     return _add_ta(df, f"rsi_{period}", talib.RSI(c, timeperiod=period))
 
@@ -55,6 +65,18 @@ def add_rsi(df: pl.DataFrame, period: int = 14) -> pl.DataFrame:
 def add_macd(
     df: pl.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9
 ) -> pl.DataFrame:
+    """
+    Calculate the Moving Average Convergence Divergence (MACD).
+
+    Args:
+        df: Polars DataFrame containing a 'close' array.
+        fast: Fast period EMA.
+        slow: Slow period EMA.
+        signal: Signal period EMA calculation of the MACD.
+
+    Returns:
+        DataFrame augmented with 'macd', 'macd_signal', and 'macd_hist' columns.
+    """
     c = df["close"].to_numpy()
     macd, sig, hist = talib.MACD(
         c, fastperiod=fast, slowperiod=slow, signalperiod=signal
@@ -67,11 +89,31 @@ def add_macd(
 
 
 def add_atr(df: pl.DataFrame, period: int = 14) -> pl.DataFrame:
+    """
+    Calculate the Average True Range (ATR).
+
+    Args:
+        df: Polars DataFrame containing 'high', 'low', and 'close' arrays.
+        period: Lookback period for ATR smoothing.
+
+    Returns:
+        DataFrame augmented with the 'atr_<period>' column.
+    """
     h, lo, c = df["high"].to_numpy(), df["low"].to_numpy(), df["close"].to_numpy()
     return _add_ta(df, f"atr_{period}", talib.ATR(h, lo, c, timeperiod=period))
 
 
 def add_ema(df: pl.DataFrame, periods: list[int] = [20, 50, 200]) -> pl.DataFrame:
+    """
+    Calculate multple Exponential Moving Averages (EMA) iteratively.
+
+    Args:
+        df: Polars DataFrame containing a 'close' array.
+        periods: List of lookback periods for each EMA line.
+
+    Returns:
+        DataFrame augmented with 'ema_<period>' for every given period.
+    """
     c = df["close"].to_numpy()
     for p in periods:
         df = _add_ta(df, f"ema_{p}", talib.EMA(c, timeperiod=p))

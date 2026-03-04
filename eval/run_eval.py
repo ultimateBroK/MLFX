@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    """Main execution point for evaluating the strategy by running a backtest on a specific dataset and creating a visual report."""
     parser = argparse.ArgumentParser(
         description="Run Full Walk-forward Backtest and Generate Reports"
     )

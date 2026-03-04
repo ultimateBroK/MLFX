@@ -30,6 +30,7 @@ import polars as pl
 
 
 def _ensure_utc(df: pl.DataFrame) -> pl.DataFrame:
+    """Ensure the DataFrame timestamp column has a UTC timezone."""
     ts = df["timestamp"]
     if ts.dtype in (
         pl.Datetime("us", "UTC"),
@@ -260,6 +261,7 @@ def _ohlc_for_period(df: pl.DataFrame, freq: str) -> pl.DataFrame:
 
 
 def _calc_traditional(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Calculate Traditional Pivot Points."""
     p = (h + lo + c) / 3
     r1 = 2 * p - lo
     s1 = 2 * p - h
@@ -277,6 +279,7 @@ def _calc_traditional(o: float, h: float, lo: float, c: float) -> dict[str, floa
 
 
 def _calc_fibonacci(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Calculate Fibonacci Pivot Points."""
     p = (h + lo + c) / 3
     rng = h - lo
     r1 = p + 0.382 * rng
@@ -301,6 +304,7 @@ def _calc_fibonacci(o: float, h: float, lo: float, c: float) -> dict[str, float]
 
 
 def _calc_woodie(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Calculate Woodie Pivot Points."""
     p = (h + lo + 2 * c) / 4
     r1 = 2 * p - lo
     s1 = 2 * p - h
@@ -347,6 +351,7 @@ def _calc_dm(o: float, h: float, lo: float, c: float) -> dict[str, float]:
 
 
 def _calc_camarilla(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Calculate Camarilla Pivot Points."""
     rng = h - lo
     r1 = c + rng * 1.1 / 12
     s1 = c - rng * 1.1 / 12

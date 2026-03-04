@@ -1,3 +1,10 @@
+"""
+pipeline/download_data.py
+=========================
+Async Dukascopy tick downloader that supports universal asset classes.
+Downloads binary bi5 data, processes it into Parquet, and maintains global state.
+"""
+
 import asyncio
 import calendar
 import json
@@ -28,6 +35,7 @@ CONFIG = {
 
 
 def get_state_file() -> str:
+    """Return the absolute path of the global JSON state file."""
     return CONFIG["STATE_FILE"]
 
 
@@ -36,6 +44,7 @@ def get_state_file() -> str:
 
 
 def load_state() -> dict:
+    """Read the downloaded months tracking state from disk."""
     state_file = get_state_file()
     if os.path.exists(state_file):
         with open(state_file) as f:
@@ -50,12 +59,14 @@ def load_state() -> dict:
 
 
 def _write_state(state: dict) -> None:
+    """Internal helper to write the state to JSON file."""
     state_file = get_state_file()
     with open(state_file, "w") as f:
         json.dump(state, f, indent=2, sort_keys=True)
 
 
 def save_state(state: dict) -> None:
+    """Save the month-tracking state dictionary back to JSON."""
     _write_state(state)
 
 
@@ -108,6 +119,7 @@ def parse_hour(
 
 
 def to_datetime_df(df: pl.DataFrame) -> pl.DataFrame:
+    """Convert timestamp_ms epoch into proper UTC Datetime columns."""
     return df.with_columns(
         pl.from_epoch("timestamp_ms", time_unit="ms").alias("timestamp")
     ).select(["timestamp", "ask", "bid", "ask_volume", "bid_volume"])
@@ -181,6 +193,7 @@ async def _fetch_one(
 
 
 async def _fetch_hours_async(slots: list, month: int) -> tuple[list, int]:
+    """Execute asynchronous downloading of bi5 files over multiple hourly slots."""
     sem = asyncio.Semaphore(CONFIG["MAX_CONCURRENT"])
     connector = aiohttp.TCPConnector(limit=CONFIG["MAX_CONCURRENT"], ttl_dns_cache=300)
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -315,6 +328,7 @@ def repair_month(year: int, month: int, file_path: str) -> tuple[int, int]:
 
 
 def main():
+    """Main CLI execution loop for Dukascopy Downloader."""
     import argparse
 
     parser = argparse.ArgumentParser(description="Universal Dukascopy Tick Downloader")

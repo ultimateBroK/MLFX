@@ -55,6 +55,7 @@ FEATURE_BLACKLIST = {
 
 
 def get_feature_columns(df: pl.DataFrame) -> list[str]:
+    """Retrieve numeric feature column names dynamically."""
     return [
         c
         for c in df.columns
@@ -121,6 +122,7 @@ class FXLstm(nn.Module):
         dropout: float = 0.3,
         num_classes: int = 3,
     ) -> None:
+        """Initialize the PyTorch LSTM classifier structure."""
         super().__init__()
         self.lstm = nn.LSTM(
             input_size=input_size,
@@ -133,6 +135,7 @@ class FXLstm(nn.Module):
         self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Process forward pass to compute LSTM classifications on the input sequence."""
         # x: (batch, seq_len, input_size)
         out, _ = self.lstm(x)
         out = self.dropout(out[:, -1, :])  # last timestep
@@ -297,6 +300,7 @@ def train_lstm(
 
 
 def save_model(model: FXLstm, metrics: dict, path: Path) -> None:
+    """Save PyTorch LSTM model weights state dict alongside metric artifacts in JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"state_dict": model.state_dict(), "metrics": metrics}, path)
     metrics_path = path.with_suffix(".metrics.json")
@@ -308,6 +312,7 @@ def save_model(model: FXLstm, metrics: dict, path: Path) -> None:
 
 
 def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXLstm:
+    """Load model weights and metrics from file path to instantiate a trained FXLstm."""
     payload = torch.load(path, map_location="cpu", weights_only=True)
     metrics = payload["metrics"]
     model = FXLstm(

@@ -54,6 +54,7 @@ Backend = Literal["xgb", "lgb"]
 
 
 def get_feature_columns(df: pl.DataFrame) -> list[str]:
+    """Retrieve numeric feature column names, excluding blacklisted columns."""
     return [
         c
         for c in df.columns
@@ -65,6 +66,7 @@ def get_feature_columns(df: pl.DataFrame) -> list[str]:
 def prepare_xy(
     df: pl.DataFrame, label_col: str
 ) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """Transform Polars DataFrame into X features and y target labels arrays."""
     feature_cols = get_feature_columns(df)
     subset = df.select(feature_cols + [label_col]).drop_nulls()
     X = subset.select(feature_cols).to_numpy().astype(np.float32)
@@ -78,6 +80,7 @@ def prepare_xy(
 
 
 def _xgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
+    """Optuna objective function for tuning XGBoost Classifier."""
     import xgboost as xgb
 
     params = {
@@ -106,6 +109,7 @@ def _xgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
 
 
 def _lgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
+    """Optuna objective function for tuning LightGBM Classifier."""
     import lightgbm as lgb
 
     params = {
@@ -301,6 +305,7 @@ def compute_shap(
 
 
 def save_model(model: Any, metrics: dict, path: Path) -> None:
+    """Save model using joblib and dump associated metrics via json."""
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, path)
     metrics_path = path.with_suffix(".metrics.json")
@@ -311,6 +316,7 @@ def save_model(model: Any, metrics: dict, path: Path) -> None:
 
 
 def load_model(path: Path) -> Any:
+    """Load model from the saved joblib artifact."""
     return joblib.load(path)
 
 
