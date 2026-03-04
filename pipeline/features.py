@@ -4,8 +4,8 @@ pipeline/features.py
 Full feature engineering pipeline for XAUUSD OHLCV data.
 
 Steps per bar:
-  1. ICT Killzone features     — indicator/killzone.py → add_killzone_features()
-  2. S/R + Pivot Point features— indicator/sr_pp.py   → add_sr_pp_features()
+  1. ICT Killzone features     — indicators/killzone.py → add_killzone_features()
+  2. S/R + Pivot Point features— indicators/sr_pp.py   → add_sr_pp_features()
   3. TA-Lib momentum/volatility— RSI(14), MACD(12/26/9), ATR(14), EMA(20/50/200)
   4. Order Blocks              — last opposing candle before a strong impulsive move
   5. Fair Value Gaps (FVG)     — 3-candle imbalance pattern
@@ -28,8 +28,8 @@ import polars as pl
 import pyarrow.parquet as pq
 import talib
 
-from indicator.killzone import add_killzone_features
-from indicator.sr_pp import add_sr_pp_features
+from indicators.killzone import add_killzone_features
+from indicators.sr_pp import add_sr_pp_features
 
 logger = logging.getLogger(__name__)
 

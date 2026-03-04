@@ -19,14 +19,14 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
 
 ## Phase 2 — Feature Engineering ✅
 
-- [x] **ICT Killzone** — `indicator/killzone.py`
+- [x] **ICT Killzone** — `indicators/killzone.py`
   - [x] `add_session_flags()` — 5 boolean session flags
   - [x] `compute_killzone_pivots()` — session High/Low/Mid/Range via cum_max/min
   - [x] `compute_killzone_avg_range()` — rolling N-session avg range
   - [x] `compute_dwm_levels()` — Day/Week/Month open + prev H/L
   - [x] `add_killzone_features()` — pipeline tổng hợp
 
-- [x] **Support/Resistance + Pivot Points** — `indicator/sr_pp.py`
+- [x] **Support/Resistance + Pivot Points** — `indicators/sr_pp.py`
   - [x] `detect_sr_patterns()` — pattern r/r2/s/s2 với de-duplicate
   - [x] `compute_sr_zones()` — zone tracking + role reversal
   - [x] `compute_pivot_points()` — 6 types × 5 anchor TF với asof_join
@@ -208,7 +208,7 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
 
 ```
 ML_FX/
-├── indicator/          # Feature engineering (done ✅)
+├── indicators/          # Feature engineering (done ✅)
 │   ├── killzone.py
 │   ├── sr_pp.py
 │   └── __init__.py

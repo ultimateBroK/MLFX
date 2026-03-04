@@ -31,7 +31,7 @@ ML_FX là hệ thống phân tích và dự đoán giá tài chính end-to-end, 
 ```
 ML_FX/
 │
-├── indicator/                          # Phase 2 ✅ — Feature Engineering
+├── indicators/                          # Phase 2 ✅ — Feature Engineering
 │   ├── __init__.py                     # Public API: add_killzone_features, add_sr_pp_features
 │   ├── killzone.py                     # ICT Killzone: 5 sessions, pivot H/L, DWM levels, avg range
 │   └── sr_pp.py                        # S/R patterns (r/r2/s/s2), role reversal, 6 Pivot Point types
@@ -85,7 +85,7 @@ ML_FX/
 
 ## Các chỉ báo — nguồn tín hiệu đầu vào
 
-### 1. ICT Killzone — `indicator/killzone.py`
+### 1. ICT Killzone — `indicators/killzone.py`
 
 Dịch từ Pine Script indicator **ICT Killzone**.
 
@@ -124,7 +124,7 @@ pm_high / pm_low                      # Previous Month High/Low
 
 ---
 
-### 2. Support/Resistance & Pivot Points — `indicator/sr_pp.py`
+### 2. Support/Resistance & Pivot Points — `indicators/sr_pp.py`
 
 Dịch từ Pine Script indicator **SR + PP**.
 
@@ -174,7 +174,7 @@ pp_above_p                             # Giá trên hay dưới Pivot P
 
 ```python
 import polars as pl
-from indicator import add_killzone_features, add_sr_pp_features
+from indicators import add_killzone_features, add_sr_pp_features
 
 # Load dữ liệu tick đã resample lên 1H
 df = pl.read_parquet("data/raw/XAUUSD/2024-01.parquet")
