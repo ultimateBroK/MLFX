@@ -1,17 +1,17 @@
 """
-indicator/__init__.py
+indicators/__init__.py
 ---------------------
 Public API for the ML_FX indicator feature engineering modules.
 
 Usage
 -----
-from indicator import add_killzone_features, add_sr_pp_features
+from indicators import add_killzone_features, add_sr_pp_features
 
 df = add_killzone_features(df)                      # ICT Killzone
 df = add_sr_pp_features(df, pivot_type="traditional", anchor="daily")
 """
 
-from indicator.killzone import (
+from indicators.killzone import (
     KILLZONES,
     add_killzone_features,
     add_session_flags,
@@ -19,7 +19,7 @@ from indicator.killzone import (
     compute_killzone_avg_range,
     compute_killzone_pivots,
 )
-from indicator.sr_pp import (
+from indicators.sr_pp import (
     add_sr_pp_features,
     compute_pivot_points,
     compute_sr_zones,
