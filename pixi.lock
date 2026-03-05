@@ -376,6 +376,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/bd/28/0a25ee5342eb5d5f297d992a77e56892ecb65e7854c7898fb7d35e9b33bd/websockets-16.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/0c/37/6faf15cfa41bf1f3dba80cd3f5ccc6622dfccb660ab26ed79f0178c7497f/wrapt-1.17.3-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/a4/f5/10b68b7b1544245097b2a1b8238f66f2fc6dcaeb24ba5d917f52bd2eed4f/wsproto-1.3.2-py3-none-any.whl
+      - pypi: ./
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-7_kmp_llvm.conda
   build_number: 7
@@ -3526,6 +3527,17 @@ packages:
   purls: []
   size: 125728406
   timestamp: 1767634121080
+- pypi: ./
+  name: ml-fx
+  version: 0.1.0
+  sha256: 0359d031dff076c2453b8c505ac9e89bc4ddb86d882fc73663e0fde68b098fc6
+  requires_dist:
+  - questdb[dataframe]>=4.1.0,<5
+  - openai>=2.24.0,<3
+  - chromadb>=1.5.2,<2
+  - lmstudio>=1.5.0,<2
+  - agno[os]>=2.5.6,<3
+  requires_python: '>=3.11'
 - pypi: https://files.pythonhosted.org/packages/34/82/fc5ce89006389a6426ef28e326fc065b0fbaaed230373b62d14c889f47ea/mmh3-5.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl
   name: mmh3
   version: 5.2.0
