@@ -83,7 +83,7 @@ def main():
     )
     trades = simulate_trades(df, signal_col=args.label, tp_r=args.tp, sl_r=args.sl)
 
-    # In ra metrics
+    # Print metrics
     metrics = compute_metrics(trades)
     logger.info("--- BACKTEST RESULTS ---")
     logger.info("Total Trades : %d", metrics["total_trades"])

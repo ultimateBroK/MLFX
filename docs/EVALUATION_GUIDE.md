@@ -1,58 +1,58 @@
 # ML_FX Evaluation Guide
 
-Tài liệu này hướng dẫn cách đọc các kết quả Backtest và các biểu đồ phân tích hiệu suất (Visualization) của dự án ML_FX.
+This document explains how to read the Backtest results and performance analysis charts (Visualization) of the ML_FX project.
 
-Hệ thống Evaluation (đặt trong folder `eval/` và `viz/`) cung cấp cái nhìn chi tiết về cách mô hình Machine Learning sẽ hoạt động nếu giao dịch thực tế trên thị trường. Chúng tôi không sử dụng "tỉ lệ phần trăm chiến thắng" (accuracy) thuần túy của Machine Learning mà chuyển hóa chúng thành **Mô phỏng Giao dịch theo R-multiple** (walk-forward simulation).
+The Evaluation system (located in the `eval/` and `viz/` folders) provides a detailed look at how the Machine Learning model would perform if trading real markets. We do not use purely theoretical "accuracy" of Machine Learning; instead, we transform these into a **Walk-forward Simulation using R-multiples**.
 
 ---
 
-## 1. Hiểu Về Metrics Giao Dịch
+## 1. Understanding Trading Metrics
 
-Báo cáo sẽ in ra một từ điển Metrics như sau:
+The report will output a Metrics dictionary like this:
 `Metrics: {'total_trades': 139, 'win_rate': 73.38, 'total_r': 118.0, 'max_drawdown_r': 3.0, 'profit_factor': 4.37}`
 
-Ý nghĩa của các con số:
-*   **total_trades**: Tổng số lệnh giao dịch được mô phỏng.
-*   **win_rate (%)**: Tỉ lệ lệnh chạm Take Profit (TP) trước khi chạm Stop Loss (SL). Tuy nhiên, win_rate không phải là tất cả nếu R:R không tốt.
-*   **total_r (Cumulative R-multiple)**: Thay vì tính theo USD, ta tính theo R (Risk). Nếu mỗi lệnh bạn rủi ro 1% tài khoản (1R = 1%), tổng lợi nhuận `118.0` nghĩa là bạn lãi 118% tài khoản. Metric này độc lập với kích thước tài khoản.
-*   **max_drawdown_r**: Chuỗi thua lỗ liên tiếp lớn nhất tính theo R. Drawdown `3.0` nghĩa là tài khoản của bạn từng suy giảm tối đa 3R (3% nếu rủi ro 1%) từ đỉnh. Đây là thước đo rủi ro quan trọng nhất.
-*   **profit_factor**: Tỷ lệ *Tổng Số Tiền Thắng / Tổng Số Tiền Thua*. Từ 1.0 trở lên là có lãi. Mức `2.0+` của các quỹ Prop Firm là rất cao, mức `4.37` như trên là cực kì lý tưởng.
+What the numbers mean:
+*   **total_trades**: Total number of simulated trades.
+*   **win_rate (%)**: The percentage of trades that hit Take Profit (TP) before Stop Loss (SL). However, win rate isn't everything if the R:R isn't good.
+*   **total_r (Cumulative R-multiple)**: Instead of calculating in USD dollars, we calculate in R (Risk). If each trade risks 1% of your account (1R = 1%), a total profit of `118.0` means you made 118% profit on your account. This metric is independent of account size.
+*   **max_drawdown_r**: The continuous maximum losing streak in R. A drawdown of `3.0` means your account's maximum decline at any given time was 3R (or 3% if risk is 1%) from an equity peak. This is the most crucial risk metric.
+*   **profit_factor**: The ratio of *Gross Profit / Gross Loss*. Anything above 1.0 is profitable. A level of `2.0+` for Prop Firm evaluation rules is very high, a level of `4.37` as above is extremely ideal.
 
 ---
 
-## 2. Cách Đọc Biểu Đồ Hiệu Suất
+## 2. How to Read Performance Charts
 
-Hệ thống sinh ra 3 file báo cáo trực quan trong thư mục `reports/`.
+The system generates 3 visual report files in the `reports/` directory.
 
 ### 2.1 Interactive Candlestick Chart (`candlestick.html`)
-Mở file này bằng trình duyệt web. Nó sử dụng Plotly mượt mà.
-- **Biểu đồ nến**: OHLCV truyền thống.
-- **RSI / Indicator**: Các chỉ báo phụ nằm ở Panel phía dưới.
-- **Markers (Ký hiệu)**:
-  - 🔼 **Tam giác xanh**: Vị trí mô hình vào lệnh LONG.
-  - 🔽 **Tam giác đỏ/hồng**: Vị trí mô hình vào lệnh SHORT.
-> *Mẹo*: Hãy phóng to vào các khu vực xuất hiện marker để xem xét tính hợp lý (price action) mà mô hình thực hiện. Mô hình có đang bán ở ngọn nến S/R không? Có đang mua khi RSI quá bán?
+Open this file with your web browser. It leverages smooth Plotly interactiveness.
+- **Candle Chart**: Traditional OHLCV.
+- **RSI / Indicator**: Sub-indicators located in the bottom Panel.
+- **Markers**:
+  - 🔼 **Green Triangle**: Model executed a LONG trade.
+  - 🔽 **Red/Pink Triangle**: Model executed a SHORT trade.
+> *Tip*: Zoom heavily into areas with markers to examine the price action conditions behind the model's trades. Did it sell at an S/R peak? Did it buy when RSI was oversold?
 
 ### 2.2 Equity & Drawdown Curve (`*_equity.png`)
-Mở file ảnh này để có cái nhìn tổng quan về đường dài.
-- **Panel trên (Màu Vàng)**: Đường cong tài sản `Cumulative R`. Đường cong lý tưởng sẽ đi lên tuyến tính từ góc dưới bên trái lên góc trên bên phải. Nếu đường đi ngang quá lâu, chiến lược rơi vào chu kỳ Sideway.
-- **Panel dưới (Màu Đỏ)**: Under-water curve (Drawdown). Hiển thị mức độ sụt giảm so với đỉnh gần nhất. Nếu vùng đỏ chạm các mức như `-10R` hay sâu hơn, chiến lược của bạn có rủi ro cháy tài khoản nếu không quản lý vốn chặt (chẳng hạn hạ Risk xuống 0.5%).
+Open this image file for a long-term overview.
+- **Top Panel (Yellow)**: The `Cumulative R` equity curve. An ideal curve rises linearly from the bottom left corner to the top right corner. If the line goes sideways for too long, the strategy has hit a Sideway cycle.
+- **Bottom Panel (Red)**: Under-water curve (Drawdown). Shows the magnitude of decline compared to the nearest peak. If the red areas touch deep levels like `-10R` or lower, your strategy has high account blowout risks without tight capital management (like lowering Risk to 0.5%).
 
 ### 2.3 Session Performance Heatmap (`*_heatmap.png`)
-Đây là công cụ quan trọng để tinh chỉnh theo phong cách **ICT Killzones**.
-- **Trục Y (Dọc)**: Khung giờ UTC (0 đến 23).
-- **Trục X (Ngang)**: Thứ trong tuần (Mon → Fri).
-- **Màu sắc**: Màu xanh (Lãi), màu đỏ (Lỗ), màu vàng/nhạt (Hoà vốn).
-> *Cách dùng*: Nếu bạn nhận thấy từ 13:00 UTC đến 16:00 UTC (Tương ứng New York Killzone) có màu anh đậm, hãy lọc Bot AI chỉ giao dịch vào khung giờ đó và báo nó bỏ qua các Asian/London sessions nhiều rủi ro.
+This is a critical tool for refining strategy according to **ICT Killzones** style.
+- **Y-Axis (Vertical)**: UTC hour frame (0 to 23).
+- **X-Axis (Horizontal)**: Day of the week (Mon → Fri).
+- **Colors**: Green (Profit), Red (Loss), Yellow/Light (Breakeven).
+> *Usage*: If you notice that from 13:00 UTC to 16:00 UTC (Corresponding to the New York Killzone) shows thick green shades, filter the AI Bot to only trade during this timeframe and advise it to skip risky Asian/London sessions.
 
 ---
 
-## 3. Cách chạy mô phỏng sau khi Train Model
+## 3. How to Run Simulation After Model Training
 
-Sau khi chạy xong model ML (ví dụ KNN ở `models/knn.py`) và trích xuất dự đoán `predictions.parquet`. Hoặc thậm chí là từ Label thô ở quá khứ:
+After the ML model has finished training (for example, KNN in `models/knn.py`) and generated predictions inside `predictions.parquet`. Or even directly from raw historical labels:
 
 ```bash
-# Chạy Python CLI
+# Run Python CLI
 cd /home/ultimatebrok/Downloads/ML_FX
 pixi run python -c "
 import polars as pl
@@ -60,16 +60,16 @@ from eval.backtest import simulate_trades, compute_metrics
 from viz.charts import generate_full_report
 from pathlib import Path
 
-# Đọc data đã có Label (hoặc predict)
+# Read data with Labels (or predictions)
 df = pl.read_parquet('data/labels/XAUUSD/1H/2026-02.parquet')
 
-# Cấu hình R:R = 1.5 (TP 1.5R, SL 1.0R)
+# Configure R:R = 1.5 (TP 1.5R, SL 1.0R)
 trades = simulate_trades(df, signal_col='label_5', tp_r=1.5, sl_r=1.0)
 metrics = compute_metrics(trades)
 
 print('Metrics:', metrics)
 
-# Tạo báo cáo ở folder /reports/
+# Generate reports in /reports/ directory
 generate_full_report('XAUUSD', '1H', df, trades, 'label_5_R15', Path('reports'))
 "
 ```

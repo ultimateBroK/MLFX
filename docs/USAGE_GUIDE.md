@@ -1,113 +1,122 @@
-# Hướng Dẫn Sử Dụng ML_FX Pipeline
+# ML_FX Pipeline Usage Guide
 
-Dự án này là một Data Pipeline và Machine Learning Engine chuyên biệt cho việc giao dịch **XAUUSD (Vàng)**. Tất cả các script đều được quản lý tự động bởi `pixi` và Polars, giúp xử lý hàng chục năm tick data chỉ tóm gọn trong RAM laptop.
+This project is a dedicated Data Pipeline and Machine Learning Engine for trading **XAUUSD (Gold)**. It is managed by `pixi` and uses Polars to process 10+ years of tick data efficiently on standard hardware.
 
-> 📚 **BẠN LÀ NGƯỜI MỚI (NEWBIE)? Hãy đọc các tài liệu sau trước khi gõ code:**
-> 1. Tránh "tẩu hỏa nhập ma" về lý thuyết, đọc: [NOOB_GUIDE.md](NOOB_GUIDE.md) (Giải Phẫu Tổng Quan Hệ Thống).
-> 2. Gặp từ lóng bằng tiếng Anh không hiểu, đọc: [GLOSSARY.md](GLOSSARY.md) (Từ Điển Thuật Ngữ).
-> 3. Code bị lỗi bung bét đỏ lè, đọc: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (Sổ Tay Cấp Cứu).
+> 📚 **NEW HERE? Start by reading these guides before running any code:**
+> 1. [NOOB_GUIDE.md](NOOB_GUIDE.md) - High-level overview of how the system works.
+> 2. [GLOSSARY.md](GLOSSARY.md) - Definitions for common trading and ML terms.
+> 3. [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Solutions for common errors.
 
 ---
 
-## 1. Cài đặt Môi trường (Cần thiết trước khi chạy)
+## 1. Environment Setup
 
-Sử dụng `pixi` (Rust-based package manager) để xử lý toàn bộ các package, không cần quan tâm đến `pip` hay `conda`.
+We use `pixi` (a fast, Rust-based package manager) to handle all dependencies instead of `pip` or `conda`.
 
 ```bash
-# Cài đặt Pixi (nếu chưa có)
+# Install Pixi (if you don't have it yet)
 curl -fsSL https://pixi.sh/install.sh | bash
 
-# Cài đặt toàn bộ lib & pull môi trường dự án
+# Install all project dependencies
 pixi install
 ```
 
 ---
 
-## 2. Quy trình 4 Bước: Từ Dữ liệu Thô đến AI Model
+## 2. The Data Pipeline (Tick Data to ML Features)
 
-### Bước 1: Thu thập Dữ liệu (Dukascopy)
-Tải toàn bộ tick data thô của XAUUSD. Dữ liệu sẽ tự động lưu tải đa luồng thành các tệp Parquet theo tháng ở thư mục `data/raw/XAUUSD/`.
+### Step 1: Download Data
+Download historical tick data from Dukascopy. Data is saved as partitioned Parquet files in `data/raw/{symbol}/`.
 
 ```bash
-# Chạy download
-pixi run python pipeline/pipeline/download_data.py
+# Download XAUUSD (default)
+pixi run python pipeline/download_data.py
+
+# Download Crypto or other Forex symbols
+pixi run python pipeline/download_data.py --symbol BTCUSD --asset-class crypto
 ```
-> *Tips*: Hỗ trợ dừng lại giữa chừng và chạy tiếp. Tiến độ được lưu ở file `completed_months.json`.
+> *Tip*: If your download is interrupted, you can safely restart it. The script tracks progress in `completed_months.json` and resumes automatically.
 
 ---
 
-### Bước 2: Resample (Tick → Nến OHLCV)
-Dữ liệu tick không thể train ML trực tiếp, nó phải được chuyển đổi thành khung thời gian (Timeframe). Module này tự động nhận diện và nhảy qua các bước "Gap cuối tuần" (Weekend Gaps), giảm sát dữ liệu lỗi.
+### Step 1.5: Data Quality Assurance (QA)
+Scan the raw Parquet files to detect any significant gaps, missing hours, or bad data (e.g., negative prices).
 
 ```bash
-# Resample 10 năm tick data thành nến 1H (1 tiếng)
-pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
+pixi run python pipeline/qa_data.py --symbol XAUUSD
+```
+*Reports are saved at*: `data/raw/{symbol}/{symbol}_Data_Quality_Report.md`
 
-# Hoặc resample nhiều khung thời gian cùng lúc
+---
+
+### Step 2: Resample Data (Tick to OHLCV Candlesticks)
+Tick data is too dense for direct Machine Learning. This script converts ticks into structured timeframes (e.g., 1m, 5m, 15m, 1H, 4H, 1D) and correctly handles weekend market gaps.
+
+```bash
+# Generate 1-Hour (1H) and 5-Minute (5m) candlesticks
+pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
 pixi run python pipeline/resample.py --symbol XAUUSD --tf 5m
 ```
-*Kết quả xuất ra thư mục*: `data/ohlcv/XAUUSD/1H/`
+*Output*: `data/ohlcv/XAUUSD/1H/`
 
 ---
 
-### Bước 3: Feature Engineering (Tính toán các chỉ báo)
-Tạo ra **133 features** dùng làm bối cảnh để Agent/Bot Machine Learning học phân tích kỹ thuật (Technical Analysis):
-* Cụm Trend: RSI, MACD, EMA.
-* Cụm Cấu trúc: Pivot S/R (Kháng cự/Hỗ trợ theo Rvol).
-* Cụm ICT (Smart Money Concept): Order Blocks, Fair Value Gaps, và Session Killzones (Asian, London, NY).
+### Step 3: Feature Engineering
+Generates over **133 technical features** to help the AI understand the market.
+* **Momentum**: RSI, MACD, EMA.
+* **Structure**: Pivot points and Support/Resistance logic based on volume.
+* **ICT Concepts**: Order Blocks, Fair Value Gaps, and Session Killzones (Asian, London, New York).
 
 ```bash
 pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
 ```
-*Kết quả xuất ra thư mục*: `data/features/XAUUSD/1H/`
+*Output*: `data/features/XAUUSD/1H/`
 
 ---
 
-### Bước 4: Labeling (Gán nhãn)
-Chúng ta cần phải dạy cho Model biết "Sau cây nến này, giá sẽ lên hay xuống?".
-Labeling sử dụng **Band ATR** (ví dụ: ATR_14 * 0.5) để loại bỏ các vùng sideway "nhiễu".
+### Step 4: Label Generation (Defining the Target)
+The AI needs to know the correct answer for historical data. The label designates the expected price direction after `N` future candles using dynamic ATR-based thresholds (filtering out sideways noise).
 
-* **`+1`**: LONG (Giá trị sau đó tăng vượt kháng cự)
-* **`-1`**: SHORT (Giá trị sau đó sụt giảm thủng hỗ trợ)
-* **`0`**: NEUTRAL (Giá giậm chân tại chỗ đi ngang, bỏ qua trade)
+* **`+1`**: LONG (Price goes up)
+* **`-1`**: SHORT (Price goes down)
+* **`0`**: NEUTRAL (Sideways/Choppy)
 
 ```bash
-# Label tương lai của 5, 10, và 20 nến tiếp theo
+# Create target labels for 5, 10, and 20 candles into the future
 pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H --horizons 5 10 20
 ```
-*Kết quả xuất ra thư mục*: `data/labels/XAUUSD/1H/`
+*Output*: `data/labels/XAUUSD/1H/`
 
 ---
 
-## 3. Train Mô hình Machine Learning (AI)
+## 3. Train Machine Learning Models
 
-Sau khi có Label, chạy trực tiếp các tệp Machine Learnings sau, chúng sẽ tự động dò tìm Hyperparameters bằng **Optuna** và áp dụng TimeSeriesSplit (tránh việc "nhìn trộm tương lai" - Lookahead Bias):
+Now that the data is ready, you can train models to predict future price direction. Our pipelines leverage Time Series Splits and Optuna hyperparameter tuning to prevent lookahead bias.
 
 ```bash
-# Chế độ Baseline dễ dàng diễn giải nhưng giới hạn hiệu suất: KNN
+# 1. Train a Baseline KNN model
 pixi run python models/knn.py --symbol XAUUSD --tf 1H --label label_10 --k 10
 
-# Chế độ Deep Tree cực mạnh: XGBoost hoặc LightGBM
+# 2. Train XGBoost/LightGBM (Robust Gradient Boosting)
 pixi run python models/gradient_boost.py --symbol XAUUSD --tf 1H --label label_10 --backend xgb --trials 30
 
-# Chế độ Nhận diện Mẫu Dáng (Sequence) cho chuỗi nến: LSTM (PyTorch)
+# 3. Train LSTM (Deep Learning for sequential patterns)
 pixi run python models/lstm.py --symbol XAUUSD --tf 1H --label label_10 --epochs 50 --seq-len 50
 ```
 
-> **Làm sao để biết Model chạy tốt hay không?**
-> System tự động trích xuất các bức ảnh `Feature Importance` và bảng phân tích giá trị `SHAP Values` vào mục `models/saved/XAUUSD/1H/`. Nó sẽ chỉ cho bạn biết *Điều kiện gì khiến bot quyết định đó là lệnh Buy, điều kiện gì quyết định nó là lệnh Sell*.
+> **How do I know the model is learning?**
+> The `gradient_boost.py` script automatically exports `Feature Importance` and `SHAP values` plots in `outputs/models/`. These charts show exactly which technical conditions effectively triggered the AI's Buy or Sell decisions.
 
 ---
 
-## 4. Backtest & Vẽ biểu đồ hiệu suất (Evaluation)
+## 4. Backtesting and Evaluation
 
-Sau khi tạo mô hình, đưa dự đoán hoặc nhãn vào Backtester để giả lập Trade thực tế bằng luật Risk:Reward (Ví dụ Risk 1R, target Reward 1.5R).
-Hệ thống sẽ không in rối mắt mà xuất ra 3 tấm ảnh/biểu đồ tuyệt đẹp cất trong thư mục `reports/` để bạn xem thành quả.
+Once a model is trained, it's injected directly into the backtesting engine. The script simulates trades using clear Risk/Reward parameters (e.g., Risking 1R to make 1.5R) and calculates performance metrics.
 
-Để chạy giả lập cho 1 file data (Ví dụ tháng 02/2026), hãy gõ 1 lệnh duy nhất này vào Terminal:
+To run a simulation for a specific month (e.g., Feb 2026):
 
 ```bash
 pixi run python eval/run_eval.py --data data/labels/XAUUSD/1H/2026-02.parquet --label label_5 --tp 1.5 --sl 1.0
 ```
 
-Sau khi chạy xong, lệnh trên sẽ in ra Tổng số lệnh đã vào, Phần trăm thắng và Tỉ lệ rủi ro (Risk:Reward). Đồng thời, hãy đọc [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) để biết cách xem 3 file Biểu đồ tuyệt đẹp vừa được tạo ra ở thư mục `reports/`.
+After execution, it prints Total Trades, Win Rate, and Risk/Reward parameters to the terminal, and automatically generates visualizations inside the `outputs/reports/` folder. Please read [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) to understand how to read these charts.

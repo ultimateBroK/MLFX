@@ -1,19 +1,24 @@
 # TODO — ML_FX Development Plan
 
-Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-demo](../../../cryage-demo).
+Detailed development plan, deriving architectures from [cryage-demo](../../../cryage-demo).
 
-**Legend:** `[ ]` chưa làm · `[/]` đang làm · `[x]` hoàn thành
+**Legend:** `[ ]` Not Started · `[/]` In Progress · `[x]` Completed
 
 ---
 
 ## Phase 1 — Data Collection ✅
 
-- [x] Download tick XAUUSD từ Dukascopy (`download_gold.py`)
+- [x] Download tick XAUUSD from Dukascopy (`download_data.py`)
   - [x] Async aiohttp — 20 concurrent connections
   - [x] Parse `.bi5` binary → Polars DataFrame
-  - [x] Lưu Parquet theo tháng vào `data/raw/XAUUSD/`
-  - [x] State management qua `completed_months.json` (migrate từ `.complete`)
-  - [x] Tự động detect + repair missing hours
+  - [x] Save Parquet per month into `data/raw/XAUUSD/`
+  - [x] State management via `completed_months.json` (migrated from `.complete`)
+  - [x] Auto-detect + repair missing hours
+
+- [x] Data Quality Assurance (`pipeline/qa_data.py`)
+  - [x] Detect significant gaps and unexpected missing hours
+  - [x] Identify NaN values, negative prices, and negative spread outliers
+  - [x] Generate automated Markdown Quality Report (`{symbol}_Data_Quality_Report.md`)
 
 ---
 
@@ -24,13 +29,13 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
   - [x] `compute_killzone_pivots()` — session High/Low/Mid/Range via cum_max/min
   - [x] `compute_killzone_avg_range()` — rolling N-session avg range
   - [x] `compute_dwm_levels()` — Day/Week/Month open + prev H/L
-  - [x] `add_killzone_features()` — pipeline tổng hợp
+  - [x] `add_killzone_features()` — aggregated pipeline
 
 - [x] **Support/Resistance + Pivot Points** — `indicators/sr_pp.py`
-  - [x] `detect_sr_patterns()` — pattern r/r2/s/s2 với de-duplicate
+  - [x] `detect_sr_patterns()` — pattern r/r2/s/s2 with de-duplication
   - [x] `compute_sr_zones()` — zone tracking + role reversal
-  - [x] `compute_pivot_points()` — 6 types × 5 anchor TF với asof_join
-  - [x] `add_sr_pp_features()` — pipeline tổng hợp
+  - [x] `compute_pivot_points()` — 6 types × 5 anchor TF via asof_join
+  - [x] `add_sr_pp_features()` — aggregated pipeline
 
 ---
 
@@ -38,33 +43,33 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
 
 - [x] **Resample tick → OHLCV** — `pipeline/resample.py`
   - [x] Mid price: `(ask + bid) / 2`
-  - [x] Hỗ trợ TF: `1m`, `5m`, `15m`, `1H`, `4H`, `1D`
-  - [x] Xử lý gaps (weekend, market close) — `detect_gaps()`
-  - [x] Lưu vào `data/ohlcv/{symbol}/{tf}/`
+  - [x] Support TF: `1m`, `5m`, `15m`, `1H`, `4H`, `1D`
+  - [x] Handle gaps (weekend, market close) — `detect_gaps()`
+  - [x] Save to `data/ohlcv/{symbol}/{tf}/`
 
 - [x] **Feature pipeline** — `pipeline/features.py`
-  - [x] Gọi `add_killzone_features()` + `add_sr_pp_features()`
-  - [x] Thêm TA-Lib: RSI(14), MACD, ATR(14), EMA(20/50/200)
-  - [x] Thêm **Order Blocks** — `add_order_blocks()`
-  - [x] Thêm **Fair Value Gaps** — `add_fair_value_gaps()`
+  - [x] Call `add_killzone_features()` + `add_sr_pp_features()`
+  - [x] Add TA-Lib: RSI(14), MACD, ATR(14), EMA(20/50/200)
+  - [x] Add **Order Blocks** — `add_order_blocks()`
+  - [x] Add **Fair Value Gaps** — `add_fair_value_gaps()`
   - [x] Normalize + scale features — ATR-normalized distances
-  - [x] Lưu vào `data/features/{symbol}/{tf}/`
+  - [x] Save to `data/features/{symbol}/{tf}/`
 
-> **Học từ cryage-demo**: tách `indicator_calculation.py` và `ohlcv_ingestion.py` thành pipeline riêng biệt.
+> **Learned from cryage-demo**: separate `indicator_calculation.py` and `ohlcv_ingestion.py` into distinct pipelines.
 
 ---
 
 ## Phase 4 — Labeling & Training ✅
 
 - [x] **Labeling** — `pipeline/labels.py`
-  - [x] Target: hướng giá sau N nến (N = 5, 10, 20)
+  - [x] Target: price direction after N candles (N = 5, 10, 20)
   - [x] Classes: LONG (+1), SHORT (−1), NEUTRAL (0)
-  - [x] ATR-based threshold để tránh label noise
+  - [x] ATR-based threshold to avoid label noise
   - [x] Class balance check + stratified split
 
 - [x] **Baseline — KNN** — `models/knn.py`
   - [x] TimeSeriesSplit cross-validation
-  - [x] Lưu model + metrics
+  - [x] Save model + metrics
 
 - [x] **XGBoost / LightGBM** — `models/gradient_boost.py`
   - [x] Feature importance + SHAP values
@@ -83,8 +88,8 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
   - [x] Metrics: Sharpe, max drawdown, win rate, R:R
 
 - [x] **Visualization** — `viz/charts.py`
-  - [x] Biểu đồ nến + overlay S/R + killzone (Plotly)
-  - [x] Signal markers LONG/SHORT/NEUTRAL
+  - [x] Candlestick chart + S/R overlay + killzone (Plotly)
+  - [x] LONG/SHORT/NEUTRAL signal markers
   - [x] Equity curve + drawdown (Matplotlib)
   - [x] Feature importance heatmap (Seaborn)
 
@@ -92,109 +97,109 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
 
 ## Phase 6 — AI Agent (Agno 6-Step) 📋
 
-> **Kiến trúc học từ cryage-demo** — 6 bước triển khai Agno:
+> **Architecture learned from cryage-demo** — 6-step Agno implementation:
 
 ### Step 1 — LLM Provider
-- [ ] `agent/agent.py` — dùng `LMStudio(id=model_id)` làm LLM local
-  - [ ] Fallback sang OpenAI nếu LMStudio không có
+- [ ] `agent/agent.py` — use `LMStudio(id=model_id)` as local LLM
+  - [ ] Fallback to OpenAI if LMStudio is unavailable
 
 ### Step 2 — ReasoningTools
-- [ ] Thêm `ReasoningTools(add_instructions=True)` vào agent
-  - [ ] Giảm hallucination, agent suy luận từng bước
+- [ ] Add `ReasoningTools(add_instructions=True)` to agent
+  - [ ] Reduce hallucination, step-by-step reasoning for agent
 
 ### Step 3 — Knowledge + ChromaDB (RAG)
 - [ ] `agent/knowledge.py` — build `Knowledge` object
-  - [ ] ChromaDB collection `"ml_fx_patterns"` — lưu lịch sử tín hiệu + kết quả
-  - [ ] PatternService ghi, agent đọc qua `search_knowledge_base`
+  - [ ] ChromaDB collection `"ml_fx_patterns"` — store signal history + outcomes
+  - [ ] PatternService writes, agent reads via `search_knowledge_base`
 
 ### Step 4 — Toolkit (Tools)
 - [ ] `agent/toolkit.py` — subclass `agno.tools.Toolkit`
 
-  **Killzone tools** (dùng `indicator.killzone`):
-  - [ ] `get_killzone_status()` — gọi `add_session_flags()`, trả về session hiện tại
-    - Output: `{in_asia, in_london, in_nyam, in_nylunch, in_nypm}` + tên session active
-  - [ ] `get_killzone_levels(symbol, timeframe)` — gọi `compute_killzone_pivots()`
-    - Output: `kz_{name}_high/low/mid/range` cho mỗi session
-  - [ ] `get_killzone_avg_range(symbol, timeframe, n=5)` — gọi `compute_killzone_avg_range()`
-    - Output: `kz_{name}_avg_range` — range trung bình N phiên
-  - [ ] `get_dwm_levels(symbol)` — gọi `compute_dwm_levels()`
+  **Killzone tools** (using `indicator.killzone`):
+  - [ ] `get_killzone_status()` — calls `add_session_flags()`, returns current session
+    - Output: `{in_asia, in_london, in_nyam, in_nylunch, in_nypm}` + active session name
+  - [ ] `get_killzone_levels(symbol, timeframe)` — calls `compute_killzone_pivots()`
+    - Output: `kz_{name}_high/low/mid/range` for each session
+  - [ ] `get_killzone_avg_range(symbol, timeframe, n=5)` — calls `compute_killzone_avg_range()`
+    - Output: `kz_{name}_avg_range` — average range of N sessions
+  - [ ] `get_dwm_levels(symbol)` — calls `compute_dwm_levels()`
     - Output: `d_open/high/low`, `w_open/high/low`, `m_open/high/low`, `pd_high/low`, `pw_high/low`, `pm_high/low`
 
-  **S/R + Pivot tools** (dùng `indicator.sr_pp`):
-  - [ ] `get_sr_zones(symbol, timeframe)` — gọi `detect_sr_patterns()` + `compute_sr_zones()`
+  **S/R + Pivot tools** (using `indicator.sr_pp`):
+  - [ ] `get_sr_zones(symbol, timeframe)` — calls `detect_sr_patterns()` + `compute_sr_zones()`
     - Output: `nearest_resist_high/low`, `nearest_support_high/low`, `in_resist_zone`, `in_support_zone`, `sr_role_reversal`
-  - [ ] `get_pivot_levels(symbol, timeframe, pivot_type="traditional", anchor="daily")` — gọi `compute_pivot_points()`
+  - [ ] `get_pivot_levels(symbol, timeframe, pivot_type="traditional", anchor="daily")` — calls `compute_pivot_points()`
     - Output: `pp_p`, `pp_r1..r5`, `pp_s1..s5`, `pp_dist_to_p/r1/s1`, `pp_above_p`
-  - [ ] `get_sr_patterns(symbol, timeframe)` — gọi `detect_sr_patterns()`
+  - [ ] `get_sr_patterns(symbol, timeframe)` — calls `detect_sr_patterns()`
     - Output: `sr_resist_1bar`, `sr_resist_2bar`, `sr_support_1bar`, `sr_support_2bar`
 
   **ML + data tools**:
-  - [ ] `get_ohlcv(symbol, timeframe, limit=200)` — load + resample từ Parquet
-  - [ ] `get_ml_signal(symbol, timeframe)` — chạy full feature pipeline + trained model
+  - [ ] `get_ohlcv(symbol, timeframe, limit=200)` — load + resample from Parquet
+  - [ ] `get_ml_signal(symbol, timeframe)` — run full feature pipeline + trained model
     - Output: `{action: LONG/SHORT/NEUTRAL, confidence: 0–100, features_snapshot}`
 
 ### Step 5 — LearningMachine (Self-learning)
 - [ ] `agent/learning.py` — build `LearningMachine`
-  - [ ] ChromaDB collection `"ml_fx_learnings"` (tách khỏi patterns)
-  - [ ] `LearningMode.AGENTIC` — agent tự quyết định nhớ gì
-  - [ ] Agent học từ kết quả các tín hiệu đã ra
+  - [ ] ChromaDB collection `"ml_fx_learnings"` (separated from patterns)
+  - [ ] `LearningMode.AGENTIC` — agent decides what to learn
+  - [ ] Agent learns from the results of previous signals
 
 ### Step 6 — Skills (Domain Knowledge)
 
 - [ ] `agent/skills/ict-analysis/SKILL.md`
 
-  **ICT Killzone** (từ `killzone.py`):
-  - Uu tiên tín hiệu bên trong killzone: `in_london=True` hoặc `in_nyam=True`
-  - Killzone pivot: dùng `kz_{name}_high/low` làm S/R key — chờ retest trước khi vào lệnh
-  - `kz_{name}_avg_range`: nếu `kz_range < avg_range * 0.5` → session chưa mở, chờ thêm
-  - DWM levels: `pd_high/low` (PDH/PDL) là key level ICT cốt lõi; `pw_high/low` cho bias tuần
-  - Ngoài killzone và tín hiệu không rất mạnh (confidence > 85%) → HOLD
+  **ICT Killzone** (from `killzone.py`):
+  - Prioritize signals inside killzone: `in_london=True` or `in_nyam=True`
+  - Killzone pivot: use `kz_{name}_high/low` as key S/R — wait for retest before entering
+  - `kz_{name}_avg_range`: if `kz_range < avg_range * 0.5` → session not fully open, wait
+  - DWM levels: `pd_high/low` (PDH/PDL) are core ICT key levels; `pw_high/low` for weekly bias
+  - Outside killzone and signal not very strong (confidence < 85%) → HOLD
 
-  **S/R + Pivot** (từ `sr_pp.py`):
-  - Pattern `sr_resist_1bar / sr_support_1bar`: xác nhận sớm hơn 2-bar
-  - `sr_role_reversal = +1`: resistance đã thành support → tìm BUY khi giảm về vùng
-  - `sr_role_reversal = -1`: support đã thành resistance → tìm SELL khi tăng lên
-  - `in_resist_zone / in_support_zone`: giá đang trong vùng → entry risk cao, chờ thoát zone
-  - `dist_to_nearest_resist/support`: càng nhỏ càng gần mức kiểm tra
-  - Pivot P: ngưỡng trung lập ngày; `pp_above_p=True` → bullish bias
-  - R1/S1: mục TP1 tiêu chuẩn; R2/S2: mục TP2 aggresive
-  - Camarilla R3/S3: đảo chiều mạnh — nếu giá xuất hiện → sử dụng làm SL tight
+  **S/R + Pivot** (from `sr_pp.py`):
+  - Pattern `sr_resist_1bar / sr_support_1bar`: confirms earlier than 2-bar
+  - `sr_role_reversal = +1`: resistance became support → look for BUY when pulling back to zone
+  - `sr_role_reversal = -1`: support became resistance → look for SELL when pushing up
+  - `in_resist_zone / in_support_zone`: price is in zone → high entry risk, wait for breakout
+  - `dist_to_nearest_resist/support`: the smaller, the closer to the test level
+  - Pivot P: daily neutral threshold; `pp_above_p=True` → bullish bias
+  - R1/S1: standard TP1 targets; R2/S2: aggressive TP2 targets
+  - Camarilla R3/S3: strong reversal — if price reaches here → use as tight SL
 
   **Confidence scoring**:
-  - 1 layer đồng thuận → 30–45% → HOLD
-  - 2 layers + killzone active → 55–65% → weak signal
+  - 1 conformance layer → 30–45% → HOLD
+  - 2 layers + active killzone → 55–65% → weak signal
   - 3+ layers + killzone + S/R confluence → 70–85% → strong signal
-  - Tất cả (động lực + xu hướng + cấu trúc + context) → 85–95% → very strong
+  - All layers (momentum + trend + structure + context) → 85–95% → very strong
 
 - [ ] `agent/skills/risk-management/SKILL.md`
-  - Max risk: 1% portfolio / lệnh; không quá 3 lệnh cùng lúc
-  - SL BUY: dưới `nearest_support_low` hoặc `pp_s1`, tối đa 3% từ entry
-  - SL SELL: trên `nearest_resist_high` hoặc `pp_r1`, tối đa 3% từ entry
-  - TP1 BUY: `pp_r1`; TP2: `pp_r2`; R:R tối thiểu 1:2
-  - TP1 SELL: `pp_s1`; TP2: `pp_s2`; R:R tối thiểu 1:2
-  - Position size theo confidence: 60–69% → 0.5%; 70–79% → 0.75%; 80%+ → 1%
-  - Red flags → bỏ qua lệnh: ngoài killzone (điều kiện bất buộc trừ confidence > 85%),
-    `in_resist_zone / in_support_zone = True`, MTF mâu thuẫn (1H vs 4H)
+  - Max risk: 1% portfolio / trade; no more than 3 simultaneous open positions
+  - SL BUY: below `nearest_support_low` or `pp_s1`, max 3% from entry
+  - SL SELL: above `nearest_resist_high` or `pp_r1`, max 3% from entry
+  - TP1 BUY: `pp_r1`; TP2: `pp_r2`; minimum R:R of 1:2
+  - TP1 SELL: `pp_s1`; TP2: `pp_s2`; minimum R:R of 1:2
+  - Position size by confidence: 60–69% → 0.5%; 70–79% → 0.75%; 80%+ → 1%
+  - Red flags → skip trade: outside killzone (mandatory rule unless confidence > 85%),
+    `in_resist_zone / in_support_zone = True`, conflicting MTF (1H vs 4H)
 
 ### Decision Engine
 - [ ] `agent/decision_engine.py` — safety gate
   - [ ] **LLM mode**: `agent.run(prompt, output_schema=TradingDecision)` — Agno validates
-  - [ ] **Heuristic mode**: rule-based fallback khi LLM không có
+  - [ ] **Heuristic mode**: rule-based fallback when LLM is unavailable
   - [ ] Dataclass `Decision(action, pair, confidence, stop_loss, take_profit, source)`
-  - [ ] `should_execute(decision)` — gate: confidence ≥ 60% và action ≠ HOLD
-  - [ ] `SqliteDb("ml_fx_sessions.db")` — lưu lịch sử chat
+  - [ ] `should_execute(decision)` — gate: confidence ≥ 60% and action ≠ HOLD
+  - [ ] `SqliteDb("ml_fx_sessions.db")` — store chat history
 
 ### System Prompt
-- [ ] Phân tích 4 lớp (học từ cryage):
+- [ ] Analyze 4 layers (learned from cryage):
   1. **Momentum** — RSI, MACD, Stochastic
   2. **Trend** — EMA alignment, killzone highs/lows
   3. **Structure** — S/R zones, Pivot P/R1/S1
   4. **Context** — killzone session, MTF confluence
-- [ ] Confidence gate: < 60% → HOLD bất kể signals
+- [ ] Confidence gate: < 60% → HOLD regardless of signals
 
 ---
 
-## Phase 7 — Mở rộng 📋
+## Phase 7 — Expansion 📋
 
 - [ ] Multi-symbol: EURUSD, GBPUSD, BTCUSD, ETHUSD
 - [ ] Multi-timeframe confluence: MTF signal alignment
@@ -204,7 +209,7 @@ Kế hoạch phát triển chi tiết, học hỏi từ kiến trúc [cryage-dem
 
 ---
 
-## Kiến trúc thư mục đích đến
+## Target Directory Architecture
 
 ```
 ML_FX/
@@ -214,6 +219,7 @@ ML_FX/
 │   └── __init__.py
 ├── pipeline/           # ETL + labeling
 │   ├── download_data.py
+│   ├── qa_data.py      # Quality assurance reporter
 │   ├── resample.py
 │   ├── features.py
 │   └── labels.py
@@ -227,7 +233,7 @@ ML_FX/
 ├── viz/                # Visualization
 │   └── charts.py
 ├── agent/              # Agno agent (cryage pattern)
-│   ├── agent.py        # create_agent() — 6 bước
+│   ├── agent.py        # create_agent() — 6 steps
 │   ├── toolkit.py      # FXToolkit(Toolkit)
 │   ├── decision_engine.py
 │   ├── knowledge.py
@@ -245,7 +251,7 @@ ML_FX/
 │   ├── ohlcv/          # Resampled OHLCV
 │   ├── features/       # Feature DataFrames
 │   └── labels/         # Labeled datasets
-└── docs/               # Hệ thống tài liệu 
+└── docs/               # Documentation system 
     ├── NOOB_GUIDE.md          
     ├── USAGE_GUIDE.md         
     ├── TROUBLESHOOTING.md     
@@ -255,102 +261,102 @@ ML_FX/
 
 ---
 
-## Ghi chú kỹ thuật
+## Technical Notes
 
-| Thành phần      | Quyết định            | Lý do                                    |
+| Component       | Decision              | Reason                                   |
 | --------------- | --------------------- | ---------------------------------------- |
-| DataFrame       | **Polars**            | 10–100× nhanh hơn Pandas                 |
+| DataFrame       | **Polars**            | 10–100× faster than Pandas               |
 | Serialization   | **Parquet** (PyArrow) | Columnar, compressed                     |
 | Agent framework | **Agno**              | Native LMStudio, Skills, LearningMachine |
 | LLM             | **LM Studio** (local) | Free, offline, OpenAI compatible         |
-| Vector DB       | **ChromaDB**          | Tích hợp native Agno Knowledge           |
-| Session DB      | **SQLiteDb**          | Lưu lịch sử chat agent                   |
+| Vector DB       | **ChromaDB**          | Native integration with Agno Knowledge   |
+| Session DB      | **SQLiteDb**          | Store agent chat history                 |
 | Env manager     | **Pixi**              | conda-forge + pypi hybrid                |
 
 ---
 
-## 🧭 Hướng dẫn sử dụng Skills theo Phase
+## 🧭 Skill Usage Guide by Phase
 
-> Mỗi phase khi bắt đầu, AI agent đọc các skill tương ứng trước khi sinh code.
-> Cú pháp tham chiếu: `@skill:<tên-skill>` → đọc `SKILL.md` + resource liên quan.
+> At the start of each phase, the AI agent reads the corresponding skills before generating code.
+> Reference syntax: `@skill:<skill-name>` → read `SKILL.md` + related resources.
 
 ---
 
 ### Phase 1 — Data Collection ✅  
-> _Phase đã hoàn thành. Skills dùng để maintain hoặc mở rộng pipeline._
+> _Phase completed. Skills used for maintenance or pipeline expansion._
 
-| Skill                      | Resource cần đọc      | Áp dụng vào                                     |
-| -------------------------- | --------------------- | ----------------------------------------------- |
-| `@skill:aiohttp-async`     | `aiohttp-playbook.md` | Sửa/mở rộng `download_gold.py`                  |
-| `@skill:aiohttp-async`     | `combined-usecase.md` | Thêm data source mới (retry pattern, semaphore) |
-| `@skill:polars-dataframes` | `pyarrow-playbook.md` | Ghi Parquet theo tháng, schema enforcement      |
+| Skill                      | Resource to read      | Apply to                                       |
+| -------------------------- | --------------------- | ---------------------------------------------- |
+| `@skill:aiohttp-async`     | `aiohttp-playbook.md` | Fix/expand `download_data.py`                  |
+| `@skill:aiohttp-async`     | `combined-usecase.md` | Add new data source (retry pattern, semaphore) |
+| `@skill:polars-dataframes` | `pyarrow-playbook.md` | Write Parquet by month, schema enforcement     |
 
-**Checklist khi dùng skills:**
-- [ ] Đọc `aiohttp-playbook.md` → section "Bounded Concurrency" để calibrate `MAX_CONC`
-- [ ] Đọc `pyarrow-playbook.md` → section "Writing Partitioned Parquet" để giữ nhất quán schema
+**Checklist when using skills:**
+- [ ] Read `aiohttp-playbook.md` → "Bounded Concurrency" section to calibrate `MAX_CONC`
+- [ ] Read `pyarrow-playbook.md` → "Writing Partitioned Parquet" section to maintain schema consistency
 
 ---
 
 ### Phase 2 — Feature Engineering ✅  
-> _Phase đã hoàn thành. Skills dùng khi thêm indicator mới._
+> _Phase completed. Skills used when adding new indicators._
 
-| Skill                      | Resource cần đọc      | Áp dụng vào                                        |
-| -------------------------- | --------------------- | -------------------------------------------------- |
-| `@skill:polars-dataframes` | `polars-playbook.md`  | Viết `with_columns`, rolling, join trong indicator |
-| `@skill:talib-indicators`  | `talib-playbook.md`   | Thêm candlestick pattern detection                 |
-| `@skill:talib-indicators`  | `combined-usecase.md` | Build feature vector từ multi-indicator            |
+| Skill                      | Resource to read      | Apply to                                         |
+| -------------------------- | --------------------- | ------------------------------------------------ |
+| `@skill:polars-dataframes` | `polars-playbook.md`  | Write `with_columns`, rolling, join in indicator |
+| `@skill:talib-indicators`  | `talib-playbook.md`   | Add candlestick pattern detection                |
+| `@skill:talib-indicators`  | `combined-usecase.md` | Build feature vector from multi-indicator        |
 
-**Checklist khi dùng skills:**
-- [ ] Đọc `polars-playbook.md` → "Expressions Over Python Loops" → **không dùng `.apply()`**
-- [ ] Đọc `talib-playbook.md` → "Lookback Alignment" → xử lý NaN trước khi join với OHLCV frame
+**Checklist when using skills:**
+- [ ] Read `polars-playbook.md` → "Expressions Over Python Loops" → **do not use `.apply()`**
+- [ ] Read `talib-playbook.md` → "Lookback Alignment" → handle NaN before joining with OHLCV frame
 
 ---
 
-### Phase 3 — ETL Pipeline 📋 ← **CẦN LÀM TIẾP**
+### Phase 3 — ETL Pipeline 📋 ← **UP NEXT**
 
-| Skill                       | Resource cần đọc      | Áp dụng vào                                    |
-| --------------------------- | --------------------- | ---------------------------------------------- |
-| `@skill:polars-dataframes`  | `polars-playbook.md`  | `pipeline/resample.py` — `group_by_dynamic()`  |
-| `@skill:polars-dataframes`  | `pyarrow-playbook.md` | Ghi OHLCV ra `data/ohlcv/{symbol}/{tf}/`       |
-| `@skill:polars-dataframes`  | `combined-usecase.md` | End-to-end: tick → OHLCV → validate → save     |
-| `@skill:talib-indicators`   | `talib-playbook.md`   | `pipeline/features.py` — RSI, MACD, ATR, EMA   |
-| `@skill:questdb-timeseries` | `questdb-playbook.md` | Lưu features vào QuestDB thay vì Parquet thuần |
+| Skill                       | Resource to read      | Apply to                                        |
+| --------------------------- | --------------------- | ----------------------------------------------- |
+| `@skill:polars-dataframes`  | `polars-playbook.md`  | `pipeline/resample.py` — `group_by_dynamic()`   |
+| `@skill:polars-dataframes`  | `pyarrow-playbook.md` | Write OHLCV to `data/ohlcv/{symbol}/{tf}/`      |
+| `@skill:polars-dataframes`  | `combined-usecase.md` | End-to-end: tick → OHLCV → validate → save      |
+| `@skill:talib-indicators`   | `talib-playbook.md`   | `pipeline/features.py` — RSI, MACD, ATR, EMA    |
+| `@skill:questdb-timeseries` | `questdb-playbook.md` | Save features to QuestDB instead of raw Parquet |
 
-**Thứ tự đọc skills khi implement Phase 3:**
+**Reading order of skills for Phase 3 implementation:**
 ```
-1. polars-dataframes/resources/combined-usecase.md    ← blueprint tổng thể
+1. polars-dataframes/resources/combined-usecase.md    ← overall blueprint
 2. polars-dataframes/resources/polars-playbook.md     ← resample.py
 3. polars-dataframes/resources/pyarrow-playbook.md    ← write partitioned Parquet
 4. talib-indicators/resources/talib-playbook.md       ← features.py
-5. talib-indicators/resources/combined-usecase.md     ← feature matrix đầy đủ
+5. talib-indicators/resources/combined-usecase.md     ← full feature matrix
 ```
 
-**Files cần tạo:**
-- `pipeline/resample.py` → dùng `group_by_dynamic()` từ polars-playbook
-- `pipeline/features.py` → dùng `add_ta_column()` pattern từ talib-playbook
+**Files to create:**
+- `pipeline/resample.py` → use `group_by_dynamic()` from polars-playbook
+- `pipeline/features.py` → use `add_ta_column()` pattern from talib-playbook
 
 ---
 
 ### Phase 4 — Labeling & Training 📋
 
-| Skill                      | Resource cần đọc      | Áp dụng vào                                     |
-| -------------------------- | --------------------- | ----------------------------------------------- |
-| `@skill:polars-dataframes` | `polars-playbook.md`  | `pipeline/labels.py` — shift/lead để tạo target |
-| `@skill:talib-indicators`  | `combined-usecase.md` | Dùng feature matrix làm đầu vào KNN/XGBoost     |
-| `@skill:pytest-ml-fx`      | `pytest-playbook.md`  | Test labeling với parametrize edge cases        |
-| `@skill:financial-charts`  | `seaborn-playbook.md` | Visualize class balance, feature correlation    |
+| Skill                      | Resource to read      | Apply to                                           |
+| -------------------------- | --------------------- | -------------------------------------------------- |
+| `@skill:polars-dataframes` | `polars-playbook.md`  | `pipeline/labels.py` — shift/lead to create target |
+| `@skill:talib-indicators`  | `combined-usecase.md` | Use feature matrix as input for KNN/XGBoost        |
+| `@skill:pytest-ml-fx`      | `pytest-playbook.md`  | Test labeling with parametrize edge cases          |
+| `@skill:financial-charts`  | `seaborn-playbook.md` | Visualize class balance, feature correlation       |
 
-**Thứ tự đọc skills khi implement Phase 4:**
+**Reading order of skills for Phase 4 implementation:**
 ```
-1. talib-indicators/resources/combined-usecase.md     ← hiểu feature matrix input
-2. polars-dataframes/resources/polars-playbook.md     ← shift() để tạo label N-bar ahead
+1. talib-indicators/resources/combined-usecase.md     ← understand feature matrix input
+2. polars-dataframes/resources/polars-playbook.md     ← shift() to create label N-bar ahead
 3. pytest-ml-fx/resources/pytest-playbook.md          ← test labels + model outputs
 4. financial-charts/resources/seaborn-playbook.md     ← plot_indicator_correlation()
 ```
 
-**Pattern labeling với Polars:**
+**Pattern labeling with Polars:**
 ```python
-# Trong pipeline/labels.py
+# In pipeline/labels.py
 df = df.with_columns([
     pl.col("close").shift(-N).alias(f"close_ahead_{N}"),
 ]).with_columns([
@@ -367,122 +373,122 @@ df = df.with_columns([
 
 ### Phase 5 — Evaluation & Visualization 📋
 
-| Skill                       | Resource cần đọc         | Áp dụng vào                                          |
+| Skill                       | Resource to read         | Apply to                                             |
 | --------------------------- | ------------------------ | ---------------------------------------------------- |
 | `@skill:financial-charts`   | `plotly-playbook.md`     | `viz/charts.py` — candlestick + S/R + signal markers |
 | `@skill:financial-charts`   | `matplotlib-playbook.md` | Equity curve + drawdown panel                        |
 | `@skill:financial-charts`   | `seaborn-playbook.md`    | Session heatmap, return distribution                 |
-| `@skill:financial-charts`   | `combined-usecase.md`    | **Full backtest report trong 1 script**              |
-| `@skill:questdb-timeseries` | `combined-usecase.md`    | Query walk-forward windows từ QuestDB                |
+| `@skill:financial-charts`   | `combined-usecase.md`    | **Full backtest report in 1 script**                 |
+| `@skill:questdb-timeseries` | `combined-usecase.md`    | Query walk-forward windows from QuestDB              |
 
-**Thứ tự đọc skills khi implement Phase 5:**
+**Reading order of skills for Phase 5 implementation:**
 ```
-1. financial-charts/resources/combined-usecase.md     ← template backtest report đầy đủ
+1. financial-charts/resources/combined-usecase.md     ← full backtest report template
 2. financial-charts/resources/plotly-playbook.md      ← add_sr_overlays(), shade_killzones()
 3. financial-charts/resources/matplotlib-playbook.md  ← plot_equity_curve()
 4. financial-charts/resources/seaborn-playbook.md     ← plot_session_heatmap()
 ```
 
-**Files cần tạo:**
-- `viz/charts.py` → copy pattern từ `financial-charts/combined-usecase.md`
-- `eval/backtest.py` → query từ QuestDB (xem `questdb-playbook.md` → "ASOF JOIN")
+**Files to create:**
+- `viz/charts.py` → copy pattern from `financial-charts/combined-usecase.md`
+- `eval/backtest.py` → query from QuestDB (see `questdb-playbook.md` → "ASOF JOIN")
 
 ---
 
 ### Phase 6 — AI Agent (Agno 6-Step) 📋
 
-> Phase quan trọng nhất — mỗi step tương ứng một hoặc nhiều skills.
+> The most critical phase — each step corresponds to one or more skills.
 
 #### Step 1 — LLM Provider (`agent/agent.py`)
 
-| Skill                    | Resource cần đọc       | Áp dụng vào                               |
+| Skill                    | Resource to read       | Apply to                                  |
 | ------------------------ | ---------------------- | ----------------------------------------- |
 | `@skill:openai-lmstudio` | `lmstudio-playbook.md` | Config `LMStudio(id=model_id)` local      |
 | `@skill:openai-lmstudio` | `openai-playbook.md`   | Fallback OpenAI async client              |
 | `@skill:openai-lmstudio` | `combined-usecase.md`  | **Provider router** — route by complexity |
 
 ```
-Đọc: openai-lmstudio/resources/combined-usecase.md → copy `routed_chat()` function
+Read: openai-lmstudio/resources/combined-usecase.md → copy `routed_chat()` function
 ```
 
 #### Step 2 — ReasoningTools
 
-> `ReasoningTools` là Agno built-in — xem `agno-playbook.md` section "Agent Setup".
+> `ReasoningTools` is Agno built-in — see `agno-playbook.md` section "Agent Setup".
 ```
-Đọc: agno-agent/resources/agno-playbook.md → section "Agent Setup"
+Read: agno-agent/resources/agno-playbook.md → section "Agent Setup"
 ```
 
 #### Step 3 — Knowledge + ChromaDB (`agent/knowledge.py`)
 
-| Skill                    | Resource cần đọc       | Áp dụng vào                                          |
+| Skill                    | Resource to read       | Apply to                                             |
 | ------------------------ | ---------------------- | ---------------------------------------------------- |
 | `@skill:chromadb-vector` | `chromadb-playbook.md` | Setup persistent client, collection `ml_fx_patterns` |
 | `@skill:chromadb-vector` | `combined-usecase.md`  | Store signal + retrieve similar historical setups    |
 
 ```
-Đọc: chromadb-vector/resources/chromadb-playbook.md → "Collection Management" + "Storing Trade Signals"
-Đọc: chromadb-vector/resources/combined-usecase.md  → blueprint PatternService
+Read: chromadb-vector/resources/chromadb-playbook.md → "Collection Management" + "Storing Trade Signals"
+Read: chromadb-vector/resources/combined-usecase.md  → blueprint PatternService
 ```
 
 #### Step 4 — Toolkit (`agent/toolkit.py`)
 
-| Skill                       | Resource cần đọc      | Áp dụng vào                                               |
-| --------------------------- | --------------------- | --------------------------------------------------------- |
-| `@skill:agno-agent`         | `agno-playbook.md`    | `@tool` decorator, async tool pattern, error handling     |
-| `@skill:agno-agent`         | `combined-usecase.md` | **Full toolkit example** với killzone + S/R + OHLCV tools |
-| `@skill:questdb-timeseries` | `questdb-playbook.md` | `get_ohlcv()` tool — query QuestDB → Polars               |
-| `@skill:talib-indicators`   | `combined-usecase.md` | `get_ml_signal()` — feature pipeline trong tool           |
+| Skill                       | Resource to read      | Apply to                                                   |
+| --------------------------- | --------------------- | ---------------------------------------------------------- |
+| `@skill:agno-agent`         | `agno-playbook.md`    | `@tool` decorator, async tool pattern, error handling      |
+| `@skill:agno-agent`         | `combined-usecase.md` | **Full toolkit example** with killzone + S/R + OHLCV tools |
+| `@skill:questdb-timeseries` | `questdb-playbook.md` | `get_ohlcv()` tool — query QuestDB → Polars                |
+| `@skill:talib-indicators`   | `combined-usecase.md` | `get_ml_signal()` — feature pipeline within tool           |
 
 ```
-Thứ tự:
-1. agno-agent/resources/combined-usecase.md      ← blueprint toàn bộ toolkit
-2. agno-agent/resources/agno-playbook.md         ← pattern @tool + error handling
+Order:
+1. agno-agent/resources/combined-usecase.md      ← blueprint entire toolkit
+2. agno-agent/resources/agno-playbook.md         ← @tool pattern + error handling
 3. questdb-timeseries/resources/questdb-playbook.md ← get_ohlcv() implementation
 4. talib-indicators/resources/combined-usecase.md   ← get_ml_signal() feature matrix
 ```
 
 #### Step 5 — LearningMachine (`agent/learning.py`)
 
-| Skill                    | Resource cần đọc       | Áp dụng vào                                    |
+| Skill                    | Resource to read       | Apply to                                       |
 | ------------------------ | ---------------------- | ---------------------------------------------- |
-| `@skill:chromadb-vector` | `chromadb-playbook.md` | Collection `ml_fx_learnings` riêng biệt        |
-| `@skill:chromadb-vector` | `combined-usecase.md`  | `update_signal_outcome()` — sau khi trade đóng |
+| `@skill:chromadb-vector` | `chromadb-playbook.md` | Separate `ml_fx_learnings` collection          |
+| `@skill:chromadb-vector` | `combined-usecase.md`  | `update_signal_outcome()` — after trade closes |
 
 ```
-Đọc: chromadb-vector/resources/chromadb-playbook.md → "Updating an Existing Signal (Add Outcome)"
+Read: chromadb-vector/resources/chromadb-playbook.md → "Updating an Existing Signal (Add Outcome)"
 ```
 
 #### Step 6 — Skills (`agent/skills/`)
 
-> Các file `SKILL.md` trong `agent/skills/` đã được define ở Phase 2 và TODO trên.
-> Xem nội dung cụ thể tại TODO Phase 6 → Step 6 → sections ICT + Risk Management.
+> `SKILL.md` files in `agent/skills/` have been defined in Phase 2 and the TODO above.
+> See specific contents in TODO Phase 6 → Step 6 → ICT + Risk Management sections.
 
 ---
 
-### Phase 7 — Mở rộng 📋
+### Phase 7 — Expansion 📋
 
-| Skill                      | Resource cần đọc      | Áp dụng vào                                |
-| -------------------------- | --------------------- | ------------------------------------------ |
-| `@skill:polars-dataframes` | `polars-playbook.md`  | Multi-symbol: thêm EURUSD, BTCUSD pipeline |
-| `@skill:aiohttp-async`     | `aiohttp-playbook.md` | Download data cho symbol mới               |
-| `@skill:financial-charts`  | `plotly-playbook.md`  | Monitoring dashboard (Plotly Dash base)    |
-| `@skill:pytest-ml-fx`      | `combined-usecase.md` | Extend test suite cho multi-symbol         |
+| Skill                      | Resource to read      | Apply to                                  |
+| -------------------------- | --------------------- | ----------------------------------------- |
+| `@skill:polars-dataframes` | `polars-playbook.md`  | Multi-symbol: add EURUSD, BTCUSD pipeline |
+| `@skill:aiohttp-async`     | `aiohttp-playbook.md` | Download data for new symbols             |
+| `@skill:financial-charts`  | `plotly-playbook.md`  | Monitoring dashboard (Plotly Dash base)   |
+| `@skill:pytest-ml-fx`      | `combined-usecase.md` | Extend test suite for multi-symbol        |
 
 ---
 
 ## 📋 Skill Quick Reference
 
-> Bảng tra nhanh: task → skill cần dùng.
+> Quick lookup table: task → required skill.
 
-| Task                  | Skill chính          | Resource ưu tiên       |
+| Task                  | Main Skill           | Priority Resource      |
 | --------------------- | -------------------- | ---------------------- |
-| Đọc/ghi Parquet       | `polars-dataframes`  | `pyarrow-playbook.md`  |
+| Read/write Parquet    | `polars-dataframes`  | `pyarrow-playbook.md`  |
 | Resample tick → OHLCV | `polars-dataframes`  | `polars-playbook.md`   |
 | Download Dukascopy    | `aiohttp-async`      | `aiohttp-playbook.md`  |
-| Tính RSI/MACD/ATR     | `talib-indicators`   | `talib-playbook.md`    |
-| Lưu/query QuestDB     | `questdb-timeseries` | `questdb-playbook.md`  |
+| Calculate RSI/MACD... | `talib-indicators`   | `talib-playbook.md`    |
+| Save/query QuestDB    | `questdb-timeseries` | `questdb-playbook.md`  |
 | Build agent + tools   | `agno-agent`         | `combined-usecase.md`  |
 | Vector memory         | `chromadb-vector`    | `chromadb-playbook.md` |
 | LLM provider          | `openai-lmstudio`    | `combined-usecase.md`  |
 | Chart / dashboard     | `financial-charts`   | `combined-usecase.md`  |
-| Viết test             | `pytest-ml-fx`       | `pytest-playbook.md`   |
+| Write tests           | `pytest-ml-fx`       | `pytest-playbook.md`   |

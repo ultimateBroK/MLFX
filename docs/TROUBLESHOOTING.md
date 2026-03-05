@@ -1,43 +1,47 @@
-# Sổ Tay Cấp Cứu (Troubleshooting)
+# Troubleshooting Guide
 
-Hệ thống thi thoảng sẽ có những trục trặc nho nhỏ do môi trường hoặc dữ liệu. Nếu bạn gõ lệnh mà bị lỗi màu đỏ đỏ, hãy bình tĩnh tìm cách giải quyết ở đây.
+Occasionally, you might encounter issues due to environment setup or memory limits. If you see red errors in your terminal, check this guide for a quick fix.
 
 ---
 
-### 🚨 Lỗi 1: `pixi: command not found`
-*   **Hiện tượng**: Gõ bất kì lệnh `pixi ...` nào máy cũng báo lỗi không hiểu.
-*   **Nguyên nhân**: Do bạn chưa cài Pixi, hoặc cài rồi nhưng chưa reset lại Terminal.
-*   **Cách sửa**: 
-    1. Làm theo bước cài đặt ở phần 1 trong [USAGE_GUIDE](USAGE_GUIDE.md).
-    2. Đóng hẳn phần mềm Terminal/VSCode lại và mở lên lại.
+### 🚨 Error 1: `pixi: command not found`
+*   **Symptom**: The terminal throws an error when you try to run any `pixi` command.
+*   **Cause**: Pixi is not installed, or your terminal hasn't been restarted since installation.
+*   **Fix**: 
+    1. Follow the installation steps closely in the [Usage Guide](USAGE_GUIDE.md).
+    2. Close your Terminal or VSCode completely and open it again.
 
-### 🚨 Lỗi 2: Báo thiếu Package (Ví dụ: `ModuleNotFoundError: No module named 'xgboost'`)
-*   **Nguyên nhân**: Môi trường dự án chưa cài đủ thư viện. Có thể ai đó vừa thêm thu viện mới mà bạn quên update.
-*   **Cách sửa**: Chạy đúng 1 lệnh để đồng bộ lại:
+### 🚨 Error 2: Missing Package (`ModuleNotFoundError`)
+*   **Symptom**: You see errors like `ModuleNotFoundError: No module named 'xgboost'`.
+*   **Cause**: Your environment hasn't installed all necessary project libraries.
+*   **Fix**: Run this command to sync your environment:
     ```bash
     pixi install
     ```
 
-### 🚨 Lỗi 3: `SystemExit: No feature files found for XAUUSD` (Lỗi Không Tìm Thấy File)
-*   **Hiện tượng**: Khi bạn chạy lệnh Label (Bước 4) hoặc lệnh Train AI nhưng lại bị văng lỗi không tìm thấy File hoặc `DataFrame is empty`.
-*   **Nguyên nhân**: Bạn nhảy cóc! Bạn chạy Bước 4 trong khi chưa chạy Bước 2 (Resample) hoặc Bước 3 (Tạo Features).
-*   **Cách sửa**: Làm từ tốn theo thứ tự ở [USAGE_GUIDE](USAGE_GUIDE.md). Phải tạo data thô -> tạo Nến -> tạo Feature -> rồi mới Label.
+### 🚨 Error 3: File Not Found Errors (`SystemExit: No feature files found`)
+*   **Symptom**: You trigger a labeling or training script, and it complains about missing files or empty DataFrames.
+*   **Cause**: You skipped a step. For example, you tried to generate labels without first generating features.
+*   **Fix**: Follow the pipeline steps in strict order as defined in the [Usage Guide](USAGE_GUIDE.md): Download Data -> Resample Candles -> Generate Features -> Label.
 
-### 🚨 Lỗi 4: Máy tính hết RAM, đứng máy (Out Of Memory / Killed)
-*   **Nguyên nhân**: Bạn đang làm sai thao tác khi đọc dữ liệu Vàng 10 năm. Đừng bao giờ gom 135 file `.parquet` thành 1 cục duy nhất để Load vô RAM. Nó nặng tới 20GB.
-*   **Cách sửa**: Luôn sử dụng lệnh `scan_parquet` của Polars để xử lý dữ liệu cuộn (Lazy Evaluation) thay vì `read_parquet` thông thường. Xem cách đọc chuẩn ở `EVALUATION_GUIDE.md`.
+### 🚨 Error 4: Out Of Memory (OOM) / Crashes
+*   **Symptom**: Your computer runs out of RAM and kills the script.
+*   **Cause**: You might be trying to load all 10+ years of raw `.parquet` tick data into memory at once, which can exceed 20GB.
+*   **Fix**: Always use Polars' `scan_parquet()` (Lazy Evaluation) to process data in chunks without overloading RAM, rather than `read_parquet()`.
 
-### 🚨 Lỗi 5: Đang Download từ Dukascopy thì bị đứng im, rớt mạng
-*   **Hiện tượng**: Đang chạy `download_gold.py` tới năm 2018 thì rớt mạng tắt ngang.
-*   **Cách sửa**: Yên tâm, hệ thống có lưu tiến trình tải ở log (file `completed_months.json`). Cứ bật lại lệnh `pixi run python pipeline/download_gold.py`, nó sẽ tự nhận diện các tháng đã tải và tiếp tục ở đoạn bị đứt.
+### 🚨 Error 5: Download randomly freezes or network drops
+*   **Symptom**: `download_data.py` stops running halfway through downloading historical data.
+*   **Fix**: The script automatically tracks progress in `completed_months.json`. Simply rerun `pixi run python pipeline/download_data.py`, and it will resume exactly from where it left off.
 
 ---
 
-### 💡 Bí kíp Reset lại từ đầu: Dọn dẹp Dữ Lệu "Cứng"
-Nếu bạn lỡ tay xóa bậy, chỉnh sửa bậy làm data hỏng, hãy dọn sạch các file do code sinh ra và làm lại pipeline từ đầu. Gõ lệnh:
+### 💡 Quick Tip: Performing a Clean Reset
+If you accidentally modified pipeline scripts and generated corrupted data files, you can easily delete your generated caches and start fresh without losing the original raw tick data.
 
 ```bash
-# Lệnh này sẽ XÓA TOÀN BỘ dữ liệu nến, feature, nhãn đã làm. (Giữ lại data TICK gốc để khỏi mất công download).
+# This cleans all generated candles, features, and labels.
+# It safely keeps raw TICK data intact so you don't have to download it again.
 rm -rf data/ohlcv/* data/features/* data/labels/*
-# Sau đó làm lại Bước 2, Bước 3, Bước 4.
+
+# Afterwards, safely re-run the Resampling, Features, and Labeling scripts.
 ```
