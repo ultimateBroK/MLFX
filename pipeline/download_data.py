@@ -13,7 +13,7 @@ import os
 import random
 import struct
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import aiohttp
 import polars as pl
@@ -95,7 +95,9 @@ def parse_hour(
     """Decode raw bi5 bytes → Polars DataFrame with timestamp_ms column."""
     if not raw:
         return None
-    base_ms = int(datetime(year, month, day, hour).timestamp() * 1000)
+    base_ms = int(
+        datetime(year, month, day, hour, tzinfo=timezone.utc).timestamp() * 1000
+    )
     chunk = 20
     records = [
         (
@@ -215,14 +217,14 @@ async def _fetch_hours_async(slots: list, month: int) -> tuple[list, int]:
     return frames, timed_out
 
 
-def fetch_hours(slots: list, month: int) -> list:
-    """Public sync interface. Runs async fetch under the hood."""
+def fetch_hours(slots: list, month: int) -> tuple[list, int]:
+    """Public sync interface. Runs async fetch under the hood. Returns (frames, timed_out)."""
     if not slots:
-        return []
+        return [], 0
     frames, timed_out = asyncio.run(_fetch_hours_async(slots, month))
     if timed_out:
         print(f"  ⚠ {timed_out} hours timed out (will retry on next run)", flush=True)
-    return frames
+    return frames, timed_out
 
 
 # ── Slot helpers ──────────────────────────────────────────────────────────────
@@ -295,7 +297,7 @@ def repair_month(year: int, month: int, file_path: str) -> tuple[int, int]:
         return len(df), 0
 
     print(f"  → {len(missing)} weekday-hour slots missing, fetching...", flush=True)
-    new_frames = fetch_hours(missing, month)
+    new_frames, _ = fetch_hours(missing, month)
 
     if new_frames:
         added = sum(len(f) for f in new_frames)
@@ -429,7 +431,7 @@ def main():
 
             # ── Not on disk → fresh download ────────────────────────────────
             print(f"Download {key} ...", end=" ", flush=True)
-            frames = fetch_hours(all_slots(year, month), month)
+            frames, timed_out = fetch_hours(all_slots(year, month), month)
             if frames:
                 df = to_datetime_df(pl.concat(frames).sort("timestamp_ms"))
                 df.write_parquet(file_path)
@@ -439,7 +441,7 @@ def main():
 
             if is_past:
                 rows = len(df) if frames else 0
-                state[key] = {"rows": rows, "missing_hours": 0}
+                state[key] = {"rows": rows, "missing_hours": timed_out}
                 save_state(state)
 
 

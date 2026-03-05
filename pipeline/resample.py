@@ -63,7 +63,7 @@ def resample_to_ohlcv(
 
     Returns:
         OHLCV DataFrame with columns:
-            timestamp, open, high, low, close, tick_count
+            timestamp, open, high, low, close, volume, tick_count
     """
     if tick_df.is_empty():
         return pl.DataFrame(
@@ -73,6 +73,7 @@ def resample_to_ohlcv(
                 "high": pl.Float64,
                 "low": pl.Float64,
                 "close": pl.Float64,
+                "volume": pl.Float64,
                 "tick_count": pl.Int32,
             }
         )
@@ -88,6 +89,9 @@ def resample_to_ohlcv(
                 mid.max().alias("high"),
                 mid.min().alias("low"),
                 mid.last().alias("close"),
+                ((pl.col("ask_volume") + pl.col("bid_volume")) / 2)
+                .sum()
+                .alias("volume"),
                 pl.len().cast(pl.Int32).alias("tick_count"),
             ]
         )
