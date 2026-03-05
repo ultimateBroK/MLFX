@@ -1,49 +1,49 @@
-# System Anatomy: A Guide for Beginners 🧠
+# Cấu phẫu Hệ thống: Hướng dẫn cho Người Mới 🧠
 
-Welcome! Instead of confusing you with dense code immediately, this document explains **how the bot works behind the scenes**. By understanding the big picture, you'll have an easier time navigating the project.
+Chào mừng! Thay vì làm bạn bối rối với dòng mã dày đặc ngay lập tức, tài liệu này giải thích **cách bot hoạt động ở hậu trường**. Bằng cách hiểu bức tranh toàn cảnh, bạn sẽ dễ dàng làm chủ dự án hơn.
 
-Think of building an AI trading bot like refining raw coffee beans into a perfect espresso. It requires a structured 4-step Data Pipeline.
-
----
-
-## 🔧 The 4 Core Stages
-
-### 1️⃣ Raw Data Extraction (Ticks to Candles)
-The market records data using "Ticks" (every single price change). Computers can't easily learn from raw ticks because there's too much noise.
-The `resample.py` script compacts millions of these raw ticks into structured Candlesticks (like 1 Hour, 5 Minute, or 15 Minute charts).
-
-### 2️⃣ Feature Engineering (Giving the AI context)
-If you just give an AI a bunch of green and red candles, it doesn't know where the tops or bottoms are.
-The `features.py` script calculates and attaches over 133 technical indicators to these candles. 
-*   **Example:** A specific candle might now have a tag that says "RSI is 30 (oversold)" or "Price is 5 pips away from last week's support." This gives the AI the context it needs to see the market properly.
-
-### 3️⃣ Labeling (Grading the Exam)
-To train an AI, you have to give it a historical test where the "answers" are already filled in. 
-The `labels.py` script peeks into the future. If it sees that Gold's price shot up over the next 10 candles, it marks the current candle with a `"LONG"` label. It repeats this process across billions of candles over a 10-year history.
-
-### 4️⃣ Machine Learning (Finding the Patterns)
-Now the magic happens. We feed all this data (Features + Labels) into a Machine Learning model like XGBoost or an LSTM network.
-The AI scans the data and figures out the underlying rules:
-> *"Aha! I've noticed that whenever MACD crosses up AND RSI touches 30 AND we are in the London session... the chance of a successful LONG trade is 70%!"*
-
-### 5️⃣ Backtesting (The Practice Run)
-You never deploy a brand new AI directly to live trading. 
-We use the `backtest.py` simulation engine to force the AI to trade historical data blindly, observing strict Risk Management rules (e.g., risking $100 to make $150). 
-When the simulation finishes, it provides a full report showing its Win Rate and an Equity Curve (a chart showing wealth progression). 
-
-Check out [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) to learn how to read these backtest reports.
+Hãy nghĩ việc tạo ra một bot giao dịch AI giống như chế biến hạt cà phê thô thành một ly espresso hoàn hảo. Nó yêu cầu một Đường ống Dữ liệu (Data Pipeline) cấu trúc 4 bước.
 
 ---
 
-## 🎯 Essential Mindsets for ML_FX
+## 🔧 4 Giai Đoạn Lõi
 
-If you're just getting started, here are a few things to keep in mind:
+### 1️⃣ Trích Xuất Dữ Liệu Thô (Từ Tick sang Nến)
+Thị trường ghi lại dữ liệu bằng các "Tick" (mọi biến động giá đơn lẻ). Máy tính không thể học dễ dàng từ dữ liệu tick thô này bởi có quá nhiều độ nhiễu.
+Tệp lệnh `resample.py` nén lại hàng triệu dữ liệu tick thô thành dữ liệu cấu trúc gọi là Nến - Candlesticks (như nến 1 Giờ, 5 Phút, hoặc 15 Phút).
 
-1. **The Bot is NOT a Crystal Ball:** The AI doesn't predict the future flawlessly. It strictly operates on probability. It finds historical patterns with high win rates and relies on strict Stop Losses and Take Profits to handle the inevitable losing trades.
-2. **Follow the Exact Sequence:** The pipeline must be run in order: **Data -> Candles -> Features -> Labels -> Train**. Trying to train the AI before calculating its features will result in immediate "File Missing" errors. Check [USAGE_GUIDE.md](USAGE_GUIDE.md) for the exact run order.
-3. **Use the Glossary:** If you see a term you don't know (like *Tick*, *Parquet*, *OHLCV*, *Optuna*), check [GLOSSARY.md](GLOSSARY.md) for a simple definition.
-4. **Don't Panic on Errors:** If your terminal shows errors, take a breath and open [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Over 99% of common issues (like missing files or memory limits) are documented there with quick fixes.
+### 2️⃣ Trích Xuất Đặc Trưng (Bổ Sung Chi Tiết Cho AI)
+Nếu bạn chỉ cung cấp cho AI hàng loạt nến màu xanh và đỏ, nó không thể xác định đâu là đỉnh đâu là đáy.
+Tệp lệnh `features.py` tính toán và gán trên 133 chỉ báo kỹ thuật vào các biểu đồ nến này.
+*   **Ví dụ:** Một cây nến cụ thể mới sẽ có một mác nhận diện "RSI là 30 (quá bán)" hoặc "Giá đang cách đỉnh kháng cự tuần vùng 5 pip." Quá trình này giúp biểu đồ cung cấp bối cảnh chuẩn xác để con AI cảm nhận được thị trường.
+
+### 3️⃣ Gắn Nhãn (Chấm Điểm Bài Tập)
+Trong huấn luyện hệ thống trí tuệ, bạn cần cung cấp các trải nghiệm học hỏi quá khứ đã đi kèm với kết quả điền trước.
+Tệp lệnh `labels.py` có nhiệm vụ "nhìn trước" tương lai. Nếu nó thấy biểu đồ Vàng nhảy vọt 10 nến sau ngày xuất phát, nó ghi nhận sự bắt đầu này là "LONG". Quá trình sẽ lặp đên khi các nến lên tới tỷ chiếc trong quá khứ 10 năm.
+
+### 4️⃣ Khởi Tạo Thuật Toán Học Máy (Máy Thông Minh Truy Tìm Dữ Liệu Lịch Sử)
+Nhập các tính toán này lại (Đặc Trưng và Nhãn). Truyền dữ liệu vào công nghệ máy học tân tiến như XGBoost hay cấu trúc mạng Nơ-ron nhân tạo LSTM.
+Hệ AI đọc phân tích dữ liệu và ra quy định luật mới:
+> *"Ôi! Mình vừa thu được một chi tiết, bất kì khi nào đường chỉ chuẩn MACD chéo lên VÀ RSI đã vượt qua quá 30 tại Khung thị trường London... cơ hội nhận lệnh LONG thành công tính đạt mốc 70%!"*
+
+### 5️⃣ Backtesting (Thiết Bị Giả Lập Môi Trường Giao Dịch)
+Đừng bao giờ bật trực tiếp hệ thống ứng dụng khi vừa thiết lập thành công.
+Hệ cài chức năng `backtest.py` chạy phần điều phối với AI bằng dữ kiện hoàn toàn có tính mù định vị - thực thi quản lý tiền bảo hộ khắt khe - Ví dụ (đổi $100 rủi ro vì thu 150$).
+Khi máy hoàn thiện bộ mô phỏng giả lặp đó, báo cáo sẽ ghi nhận % Giao Lãi & Đường Dữ Liệu Tiền Thưởng Tài Sản Của Người Theo (Equity curve).
+
+Hãy coi chi tiết phần này ở [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) để học phân tích các con tỉ số này.
 
 ---
 
-You're fully prepared! Head over to the [Usage Guide](USAGE_GUIDE.md) and start running some commands!
+## 🎯 Góc Phân Tích Của Hệ AI ML_FX
+
+Bạn mới thử dùng ư, nên nhớ những yếu tố sau:
+
+1. **Bot Này Không Phải Quả Cầu Pha Lê:** Hệ thống AI không dự đoán mọi nước tỷ chuẩn xác cao. Nó thuần tùy cấu hình toán học dựa trên lịch sử - cần bảo trợ chốt stop loss cực chuẩn xác - tránh thảm họa đánh mất dòng tài chính
+2. **Hãy Theo Quy Tắc Quy Trình 1 Trượt Nhẹ Sẽ Đền To:** Phải liên kết Pipeline lần lượt **Dữ liệu thô -> Chế vào loại Nến Thời Gián -> Đưa phần Chỉ báo thông tin -> Quản lý điểm đến kết cục => Chấp thuận Dữ Kiện Chạy Máy Học Train**. Rối bước huấn luận hệ AI bạn sẽ vấp cự phải Lỗi báo tập tin thất lạc "File Missing". Xem kĩ cấu hình theo lịch thao tác của `[USAGE_GUIDE.md](USAGE_GUIDE.md)`.
+3. **Tra cứu ở thuật ngữ Glossary:** Chập chờn ngôn nhãn loại `Tick, Parquet, OHLCV, Optuna` => Hãy lùi tra về thư pháp tiếng từ trong file gốc [`GLOSSARY.md`](GLOSSARY.md).
+4. **Đừng Nên Quá Cứng Cú Nhác Có Trục Trặc**: Quản lý thiết bị terminal có ra bảng lỗi đi thì mở bài [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Cứ thế giải mã 99% các hố chết rào máy trạm từ cơ bản tới nâng cao độ chiêu.
+
+---
+
+Sẵn tới đâu rồi! Di chuyển đọc đến bài Hướng Dẫn Sử Dụng [USAGE_GUIDE.md](USAGE_GUIDE.md) và gõ lệnh xem sao!

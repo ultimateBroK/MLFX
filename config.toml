@@ -1,0 +1,29 @@
+# ML_FX – Quickstart Configuration
+# This file is read by `main.py` at startup to pre-fill all TUI forms.
+# Edit these defaults to match your workflow.
+
+[download]
+symbol      = "XAUUSD"
+asset_class = "fx"        # "fx" | "crypto"
+start_year  = 2015
+start_month = 1
+concurrency = 20
+
+[pipeline]
+symbol       = "XAUUSD"
+timeframe    = "1H"         # "1m" | "5m" | "15m" | "30m" | "1H" | "2H" | "4H" | "1D"
+pivot_type   = "traditional"
+pivot_anchor = "daily"
+
+[train]
+symbol     = "XAUUSD"
+timeframe  = "1H"
+label_col  = "label_10"  # "label_5" | "label_10" | "label_20"
+backend    = "xgb"       # "xgb" | "lgb"
+n_trials   = 30
+n_splits   = 5
+
+[backtest]
+symbol    = "XAUUSD"
+timeframe = "1H"
+label_col = "label_10"

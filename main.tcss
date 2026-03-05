@@ -1,0 +1,117 @@
+/* main.tcss — Textual CSS for ML_FX TUI */
+
+/* ── App shell ──────────────────────────────────────────────────────────── */
+
+Screen {
+    background: $surface;
+}
+
+/* ── Tab bar ────────────────────────────────────────────────────────────── */
+
+TabbedContent {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 0 1;
+}
+
+/* ── Two-column layout inside each tab (form | log) ────────────────────── */
+
+.tab-body {
+    layout: horizontal;
+    height: 1fr;
+}
+
+.tab-body > * {
+    margin-right: 1;
+}
+
+.form-panel {
+    width: 42;
+    min-width: 38;
+    height: 1fr;
+    border: tall $panel;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+.log-panel {
+    width: 1fr;
+    height: 1fr;
+    border: tall $panel;
+    padding: 0 1;
+}
+
+/* ── Form elements ──────────────────────────────────────────────────────── */
+
+.form-title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+.field-label {
+    color: $text-muted;
+    margin-top: 1;
+}
+
+Input {
+    margin-top: 0;
+}
+
+Select {
+    margin-top: 0;
+}
+
+Checkbox {
+    margin-top: 1;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.btn-row {
+    layout: horizontal;
+    margin-top: 2;
+    height: 3;
+}
+
+.btn-row > * {
+    margin-right: 1;
+}
+
+Button {
+    min-width: 12;
+}
+
+Button.primary {
+    background: $accent;
+}
+
+Button:disabled {
+    opacity: 0.5;
+}
+
+/* ── Progress / status bar ──────────────────────────────────────────────── */
+
+.status-bar {
+    height: 1;
+    color: $text-muted;
+    background: $panel;
+    padding: 0 2;
+    margin-top: 1;
+}
+
+LoadingIndicator {
+    height: 1;
+}
+
+/* ── RichLog panel ──────────────────────────────────────────────────────── */
+
+RichLog {
+    height: 1fr;
+    background: $surface-darken-2;
+    border: none;
+    padding: 0 1;
+    scrollbar-gutter: stable;
+}
