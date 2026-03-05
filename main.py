@@ -348,6 +348,12 @@ class PipelineTab(TabPane):
                 yield Select(
                     PIVOT_ANCHOR_OPTIONS, value=p["pivot_anchor"], id="pl-pivot-anchor"
                 )
+                yield Label("ATR Period", classes="field-label")
+                yield Input(value=str(p.get("atr_period", 14)), id="pl-atr-period")
+                yield Label("ATR Multiplier", classes="field-label")
+                yield Input(
+                    value=str(p.get("atr_multiplier", 0.5)), id="pl-atr-multiplier"
+                )
                 yield Checkbox(
                     "Force overwrite existing files", id="pl-force", value=False
                 )
@@ -379,6 +385,8 @@ class PipelineTab(TabPane):
             pivot_anchor = _select_val(
                 self.query_one("#pl-pivot-anchor", Select), "daily"
             )
+            atr_period = int(self.query_one("#pl-atr-period", Input).value or "14")
+            atr_mult = float(self.query_one("#pl-atr-multiplier", Input).value or "0.5")
             force = self.query_one("#pl-force", Checkbox).value
             do_resample = self.query_one("#pl-step-resample", Checkbox).value
             do_features = self.query_one("#pl-step-features", Checkbox).value
@@ -388,6 +396,8 @@ class PipelineTab(TabPane):
                 tf,
                 pivot_type,
                 pivot_anchor,
+                atr_period,
+                atr_mult,
                 force,
                 do_resample,
                 do_features,
@@ -401,6 +411,8 @@ class PipelineTab(TabPane):
         tf: str,
         pivot_type: str,
         pivot_anchor: str,
+        atr_period: int,
+        atr_mult: float,
         force: bool,
         do_resample: bool,
         do_features: bool,
@@ -440,6 +452,7 @@ class PipelineTab(TabPane):
                         tf=tf,
                         pivot_type=pivot_type,
                         pivot_anchor=pivot_anchor,
+                        atr_period=atr_period,
                         force=force,
                     )
                     self.app.call_from_thread(
@@ -455,7 +468,13 @@ class PipelineTab(TabPane):
                     )
                     from pipeline.labels import run_label_pipeline
 
-                    stats = run_label_pipeline(symbol=symbol, tf=tf, force=force)
+                    stats = run_label_pipeline(
+                        symbol=symbol,
+                        tf=tf,
+                        atr_period=atr_period,
+                        atr_mult=atr_mult,
+                        force=force,
+                    )
                     self.app.call_from_thread(
                         self._log.write,
                         f"  ✓ Labels  — processed={stats['processed']}  "
@@ -600,8 +619,22 @@ class BacktestTab(TabPane):
                 yield Select(TF_OPTIONS, value=b["timeframe"], id="bt-timeframe")
                 yield Label("Label Column", classes="field-label")
                 yield Select(LABEL_OPTIONS, value=b["label_col"], id="bt-label-col")
-                yield Label("Commission (pips)", classes="field-label")
-                yield Input(value="0.1", id="bt-commission", placeholder="0.1")
+
+                yield Label("Initial Capital ($)", classes="field-label")
+                yield Input(
+                    value=str(b.get("initial_capital", 10000.0)), id="bt-capital"
+                )
+                yield Label("Risk per Trade (%)", classes="field-label")
+                yield Input(value=str(b.get("risk_per_trade_pct", 1.0)), id="bt-risk")
+                yield Label("Commission (pips/trade)", classes="field-label")
+                yield Input(
+                    value=str(b.get("commission_pips", 0.1)), id="bt-commission"
+                )
+                yield Label("Take Profit (R)", classes="field-label")
+                yield Input(value=str(b.get("tp_r", 1.5)), id="bt-tp")
+                yield Label("Stop Loss (R)", classes="field-label")
+                yield Input(value=str(b.get("sl_r", 1.0)), id="bt-sl")
+
                 with Horizontal(classes="btn-row"):
                     yield Button("▶ Run Backtest", id="btn-backtest", variant="primary")
             yield self._log
@@ -611,8 +644,15 @@ class BacktestTab(TabPane):
             symbol = self.query_one("#bt-symbol", Input).value.strip() or "XAUUSD"
             tf = _select_val(self.query_one("#bt-timeframe", Select), "1H")
             label_col = _select_val(self.query_one("#bt-label-col", Select), "label_10")
+            capital = float(self.query_one("#bt-capital", Input).value or "10000.0")
+            risk = float(self.query_one("#bt-risk", Input).value or "1.0")
             commission = float(self.query_one("#bt-commission", Input).value or "0.1")
-            self._run_backtest(symbol, tf, label_col, commission)
+            tp_r = float(self.query_one("#bt-tp", Input).value or "1.5")
+            sl_r = float(self.query_one("#bt-sl", Input).value or "1.0")
+
+            self._run_backtest(
+                symbol, tf, label_col, capital, risk, commission, tp_r, sl_r
+            )
 
     @work(thread=True)
     def _run_backtest(
@@ -620,7 +660,11 @@ class BacktestTab(TabPane):
         symbol: str,
         tf: str,
         label_col: str,
+        capital: float,
+        risk: float,
         commission: float,
+        tp_r: float,
+        sl_r: float,
     ) -> None:
         btn = self.query_one("#btn-backtest", Button)
         self.app.call_from_thread(setattr, btn, "disabled", True)
@@ -634,7 +678,14 @@ class BacktestTab(TabPane):
                 from eval.run_eval import run_full_eval  # type: ignore[import]
 
                 results = run_full_eval(
-                    symbol=symbol, tf=tf, label_col=label_col, commission=commission
+                    symbol=symbol,
+                    tf=tf,
+                    label_col=label_col,
+                    initial_capital=capital,
+                    risk_pct=risk,
+                    commission=commission,
+                    tp_r=tp_r,
+                    sl_r=sl_r,
                 )
             if results:
                 for k, v in results.items():

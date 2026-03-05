@@ -1,6 +1,6 @@
 [project]
 authors = [{name = "Hieu Nguyen", email = "hieuteo03@gmail.com"}]
-dependencies = ["questdb[dataframe]>=4.1.0,<5", "openai>=2.24.0,<3", "chromadb>=1.5.2,<2", "lmstudio>=1.5.0,<2", "agno[os]>=2.5.6,<3", "textual>=8.0.2,<9"]
+dependencies = ["questdb[dataframe]>=4.1.0,<5", "openai>=2.24.0,<3", "chromadb>=1.5.2,<2", "lmstudio>=1.5.0,<2", "agno[os]>=2.5.6,<3", "textual>=8.0.2,<9", "ipykernel>=7.2.0,<8"]
 name = "ML_FX"
 requires-python = ">= 3.11"
 version = "0.1.0"

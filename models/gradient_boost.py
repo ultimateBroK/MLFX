@@ -16,6 +16,10 @@ Output: outputs/models/{symbol}/{tf}/{backend}_{label_col}.model
 
 from __future__ import annotations
 
+import matplotlib
+
+matplotlib.use("Agg")
+
 import json
 import logging
 from pathlib import Path

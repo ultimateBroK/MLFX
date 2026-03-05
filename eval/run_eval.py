@@ -28,6 +28,91 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def run_full_eval(
+    symbol: str,
+    tf: str,
+    label_col: str,
+    initial_capital: float = 10000.0,
+    risk_pct: float = 1.0,
+    commission: float = 0.1,
+    tp_r: float = 1.5,
+    sl_r: float = 1.0,
+    out_dir: str | Path = "outputs/reports",
+) -> dict:
+    """
+    Run backtest on all available labeled data for a specific symbol/tf.
+    """
+    data_dir = Path("data/labels") / symbol / tf
+    if not data_dir.exists():
+        logger.error("Labels directory not found: %s. Run Pipeline first.", data_dir)
+        return {}
+
+    parquet_files = sorted(data_dir.glob("*.parquet"))
+    if not parquet_files:
+        logger.error("No labeled parquet files found in %s", data_dir)
+        return {}
+
+    logger.info("Loading %d labeled files from %s...", len(parquet_files), data_dir)
+    frames = []
+    for f in parquet_files:
+        try:
+            df = pl.read_parquet(f)
+            frames.append(df)
+        except Exception as e:
+            logger.warning("Failed to load %s: %s", f, e)
+
+    if not frames:
+        return {}
+
+    df = pl.concat(frames).sort("timestamp")
+
+    logger.info("Total loaded rows: %d", len(df))
+    logger.info(
+        "Simulation config: Signal=%s TP=%.1fR SL=%.1fR Risk=%.1f%% Comm=%.2f",
+        label_col,
+        tp_r,
+        sl_r,
+        risk_pct,
+        commission,
+    )
+
+    trades = simulate_trades(
+        df, signal_col=label_col, tp_r=tp_r, sl_r=sl_r, commission=commission
+    )
+
+    metrics = compute_metrics(
+        trades, initial_capital=initial_capital, risk_pct=risk_pct
+    )
+
+    logger.info("--- BACKTEST RESULTS ---")
+    logger.info("Total Trades : %d", metrics["total_trades"])
+    logger.info("Win Rate     : %.2f%%", metrics.get("win_rate", 0))
+    logger.info("Profit Factor: %.2f", metrics.get("profit_factor", 0))
+    logger.info("Max Drawdown : %.2f R", metrics.get("max_drawdown_r", 0))
+    logger.info("Net Profit(R): %.2f R", metrics.get("total_r", 0))
+    logger.info("Net Profit($): $%.2f", metrics.get("net_profit_dollar", 0))
+    logger.info("Final Capital: $%.2f", metrics.get("final_capital", initial_capital))
+    logger.info("------------------------")
+
+    # Generate Visuals
+    out_dir_path = Path(out_dir)
+    logger.info("Generating visual reports...")
+    out_name = f"{label_col}_R{int(tp_r * 10)}"
+    try:
+        generate_full_report(symbol, tf, df, trades, out_name, out_dir_path)
+    except Exception as e:
+        logger.error("Failed to generate report: %s", e)
+
+    return {
+        "Total Trades": f"{metrics['total_trades']}",
+        "Win Rate (%)": f"{metrics['win_rate']:.2f}%",
+        "Profit Factor": f"{metrics['profit_factor']:.2f}",
+        "Net Profit (R)": f"{metrics['total_r']:.2f}R",
+        "Net Profit ($)": f"${metrics['net_profit_dollar']:.2f}",
+        "Final Capital ($)": f"${metrics['final_capital']:.2f}",
+    }
+
+
 def main():
     """Main execution point for evaluating the strategy by running a backtest on a specific dataset and creating a visual report."""
     parser = argparse.ArgumentParser(
