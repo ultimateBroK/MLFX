@@ -39,7 +39,7 @@ ML_FX/
 ├── pipeline/                           # Phase 1 & 3 ✅ — ETL Pipeline
 │   ├── download_data.py                # Script to fetch Universal Dukascopy data (FX, Crypto)
 │   ├── qa_data.py                      # Quality assurance script to check tick data missing hours
-│   ├── resample.py                     # Tick → OHLCV (1m/5m/15m/1H/4H/1D), mid price
+│   ├── resample.py                     # Tick → OHLCV (1m/5m/15m/30m/1H/2H/4H/1D), mid price
 │   ├── features.py                     # killzone + sr_pp + TA-Lib + Order Blocks + FVG
 │   └── labels.py                       # LONG/SHORT/NEUTRAL labeling (ATR-based threshold)
 │

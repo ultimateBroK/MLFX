@@ -3,7 +3,7 @@ pipeline/resample.py
 ====================
 Resample raw XAUUSD tick Parquet files into OHLCV bars.
 
-Supported timeframes: 1m, 5m, 15m, 1H, 4H, 1D
+Supported timeframes: 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D
 Output: data/ohlcv/{symbol}/{tf}/*.parquet
 
 Skill: @skill:polars-dataframes
@@ -32,7 +32,9 @@ TIMEFRAMES: dict[str, str] = {
     "1m": "1m",
     "5m": "5m",
     "15m": "15m",
+    "30m": "30m",
     "1H": "1h",
+    "2H": "2h",
     "4H": "4h",
     "1D": "1d",
 }
@@ -58,7 +60,7 @@ def resample_to_ohlcv(
 
     Args:
         tick_df:    DataFrame with columns [timestamp (Datetime UTC), bid, ask].
-        period:     Polars duration string — "1m", "5m", "15m", "1h", "4h", "1d".
+        period:     Polars duration string — "1m", "5m", "15m", "30m", "1h", "2h", "4h", "1d".
         min_ticks:  Discard bars with fewer ticks (default 5).
 
     Returns:

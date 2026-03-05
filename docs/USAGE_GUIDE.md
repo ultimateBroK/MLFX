@@ -50,7 +50,7 @@ pixi run python pipeline/qa_data.py --symbol XAUUSD
 ---
 
 ### Step 2: Resample Data (Tick to OHLCV Candlesticks)
-Tick data is too dense for direct Machine Learning. This script converts ticks into structured timeframes (e.g., 1m, 5m, 15m, 1H, 4H, 1D) and correctly handles weekend market gaps.
+Tick data is too dense for direct Machine Learning. This script converts ticks into structured timeframes (e.g., 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D) and correctly handles weekend market gaps.
 
 ```bash
 # Generate 1-Hour (1H) and 5-Minute (5m) candlesticks

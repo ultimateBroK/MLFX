@@ -43,7 +43,7 @@ Detailed development plan, deriving architectures from [cryage-demo](../../../cr
 
 - [x] **Resample tick → OHLCV** — `pipeline/resample.py`
   - [x] Mid price: `(ask + bid) / 2`
-  - [x] Support TF: `1m`, `5m`, `15m`, `1H`, `4H`, `1D`
+  - [x] Support TF: `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
   - [x] Handle gaps (weekend, market close) — `detect_gaps()`
   - [x] Save to `data/ohlcv/{symbol}/{tf}/`
 
