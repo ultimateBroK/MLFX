@@ -1,12 +1,12 @@
 """
-models/lstm.py
+models/bilstm.py
 ==============
-PyTorch LSTM classifier for XAUUSD direction prediction.
+PyTorch BiLSTM classifier for XAUUSD direction prediction.
 
 Architecture:
-    nn.LSTM(input_size, hidden_size, num_layers)
+    nn.LSTM(input_size, hidden_size, num_layers, bidirectional=True)
     → nn.Dropout(dropout)
-    → nn.Linear(hidden_size, num_classes=5)
+    → nn.Linear(hidden_size * 2, num_classes=5)
 
 Classes (remapped for cross-entropy):
     0 → STRONG SHORT (-2)
@@ -15,8 +15,8 @@ Classes (remapped for cross-entropy):
     3 → WEAK LONG (1)
     4 → STRONG LONG (2)
 
-Output: outputs/models/{symbol}/{tf}/lstm_{label_col}.pt
-        outputs/models/{symbol}/{tf}/lstm_{label_col}_metrics.json
+Output: outputs/models/{symbol}/{tf}/bilstm_{label_col}.pt
+        outputs/models/{symbol}/{tf}/bilstm_{label_col}_metrics.json
 """
 
 from __future__ import annotations
@@ -83,7 +83,7 @@ def create_sequences(
     y_seq = y[seq_len:]
     return X_seq.astype(np.float32), y_seq.astype(np.int64)
 
-class FXLstm(nn.Module):
+class FXBiLstm(nn.Module):
     def __init__(
         self,
         input_size: int,
@@ -98,17 +98,18 @@ class FXLstm(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
+            bidirectional=True,
             dropout=dropout if num_layers > 1 else 0.0,
         )
         self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden_size, num_classes)
+        self.fc = nn.Linear(hidden_size * 2, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out, _ = self.lstm(x)
         out = self.dropout(out[:, -1, :])
         return self.fc(out)
 
-def train_lstm_once(
+def train_bilstm_once(
     X_tr: np.ndarray,
     y_tr: np.ndarray,
     X_val: np.ndarray,
@@ -121,7 +122,7 @@ def train_lstm_once(
     epochs: int,
     batch_size: int,
     patience: int,
-) -> tuple[FXLstm, float, list[dict]]:
+) -> tuple[FXBiLstm, float, list[dict]]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_seq_tr, y_seq_tr = create_sequences(X_tr, y_tr, seq_len=seq_len)
     X_seq_va, y_seq_va = create_sequences(X_val, y_val, seq_len=seq_len)
@@ -134,7 +135,7 @@ def train_lstm_once(
     tr_dl = DataLoader(tr_ds, batch_size=batch_size, shuffle=False)
     val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
 
-    model = FXLstm(
+    model = FXBiLstm(
         input_size=X_tr.shape[1],
         hidden_size=hidden_size,
         num_layers=num_layers,
@@ -229,7 +230,7 @@ def _objective(
         X_tr, y_tr = X[train_idx], y[train_idx]
         X_val, y_val = X[val_idx], y[val_idx]
         
-        _, val_f1, _ = train_lstm_once(
+        _, val_f1, _ = train_bilstm_once(
             X_tr, y_tr, X_val, y_val,
             seq_len=seq_len,
             hidden_size=hidden_size,
@@ -244,7 +245,7 @@ def _objective(
 
     return float(np.mean(f1_scores)) if f1_scores else 0.0
 
-def train_lstm(
+def train_bilstm(
     X: np.ndarray,
     y: np.ndarray,
     feature_cols: list[str],
@@ -255,7 +256,7 @@ def train_lstm(
     batch_size: int = 128,
     patience: int = 5,
     top_k_features: int = 20,
-) -> tuple[FXLstm, dict]:
+) -> tuple[FXBiLstm, dict]:
     
     logger.info("Applying feature selection (top %d)", top_k_features)
     k = min(top_k_features, X.shape[1])
@@ -273,7 +274,7 @@ def train_lstm(
     )
     
     best_params = study.best_params
-    logger.info("Best LSTM params: %s | F1: %.4f", best_params, study.best_value)
+    logger.info("Best BiLSTM params: %s | F1: %.4f", best_params, study.best_value)
 
     tscv = TimeSeriesSplit(n_splits=n_splits)
     oos_preds = np.full(len(y), -1, dtype=y.dtype)
@@ -283,7 +284,7 @@ def train_lstm(
         if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
             continue
             
-        model_cv, _, _ = train_lstm_once(
+        model_cv, _, _ = train_bilstm_once(
             X_selected[train_idx], y[train_idx], 
             X_selected[val_idx], y[val_idx],
             seq_len=seq_len,
@@ -307,7 +308,7 @@ def train_lstm(
     f1_macro_oos = float(f1_score(oos_labels[valid_mask], oos_preds[valid_mask], average="macro", zero_division=0))
 
     cut = int(len(X_selected) * 0.9)
-    final_model, final_f1, history = train_lstm_once(
+    final_model, final_f1, history = train_bilstm_once(
         X_selected[:cut], y[:cut],
         X_selected[cut:], y[cut:],
         seq_len=seq_len,
@@ -333,19 +334,19 @@ def train_lstm(
     logger.info("Final OOS F1: %.4f", f1_macro_oos)
     return final_model, metrics
 
-def save_model(model: FXLstm, metrics: dict, path: Path) -> None:
+def save_model(model: FXBiLstm, metrics: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"state_dict": model.state_dict(), "metrics": metrics}, path)
     metrics_path = path.with_suffix(".metrics.json")
     safe = {k: v for k, v in metrics.items() if k != "history"}
     safe["history_tail"] = metrics.get("history", [])[-5:]
     metrics_path.write_text(json.dumps(safe, indent=2, default=str))
-    logger.info("✓ LSTM saved → %s", path)
+    logger.info("✓ BiLSTM saved → %s", path)
 
-def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXLstm:
-    payload = torch.load(path, map_location="cpu", weights_only=True)
+def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXBiLstm:
+    payload = torch.load(path, map_location="cpu")
     metrics = payload["metrics"]
-    model = FXLstm(
+    model = FXBiLstm(
         input_size=input_size,
         hidden_size=metrics["best_params"]["hidden_size"],
         num_layers=metrics["best_params"]["num_layers"],
@@ -356,7 +357,7 @@ def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXLstm:
     model.eval()
     return model
 
-def run_lstm(
+def run_bilstm(
     symbol: str = "XAUUSD",
     tf: str = "1H",
     label_col: str = "label_10",
@@ -366,10 +367,10 @@ def run_lstm(
 ) -> dict:
     in_dir = LABELS_DIR / symbol / tf
     out_dir = SAVED_DIR / symbol / tf
-    out_path = out_dir / f"lstm_{label_col}.pt"
+    out_path = out_dir / f"bilstm_{label_col}.pt"
 
     if out_path.exists() and not force:
-        logger.info("LSTM model exists at %s", out_path)
+        logger.info("BiLSTM model exists at %s", out_path)
         return {}
 
     parquet_files = sorted(in_dir.glob("*.parquet")) if in_dir.exists() else []
@@ -387,7 +388,7 @@ def run_lstm(
 
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
-    model, metrics = train_lstm(
+    model, metrics = train_bilstm(
         X, y, feature_cols,
         n_trials=10,
         seq_len=seq_len,
@@ -406,4 +407,4 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
-    run_lstm(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)
+    run_bilstm(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)

@@ -64,7 +64,7 @@ _DEFAULT_CONFIG: dict[str, Any] = {
         "symbol": "XAUUSD",
         "timeframe": "1H",
         "label_col": "label_10",
-        "backend": "xgb",
+        "backend": "mlf",
         "n_trials": 30,
         "n_splits": 5,
     },
@@ -143,7 +143,15 @@ TF_OPTIONS = [
     ("1D", "1D"),
 ]
 ASSET_CLASS_OPTIONS = [("Forex / Commodities (fx)", "fx"), ("Crypto 24/7", "crypto")]
-BACKEND_OPTIONS = [("XGBoost (xgb)", "xgb"), ("LightGBM (lgb)", "lgb")]
+BACKEND_OPTIONS = [
+    ("MLForecast (mlf)", "mlf"),
+    ("LSTM (lstm)", "lstm"),
+    ("Transformer (transformer)", "transformer"),
+    ("CNN-LSTM (cnn_lstm)", "cnn_lstm"),
+    ("Online SGD (sgd)", "sgd"),
+    ("Statistical Baselines (stats)", "stats"),
+    ("NeuralForecast N-HiTS/N-BEATS (neuralforecast)", "neuralforecast"),
+]
 LABEL_OPTIONS = [
     ("label_5  (5 bars)", "label_5"),
     ("label_10 (10 bars)", "label_10"),
@@ -452,7 +460,6 @@ class PipelineTab(TabPane):
                         tf=tf,
                         pivot_type=pivot_type,
                         pivot_anchor=pivot_anchor,
-                        atr_period=atr_period,
                         force=force,
                     )
                     self.app.call_from_thread(
@@ -535,7 +542,7 @@ class TrainTab(TabPane):
             symbol = self.query_one("#tr-symbol", Input).value.strip() or "XAUUSD"
             tf = _select_val(self.query_one("#tr-timeframe", Select), "1H")
             label_col = _select_val(self.query_one("#tr-label-col", Select), "label_10")
-            backend = _select_val(self.query_one("#tr-backend", Select), "xgb")
+            backend = _select_val(self.query_one("#tr-backend", Select), "mlf")
             n_trials = int(self.query_one("#tr-n-trials", Input).value or "30")
             n_splits = int(self.query_one("#tr-n-splits", Input).value or "5")
             force = self.query_one("#tr-force", Checkbox).value
@@ -565,18 +572,71 @@ class TrainTab(TabPane):
             logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
             capturer = _LogCapturer(self._log, sys.stdout)
             with redirect_stdout(capturer), redirect_stderr(capturer):  # type: ignore[arg-type]
-                from models.gradient_boost import run_gradient_boost
-
-                result = run_gradient_boost(
-                    symbol=symbol,
-                    tf=tf,
-                    label_col=label_col,
-                    backend=backend,
-                    n_trials=n_trials,
-                    n_splits=n_splits,
-                    force=force,
-                    plot_shap=plot_shap,
-                )
+                if backend == "mlf":
+                    from models.ml_models import run_ml_models
+                    result = run_ml_models(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        n_trials=n_trials,
+                        n_splits=n_splits,
+                        force=force,
+                    )
+                elif backend == "lstm":
+                    from models.lstm import run_lstm
+                    result = run_lstm(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        force=force,
+                    )
+                elif backend == "transformer":
+                    from models.transformer import run_transformer
+                    result = run_transformer(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        force=force,
+                    )
+                elif backend == "cnn_lstm":
+                    from models.cnn_lstm import run_cnn_lstm
+                    result = run_cnn_lstm(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        force=force,
+                    )
+                elif backend == "sgd":
+                    from models.online_sgd import run_sgd
+                    result = run_sgd(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        force=force,
+                    )
+                elif backend == "stats":
+                    from models.stats_baseline import run_stats
+                    result = run_stats(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        n_splits=n_splits,
+                        force=force,
+                    )
+                elif backend == "neuralforecast":
+                    from models.neural_forecast import run_neural_forecast
+                    result = run_neural_forecast(
+                        symbol=symbol,
+                        tf=tf,
+                        label_col=label_col,
+                        n_windows=n_splits,
+                        force=force,
+                    )
+                else:
+                    self.app.call_from_thread(
+                        self._log.write, f"[bold red]Unknown backend: {backend}[/]"
+                    )
+                    result = None
             if result:
                 self.app.call_from_thread(
                     self._log.write,

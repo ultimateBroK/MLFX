@@ -18,9 +18,7 @@ pivot_anchor = "daily"
 [train]
 symbol     = "XAUUSD"
 timeframe  = "1H"
-label_col  = "label_10"  # "label_5" | "label_10" | "label_20"
-backend    = "xgb"       # "xgb" | "lgb"
-n_trials   = 30
+backend    = "mlf"       # "mlf" | "lstm" | "transformer" | "cnn_lstm" | "sgd" | "prophet"
 n_splits   = 5
 
 [backtest]

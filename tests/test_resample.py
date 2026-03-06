@@ -61,6 +61,8 @@ class TestResampleToOhlcv:
                 "timestamp": timestamps,
                 "bid": [2000.0 + i * 0.1 for i in range(300)],
                 "ask": [2000.2 + i * 0.1 for i in range(300)],
+                "bid_volume": [1.0] * 300,
+                "ask_volume": [1.0] * 300,
             }
         ).sort("timestamp")
 
@@ -76,6 +78,8 @@ class TestResampleToOhlcv:
                 "timestamp": pl.Datetime("us", "UTC"),
                 "bid": pl.Float64,
                 "ask": pl.Float64,
+                "bid_volume": pl.Float64,
+                "ask_volume": pl.Float64,
             }
         )
         result = resample_to_ohlcv(empty, period="1h")
@@ -98,6 +102,8 @@ class TestResampleToOhlcv:
                 "timestamp": [base + timedelta(minutes=i) for i in range(2)],
                 "bid": [2020.0, 2021.0],
                 "ask": [2020.3, 2021.3],
+                "bid_volume": [1.0, 1.0],
+                "ask_volume": [1.0, 1.0],
             }
         )
         result = resample_to_ohlcv(ticks, period="1h", min_ticks=5)

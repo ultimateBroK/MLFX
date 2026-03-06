@@ -338,6 +338,19 @@ pixi run python models/lstm.py [OPTIONS]
 | `--seq-len`    | `50`       | Độ dài sequence input (số nến/step). Thử 50–200 |
 | `--batch-size` | `64`       | Batch size. Giảm nếu hết RAM GPU                |
 
+### BiLSTM (Deep Learning - Bidirectional)
+
+```bash
+pixi run python models/bilstm.py [OPTIONS]
+```
+
+| Tham số        | Mặc định   | Mô tả                                           |
+| -------------- | ---------- | ----------------------------------------------- |
+| `--symbol`     | `XAUUSD`   | Symbol                                          |
+| `--tf`         | `1H`       | Timeframe                                       |
+| `--label`      | `label_10` | Cột nhãn                                        |
+| `--force`      | False      | Bắt buộc retrain dù model đã tồn tại            |
+
 ---
 
 ## 9. CLI: Backtest & Evaluation
