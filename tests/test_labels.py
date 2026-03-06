@@ -63,12 +63,12 @@ class TestAddLabels:
 
     @pytest.mark.parametrize("horizon", HORIZONS)
     def test_label_values_in_valid_set(self, ohlcv_with_atr, horizon):
-        """All non-null labels must be in {-1, 0, 1}."""
+        """All non-null labels must be in {-2, -1, 0, 1, 2}."""
         result = add_labels(ohlcv_with_atr, horizons=[horizon])
         col = f"label_{horizon}"
         valid_labels = result[col].drop_nulls().unique().to_list()
         for v in valid_labels:
-            assert v in (-1, 0, 1), f"Unexpected label value: {v}"
+            assert v in (-2, -1, 0, 1, 2), f"Unexpected label value: {v}"
 
     @pytest.mark.parametrize("horizon", HORIZONS)
     def test_last_n_rows_are_null(self, ohlcv_with_atr, horizon):

@@ -27,6 +27,8 @@ def simulate_trades(
     horizon_limit: int = 10,
     atr_col: str = "atr_14",
     atr_mult: float = 0.5,
+    commission: float = 0.0,
+    slippage: float = 0.0,
 ) -> pl.DataFrame:
     """
     Simulate trades sequentially based on signals.
@@ -37,6 +39,7 @@ def simulate_trades(
       - SL/TP distances are derived from the ATR of the signal bar.
       - Trade closes if high/low hits TP/SL, or if `horizon_limit` is reached.
       - Sequential non-overlapping: ignores new signals while in a trade.
+      - `commission` (in price points, e.g. 0.1) is subtracted from the profit/loss equivalent in R.
 
     Args:
         df:            OHLCV DataFrame containing signals and ATR.
@@ -46,6 +49,8 @@ def simulate_trades(
         horizon_limit: Maximum bars to hold trade.
         atr_col:       ATR column for setting SL/TP distances.
         atr_mult:      ATR risk basis. Base risk distance = `atr_mult * atr`.
+        commission:    Fixed commission in price units to deduct per trade.
+        slippage:      Slippage in price units applied on both entry and exit.
 
     Returns:
         DataFrame of completed trades with PnL.
@@ -116,6 +121,11 @@ def simulate_trades(
                 reason = "TIME"
 
             if exit_price is not None:
+                # Deduct commission & slippage R (slippage applies to both entry and exit)
+                if risk_dist > 0:
+                    cost_r = (commission + 2 * slippage) / risk_dist
+                    pnl_r -= cost_r
+
                 trades.append(
                     {
                         "entry_time": entry_timestamp,
@@ -161,7 +171,11 @@ def simulate_trades(
     return tdf
 
 
-def compute_metrics(trades_df: pl.DataFrame) -> dict:
+def compute_metrics(
+    trades_df: pl.DataFrame,
+    initial_capital: float = 10000.0,
+    risk_pct: float = 1.0,
+) -> dict:
     """Calculate performance metrics from a trades DataFrame."""
     if trades_df.is_empty():
         return {
@@ -170,6 +184,11 @@ def compute_metrics(trades_df: pl.DataFrame) -> dict:
             "total_r": 0.0,
             "max_drawdown_r": 0.0,
             "profit_factor": 0.0,
+            "net_profit_dollar": 0.0,
+            "final_capital": initial_capital,
+            "sharpe_ratio": 0.0,
+            "sortino_ratio": 0.0,
+            "calmar_ratio": 0.0,
         }
 
     pnl = trades_df["pnl_r"].to_numpy()
@@ -186,10 +205,32 @@ def compute_metrics(trades_df: pl.DataFrame) -> dict:
     drawdown = peak - equity
     max_dd = np.max(drawdown) if len(drawdown) > 0 else 0.0
 
+    # Calculate actual dollar returns
+    # Assuming compounded/fixed risk? For simplicity, Fixed Risk per trade.
+    risk_dollar = initial_capital * (risk_pct / 100.0)
+    net_profit_dollar = float(equity[-1] * risk_dollar) if len(equity) > 0 else 0.0
+    final_capital = initial_capital + net_profit_dollar
+
+    # Advanced Metrics
+    mean_pnl = np.mean(pnl) if total_trades > 0 else 0.0
+    std_pnl = np.std(pnl) if total_trades > 0 else 0.0
+    sharpe = mean_pnl / std_pnl if std_pnl > 0 else 0.0
+
+    downside_pnl = pnl[pnl < 0]
+    std_downside = np.std(downside_pnl) if len(downside_pnl) > 0 else 0.0
+    sortino = mean_pnl / std_downside if std_downside > 0 else 0.0
+
+    calmar = float(equity[-1] / max_dd) if max_dd > 0 else 0.0
+
     return {
         "total_trades": total_trades,
         "win_rate": float(win_rate),
         "total_r": float(equity[-1] if len(equity) > 0 else 0.0),
         "max_drawdown_r": float(max_dd),
         "profit_factor": float(profit_factor),
+        "net_profit_dollar": float(net_profit_dollar),
+        "final_capital": float(final_capital),
+        "sharpe_ratio": float(sharpe),
+        "sortino_ratio": float(sortino),
+        "calmar_ratio": float(calmar),
     }

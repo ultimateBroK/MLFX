@@ -1,12 +1,14 @@
 """
-models/lstm.py
-==============
-PyTorch LSTM classifier for XAUUSD direction prediction.
+models/cnn_lstm.py
+==================
+PyTorch CNN-LSTM classifier for XAUUSD direction prediction.
 
 Architecture:
-    nn.LSTM(input_size, hidden_size, num_layers)
-    → nn.Dropout(dropout)
-    → nn.Linear(hidden_size, num_classes=5)
+    Conv1D (spatial feature extraction over time steps)
+    → ReLU → MaxPool1D
+    → LSTM (temporal processing)
+    → Dropout
+    → Linear (classifier)
 
 Classes (remapped for cross-entropy):
     0 → STRONG SHORT (-2)
@@ -15,11 +17,9 @@ Classes (remapped for cross-entropy):
     3 → WEAK LONG (1)
     4 → STRONG LONG (2)
 
-Output: outputs/models/{symbol}/{tf}/lstm_{label_col}.pt
-        outputs/models/{symbol}/{tf}/lstm_{label_col}_metrics.json
+Output: outputs/models/{symbol}/{tf}/cnn_lstm_{label_col}.pt
+        outputs/models/{symbol}/{tf}/cnn_lstm_{label_col}_metrics.json
 """
-
-from __future__ import annotations
 
 import json
 import logging
@@ -32,7 +32,7 @@ import polars as pl
 import torch
 import torch.nn as nn
 from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import f1_score
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.utils.class_weight import compute_sample_weight
 from torch.utils.data import DataLoader, TensorDataset
@@ -83,60 +83,90 @@ def create_sequences(
     y_seq = y[seq_len:]
     return X_seq.astype(np.float32), y_seq.astype(np.int64)
 
-class FXLstm(nn.Module):
+class FXCnnLstm(nn.Module):
     def __init__(
         self,
         input_size: int,
-        hidden_size: int = 128,
+        cnn_channels: int = 64,
+        cnn_kernel: int = 3,
+        cnn_pool: int = 2,
+        lstm_hidden: int = 128,
         num_layers: int = 2,
         dropout: float = 0.3,
         num_classes: int = 5,
     ) -> None:
         super().__init__()
+        
+        self.conv1d = nn.Conv1d(
+            in_channels=input_size,
+            out_channels=cnn_channels,
+            kernel_size=cnn_kernel,
+            padding=cnn_kernel // 2,
+        )
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool1d(kernel_size=cnn_pool)
+        
         self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
+            input_size=cnn_channels,
+            hidden_size=lstm_hidden,
             num_layers=num_layers,
             batch_first=True,
             dropout=dropout if num_layers > 1 else 0.0,
         )
         self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden_size, num_classes)
+        self.fc = nn.Linear(lstm_hidden, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (batch, seq_len, features)
+        x = x.permute(0, 2, 1) # (batch, features, seq_len)
+        
+        # CNN
+        x = self.conv1d(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        
+        # Back to (batch, new_seq_len, channels)
+        x = x.permute(0, 2, 1)
+        
+        # LSTM
         out, _ = self.lstm(x)
+        
+        # Take the last valid step
         out = self.dropout(out[:, -1, :])
         return self.fc(out)
 
-def train_lstm_once(
+def train_cnnlstm_once(
     X_tr: np.ndarray,
     y_tr: np.ndarray,
     X_val: np.ndarray,
     y_val: np.ndarray,
     seq_len: int,
-    hidden_size: int,
+    cnn_channels: int,
+    cnn_kernel: int,
+    cnn_pool: int,
+    lstm_hidden: int,
     num_layers: int,
     dropout: float,
     lr: float,
     epochs: int,
     batch_size: int,
     patience: int,
-) -> tuple[FXLstm, float, list[dict]]:
+) -> tuple[FXCnnLstm, float, list[dict]]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     X_seq_tr, y_seq_tr = create_sequences(X_tr, y_tr, seq_len=seq_len)
     X_seq_va, y_seq_va = create_sequences(X_val, y_val, seq_len=seq_len)
-
-    # Class weights approx
-    class_weights = compute_sample_weight("balanced", y_seq_tr)
 
     tr_ds = TensorDataset(torch.tensor(X_seq_tr), torch.tensor(y_seq_tr))
     val_ds = TensorDataset(torch.tensor(X_seq_va), torch.tensor(y_seq_va))
     tr_dl = DataLoader(tr_ds, batch_size=batch_size, shuffle=False)
     val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
 
-    model = FXLstm(
+    model = FXCnnLstm(
         input_size=X_tr.shape[1],
-        hidden_size=hidden_size,
+        cnn_channels=cnn_channels,
+        cnn_kernel=cnn_kernel,
+        cnn_pool=cnn_pool,
+        lstm_hidden=lstm_hidden,
         num_layers=num_layers,
         dropout=dropout,
         num_classes=5,
@@ -214,8 +244,11 @@ def _objective(
     patience: int,
     n_splits: int,
 ) -> float:
-    hidden_size = trial.suggest_categorical("hidden_size", [32, 64, 128])
-    num_layers = trial.suggest_int("num_layers", 1, 3)
+    cnn_channels = trial.suggest_categorical("cnn_channels", [32, 64])
+    cnn_kernel = trial.suggest_categorical("cnn_kernel", [3, 5])
+    cnn_pool = trial.suggest_categorical("cnn_pool", [2, 3])
+    lstm_hidden = trial.suggest_categorical("lstm_hidden", [32, 64, 128])
+    num_layers = trial.suggest_int("num_layers", 1, 2)
     dropout = trial.suggest_float("dropout", 0.1, 0.5)
     lr = trial.suggest_float("lr", 1e-4, 5e-3, log=True)
 
@@ -229,10 +262,13 @@ def _objective(
         X_tr, y_tr = X[train_idx], y[train_idx]
         X_val, y_val = X[val_idx], y[val_idx]
         
-        _, val_f1, _ = train_lstm_once(
+        _, val_f1, _ = train_cnnlstm_once(
             X_tr, y_tr, X_val, y_val,
             seq_len=seq_len,
-            hidden_size=hidden_size,
+            cnn_channels=cnn_channels,
+            cnn_kernel=cnn_kernel,
+            cnn_pool=cnn_pool,
+            lstm_hidden=lstm_hidden,
             num_layers=num_layers,
             dropout=dropout,
             lr=lr,
@@ -244,7 +280,7 @@ def _objective(
 
     return float(np.mean(f1_scores)) if f1_scores else 0.0
 
-def train_lstm(
+def train_cnnlstm(
     X: np.ndarray,
     y: np.ndarray,
     feature_cols: list[str],
@@ -255,7 +291,7 @@ def train_lstm(
     batch_size: int = 128,
     patience: int = 5,
     top_k_features: int = 20,
-) -> tuple[FXLstm, dict]:
+) -> tuple[FXCnnLstm, dict]:
     
     logger.info("Applying feature selection (top %d)", top_k_features)
     k = min(top_k_features, X.shape[1])
@@ -273,7 +309,7 @@ def train_lstm(
     )
     
     best_params = study.best_params
-    logger.info("Best LSTM params: %s | F1: %.4f", best_params, study.best_value)
+    logger.info("Best CNN-LSTM params: %s | F1: %.4f", best_params, study.best_value)
 
     tscv = TimeSeriesSplit(n_splits=n_splits)
     oos_preds = np.full(len(y), -1, dtype=y.dtype)
@@ -283,11 +319,14 @@ def train_lstm(
         if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
             continue
             
-        model_cv, _, _ = train_lstm_once(
+        model_cv, _, _ = train_cnnlstm_once(
             X_selected[train_idx], y[train_idx], 
             X_selected[val_idx], y[val_idx],
             seq_len=seq_len,
-            hidden_size=best_params["hidden_size"],
+            cnn_channels=best_params["cnn_channels"],
+            cnn_kernel=best_params["cnn_kernel"],
+            cnn_pool=best_params["cnn_pool"],
+            lstm_hidden=best_params["lstm_hidden"],
             num_layers=best_params["num_layers"],
             dropout=best_params["dropout"],
             lr=best_params["lr"],
@@ -307,11 +346,14 @@ def train_lstm(
     f1_macro_oos = float(f1_score(oos_labels[valid_mask], oos_preds[valid_mask], average="macro", zero_division=0))
 
     cut = int(len(X_selected) * 0.9)
-    final_model, final_f1, history = train_lstm_once(
+    final_model, final_f1, history = train_cnnlstm_once(
         X_selected[:cut], y[:cut],
         X_selected[cut:], y[cut:],
         seq_len=seq_len,
-        hidden_size=best_params["hidden_size"],
+        cnn_channels=best_params["cnn_channels"],
+        cnn_kernel=best_params["cnn_kernel"],
+        cnn_pool=best_params["cnn_pool"],
+        lstm_hidden=best_params["lstm_hidden"],
         num_layers=best_params["num_layers"],
         dropout=best_params["dropout"],
         lr=best_params["lr"],
@@ -333,30 +375,34 @@ def train_lstm(
     logger.info("Final OOS F1: %.4f", f1_macro_oos)
     return final_model, metrics
 
-def save_model(model: FXLstm, metrics: dict, path: Path) -> None:
+def save_model(model: FXCnnLstm, metrics: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({"state_dict": model.state_dict(), "metrics": metrics}, path)
     metrics_path = path.with_suffix(".metrics.json")
     safe = {k: v for k, v in metrics.items() if k != "history"}
     safe["history_tail"] = metrics.get("history", [])[-5:]
     metrics_path.write_text(json.dumps(safe, indent=2, default=str))
-    logger.info("✓ LSTM saved → %s", path)
+    logger.info("✓ CNN-LSTM saved → %s", path)
 
-def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXLstm:
+def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXCnnLstm:
     payload = torch.load(path, map_location="cpu", weights_only=True)
     metrics = payload["metrics"]
-    model = FXLstm(
+    bp = metrics["best_params"]
+    model = FXCnnLstm(
         input_size=input_size,
-        hidden_size=metrics["best_params"]["hidden_size"],
-        num_layers=metrics["best_params"]["num_layers"],
-        dropout=metrics["best_params"]["dropout"],
+        cnn_channels=bp["cnn_channels"],
+        cnn_kernel=bp["cnn_kernel"],
+        cnn_pool=bp["cnn_pool"],
+        lstm_hidden=bp["lstm_hidden"],
+        num_layers=bp["num_layers"],
+        dropout=bp["dropout"],
         num_classes=5,
     )
     model.load_state_dict(payload["state_dict"])
     model.eval()
     return model
 
-def run_lstm(
+def run_cnn_lstm(
     symbol: str = "XAUUSD",
     tf: str = "1H",
     label_col: str = "label_10",
@@ -366,10 +412,10 @@ def run_lstm(
 ) -> dict:
     in_dir = LABELS_DIR / symbol / tf
     out_dir = SAVED_DIR / symbol / tf
-    out_path = out_dir / f"lstm_{label_col}.pt"
+    out_path = out_dir / f"cnn_lstm_{label_col}.pt"
 
     if out_path.exists() and not force:
-        logger.info("LSTM model exists at %s", out_path)
+        logger.info("CNN-LSTM model exists at %s", out_path)
         return {}
 
     parquet_files = sorted(in_dir.glob("*.parquet")) if in_dir.exists() else []
@@ -387,7 +433,7 @@ def run_lstm(
 
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
-    model, metrics = train_lstm(
+    model, metrics = train_cnnlstm(
         X, y, feature_cols,
         n_trials=10,
         seq_len=seq_len,
@@ -406,4 +452,4 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
 
-    run_lstm(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)
+    run_cnn_lstm(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)

@@ -54,6 +54,8 @@ def sample_ticks() -> pl.DataFrame:
             "timestamp": [base + timedelta(minutes=i * 5) for i in range(n)],
             "bid": bids,
             "ask": asks,
+            "bid_volume": [1.0] * n,
+            "ask_volume": [1.0] * n,
         }
     )
 

@@ -1,48 +1,48 @@
-# ML_FX - Hướng dẫn cấu hình và sử dụng
+# ML_FX - Configuration and Usage Guide
 
-Tài liệu này mô tả cách chạy dự án bằng TUI và CLI theo trạng thái code hiện tại.
+This guide explains how to run the project through the TUI and CLI based on the current codebase.
 
-Tài liệu liên quan:
+Related docs:
 - `README.md`
 - `NOOB_GUIDE.md`
 - `EVALUATION_GUIDE.md`
 - `TROUBLESHOOTING.md`
 
-## 1. Cài đặt môi trường
+## 1. Environment Setup
 
-Repo nên được chạy bằng `Pixi`.
+The repository is intended to be run through `Pixi`.
 
 ```bash
 curl -fsSL https://pixi.sh/install.sh | bash
 pixi install
 ```
 
-Lưu ý:
-- `pyproject.toml` khai báo `requires-python >= 3.11`
-- môi trường Pixi hiện pin Python `3.13`
-- cách đáng tin cậy nhất là luôn chạy lệnh qua `pixi run`
+Notes:
+- `pyproject.toml` declares `requires-python >= 3.11`
+- the Pixi environment is currently pinned to Python `3.13`
+- the safest way to run commands is through `pixi run`
 
-## 2. Chạy TUI
+## 2. Launch the TUI
 
 ```bash
 pixi run python main.py
 ```
 
-TUI có 4 tab:
+The TUI exposes 4 tabs:
 - `Download Data`
 - `Pipeline`
 - `Train Model`
 - `Backtest`
 
-Phím tắt:
-- `q`: thoát
-- `d`: đổi dark/light mode
+Shortcuts:
+- `q`: quit
+- `d`: toggle dark/light mode
 
-`main.py` sẽ đọc `config.toml` lúc khởi động để tự điền giá trị mặc định cho các form.
+`main.py` reads `config.toml` on startup and pre-fills the form values.
 
 ## 3. `config.toml`
 
-Ví dụ cấu hình đang dùng:
+Example configuration:
 
 ```toml
 [download]
@@ -70,13 +70,13 @@ timeframe = "1H"
 label_col = "label_10"
 ```
 
-Các giá trị chính:
+Key values:
 - `asset_class`: `fx`, `crypto`
 - `timeframe`: `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
 - `pivot_type`: `traditional`, `fibonacci`, `woodie`, `classic`, `demark`, `camarilla`
 - `pivot_anchor`: `daily`, `weekly`, `monthly`
 - `label_col`: `label_5`, `label_10`, `label_20`
-- `backend` trong TUI:
+- TUI `backend` options:
   - `mlf`
   - `lstm`
   - `transformer`
@@ -85,30 +85,30 @@ Các giá trị chính:
   - `stats`
   - `neuralforecast`
 
-## 4. Luồng chạy đầy đủ
+## 4. Full Workflow
 
-Khối lệnh dưới đây là luồng chuẩn để tải dữ liệu, tạo feature, gắn nhãn, train, rồi backtest:
+The block below shows the standard end-to-end sequence for downloading data, generating features, labeling, training, and evaluating:
 
 ```bash
-# 1) Tải dữ liệu tick
+# 1) Download tick data
 pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx --start-year 2024
 
-# 2) Kiểm tra chất lượng dữ liệu raw
+# 2) Audit raw data quality
 pixi run python pipeline/qa_data.py --symbol XAUUSD --asset-class fx
 
-# 3) Resample sang OHLCV
+# 3) Resample into OHLCV
 pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
 
-# 4) Tạo feature
+# 4) Build features
 pixi run python pipeline/features.py --symbol XAUUSD --tf 1H --pivot traditional --anchor daily
 
-# 5) Gắn nhãn
+# 5) Generate labels
 pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H --horizons 5 10 20 --atr-mult 0.5
 
-# 6) Train một backend mặc định
+# 6) Train a default backend
 pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10 --n-trials 15 --n-splits 5
 
-# 7) Backtest trên một file label cụ thể
+# 7) Run evaluation on a labeled parquet file
 pixi run python eval/run_eval.py \
   --data data/labels/XAUUSD/1H/2024-01.parquet \
   --symbol XAUUSD \
@@ -119,58 +119,58 @@ pixi run python eval/run_eval.py \
   --outdir outputs/reports
 ```
 
-## 5. CLI theo từng bước
+## 5. CLI by Stage
 
-### 5.1 Tải dữ liệu tick
+### 5.1 Download tick data
 
 ```bash
 pixi run python pipeline/download_data.py [OPTIONS]
 ```
 
-Tham số:
-- `--symbol`: mặc định `XAUUSD`
-- `--start-year`: mặc định `2015`
-- `--start-month`: mặc định `1`
-- `--end-year`: mặc định năm hiện tại
-- `--end-month`: mặc định tháng hiện tại
-- `--asset-class`: `fx` hoặc `crypto`
-- `--concurrency`: mặc định `20`
-- `--force-repair`: ép kiểm tra lại các tháng đã xác nhận
+Arguments:
+- `--symbol`: default `XAUUSD`
+- `--start-year`: default `2015`
+- `--start-month`: default `1`
+- `--end-year`: current year by default
+- `--end-month`: current month by default
+- `--asset-class`: `fx` or `crypto`
+- `--concurrency`: default `20`
+- `--force-repair`: re-verify months that were already marked complete
 
-Output:
+Outputs:
 - `data/raw/{symbol}/YYYY-MM.parquet`
 - `data/raw/{symbol}/completed_months.json`
 
-### 5.2 Kiểm tra chất lượng dữ liệu raw
+### 5.2 Raw data QA
 
 ```bash
 pixi run python pipeline/qa_data.py --symbol XAUUSD --asset-class fx
 ```
 
-Script này đọc `completed_months.json`, rà soát dữ liệu tick, và tạo báo cáo QA dạng Markdown trong thư mục dữ liệu raw.
+This script reads `completed_months.json`, audits raw tick data, and generates a Markdown QA report inside the raw data directory.
 
-### 5.3 Resample sang OHLCV
+### 5.3 Resample into OHLCV
 
 ```bash
 pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
 pixi run python pipeline/resample.py --symbol XAUUSD
 ```
 
-Tham số:
+Arguments:
 - `--symbol`
-- `--tf`: bỏ trống để chạy toàn bộ timeframe
+- `--tf`: omit it to process every supported timeframe
 - `--force`
 
 Output:
 - `data/ohlcv/{symbol}/{tf}/YYYY-MM.parquet`
 
-### 5.4 Tạo feature
+### 5.4 Feature generation
 
 ```bash
 pixi run python pipeline/features.py --symbol XAUUSD --tf 1H --pivot traditional --anchor daily
 ```
 
-Tham số:
+Arguments:
 - `--symbol`
 - `--tf`
 - `--pivot`
@@ -180,13 +180,13 @@ Tham số:
 Output:
 - `data/features/{symbol}/{tf}/YYYY-MM.parquet`
 
-### 5.5 Gắn nhãn
+### 5.5 Label generation
 
 ```bash
 pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H --horizons 5 10 20 --atr-mult 0.5
 ```
 
-Tham số:
+Arguments:
 - `--symbol`
 - `--tf`
 - `--horizons`
@@ -196,56 +196,56 @@ Tham số:
 Output:
 - `data/labels/{symbol}/{tf}/YYYY-MM.parquet`
 
-## 6. Train model
+## 6. Train Models
 
-### 6.1 Backend `mlf`
+### 6.1 `mlf` backend
 
 ```bash
 pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10 --n-trials 15 --n-splits 5
 ```
 
-Phù hợp khi bạn muốn baseline chính dùng `MLForecast + LightGBM`.
+Use this when you want the main `MLForecast + LightGBM` baseline.
 
-### 6.2 Backend `lstm`
+### 6.2 `lstm` backend
 
 ```bash
 pixi run python models/lstm.py --symbol XAUUSD --tf 1H --label label_10
 ```
 
-### 6.3 Backend `transformer`
+### 6.3 `transformer` backend
 
 ```bash
 pixi run python models/transformer.py --symbol XAUUSD --tf 1H --label label_10
 ```
 
-### 6.4 Backend `cnn_lstm`
+### 6.4 `cnn_lstm` backend
 
 ```bash
 pixi run python models/cnn_lstm.py --symbol XAUUSD --tf 1H --label label_10
 ```
 
-### 6.5 Backend `sgd`
+### 6.5 `sgd` backend
 
 ```bash
 pixi run python models/online_sgd.py --symbol XAUUSD --tf 1H --label label_10
 ```
 
-### 6.6 Backend `stats`
+### 6.6 `stats` backend
 
 ```bash
 pixi run python models/stats_baseline.py --symbol XAUUSD --tf 1H --label label_10 --n-splits 5
 ```
 
-### 6.7 Backend `neuralforecast`
+### 6.7 `neuralforecast` backend
 
 ```bash
 pixi run python models/neural_forecast.py --symbol XAUUSD --tf 1H --label label_10 --n-windows 5 --input-size 48 --max-steps 200
 ```
 
-Các backend hiện lưu model và metrics trong:
+Model artifacts and metrics are written to:
 - `outputs/models/{symbol}/{tf}/`
 
-Ví dụ tên file:
+Examples:
 - `ml_models_label_10.pkl`
 - `lstm_label_10.pt`
 - `transformer_label_10.pt`
@@ -254,7 +254,7 @@ Ví dụ tên file:
 - `stats_baseline_label_10.pkl`
 - `neural_forecast_label_10.pkl`
 
-## 7. Backtest và đánh giá
+## 7. Backtest and Evaluation
 
 ```bash
 pixi run python eval/run_eval.py \
@@ -268,8 +268,8 @@ pixi run python eval/run_eval.py \
   --outdir outputs/reports
 ```
 
-Tham số chính:
-- `--data`: file parquet đã gắn nhãn
+Key arguments:
+- `--data`: labeled parquet file
 - `--symbol`
 - `--tf`
 - `--label`
@@ -278,16 +278,16 @@ Tham số chính:
 - `--slippage`
 - `--outdir`
 
-Output mặc định:
+Default outputs:
 - `outputs/reports/{prefix}_candlestick.html`
 - `outputs/reports/{prefix}_equity.png`
 - `outputs/reports/{prefix}_heatmap.png`
 
-Giải thích ý nghĩa metric và cách đọc biểu đồ nằm trong `EVALUATION_GUIDE.md`.
+Metric interpretation and chart reading are covered in `EVALUATION_GUIDE.md`.
 
-## 8. Lưu ý vận hành
+## 8. Operational Notes
 
-- Chạy pipeline theo đúng thứ tự: raw -> ohlcv -> features -> labels -> train -> backtest
-- Nếu training báo thiếu file, kiểm tra lại thư mục `data/features/` hoặc `data/labels/`
-- Nếu download bị gián đoạn, có thể chạy lại `download_data.py`; script sẽ tiếp tục dựa trên `completed_months.json`
-- Nếu cần làm sạch dữ liệu trung gian, xem `TROUBLESHOOTING.md`
+- Run the pipeline in order: raw -> ohlcv -> features -> labels -> train -> backtest
+- If training fails on missing files, inspect `data/features/` and `data/labels/`
+- If a download is interrupted, rerun `download_data.py`; progress is resumed via `completed_months.json`
+- If you need a clean reset of generated data, see `TROUBLESHOOTING.md`

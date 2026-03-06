@@ -1,6 +1,6 @@
 [project]
 authors = [{name = "Hieu Nguyen", email = "hieuteo03@gmail.com"}]
-dependencies = ["questdb[dataframe]>=4.1.0,<5", "openai>=2.24.0,<3", "chromadb>=1.5.2,<2", "lmstudio>=1.5.0,<2", "agno[os]>=2.5.6,<3"]
+dependencies = ["questdb[dataframe]>=4.1.0,<5", "openai>=2.24.0,<3", "chromadb>=1.5.2,<2", "lmstudio>=1.5.0,<2", "agno[os]>=2.5.6,<3", "textual>=8.0.2,<9", "ipykernel>=7.2.0,<8", "neuralforecast>=3.1.5,<4", "statsforecast>=2.0.3,<3", "mlforecast>=1.0.2,<2", "lightgbm"]
 name = "ML_FX"
 requires-python = ">= 3.11"
 version = "0.1.0"
@@ -37,6 +37,7 @@ lightgbm = ">=4.6,<5"
 pytorch-cpu = ">=2.10,<3"
 optuna = ">=4.7,<5"
 shap = ">=0.50,<1"
+pandas = ">=3.0.1,<4"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

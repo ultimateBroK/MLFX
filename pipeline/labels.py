@@ -3,10 +3,12 @@ pipeline/labels.py
 ==================
 ATR-based labeling pipeline for XAUUSD OHLCV feature data.
 
-Label classes:
-  +1  LONG   — close_ahead > close * (1 + atr_mult × atr / close)
-  −1  SHORT  — close_ahead < close * (1 − atr_mult × atr / close)
-   0  NEUTRAL — otherwise
+Label classes (5-class ordinal):
+  +2  STRONG LONG  — close_ahead > close * (1 + 2 × atr_mult × atr / close)
+  +1  WEAK LONG    — close_ahead > close * (1 + atr_mult × atr / close)
+   0  NEUTRAL      — otherwise
+  −1  WEAK SHORT   — close_ahead < close * (1 − atr_mult × atr / close)
+  −2  STRONG SHORT — close_ahead < close * (1 − 2 × atr_mult × atr / close)
 
 Output: data/labels/{symbol}/{tf}/*.parquet
 
@@ -41,16 +43,19 @@ def add_labels(
     atr_mult: float = ATR_MULT,
 ) -> pl.DataFrame:
     """
-    Add forward-looking LONG/SHORT/NEUTRAL labels for each horizon N.
+    Add forward-looking ordinal labels for each horizon N.
 
     For horizon N:
         close_ahead_N  = close.shift(-N)
         threshold      = close × (atr_mult × atr_14 / close)
                        = atr_mult × atr_14          (additive ATR band)
+        strong_threshold = 2.0 × threshold
 
-        label_N = +1  if close_ahead_N > close + threshold
-                = −1  if close_ahead_N < close - threshold
-                = 0   otherwise (or if close_ahead_N is null — last N rows)
+        label_N = +2  if close_ahead_N > close + strong_threshold
+                = +1  if close_ahead_N > close + threshold (but not strong)
+                = −2  if close_ahead_N < close - strong_threshold
+                = −1  if close_ahead_N < close - threshold (but not strong)
+                = 0   otherwise (or if close_ahead_N is null)
 
     Args:
         df:       OHLCV DataFrame with [close, atr_14] columns.
@@ -68,12 +73,17 @@ def add_labels(
         ahead_col = f"close_ahead_{n}"
         label_col = f"label_{n}"
         threshold = atr_mult * pl.col(atr_col)
+        strong_threshold = 2.0 * threshold
 
         df = df.with_columns(pl.col("close").shift(-n).alias(ahead_col)).with_columns(
             pl.when(pl.col(ahead_col).is_null())
             .then(pl.lit(None, dtype=pl.Int8))
+            .when(pl.col(ahead_col) > pl.col("close") + strong_threshold)
+            .then(pl.lit(2, dtype=pl.Int8))
             .when(pl.col(ahead_col) > pl.col("close") + threshold)
             .then(pl.lit(1, dtype=pl.Int8))
+            .when(pl.col(ahead_col) < pl.col("close") - strong_threshold)
+            .then(pl.lit(-2, dtype=pl.Int8))
             .when(pl.col(ahead_col) < pl.col("close") - threshold)
             .then(pl.lit(-1, dtype=pl.Int8))
             .otherwise(pl.lit(0, dtype=pl.Int8))
@@ -102,13 +112,13 @@ def compute_class_balance(df: pl.DataFrame, label_col: str) -> dict:
     valid = df.drop_nulls(label_col)[label_col]
     total = len(valid)
     if total == 0:
-        return {"counts": {-1: 0, 0: 0, 1: 0}, "ratios": {-1: 0.0, 0: 0.0, 1: 0.0}}
+        return {"counts": {-2: 0, -1: 0, 0: 0, 1: 0, 2: 0}, "ratios": {-2: 0.0, -1: 0.0, 0: 0.0, 1: 0.0, 2: 0.0}}
 
     counts_series = valid.value_counts().sort(
         "label_col" if "label_col" in valid.name else label_col
     )
     # Use explicit groupby-style aggregation
-    counts = {k: int(valid.filter(valid == k).len()) for k in (-1, 0, 1)}
+    counts = {k: int(valid.filter(valid == k).len()) for k in (-2, -1, 0, 1, 2)}
     ratios = {k: round(v / total, 4) for k, v in counts.items()}
     return {"counts": counts, "ratios": ratios}
 

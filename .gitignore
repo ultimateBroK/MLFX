@@ -17,6 +17,7 @@ outputs/reports/*
 logs/*
 !logs/.gitkeep
 /download.log
+/lightning_logs/*
 
 # Environment variables
 .env
@@ -42,3 +43,8 @@ __pycache__/
 .venv/*
 env/
 venv/
+
+.vscode/*
+.github/*
+
+task.md
