@@ -37,6 +37,7 @@ def run_full_eval(
     commission: float = 0.1,
     tp_r: float = 1.5,
     sl_r: float = 1.0,
+    slippage: float = 0.0,
     out_dir: str | Path = "outputs/reports",
 ) -> dict:
     """
@@ -75,9 +76,8 @@ def run_full_eval(
         risk_pct,
         commission,
     )
-
     trades = simulate_trades(
-        df, signal_col=label_col, tp_r=tp_r, sl_r=sl_r, commission=commission
+        df, signal_col=label_col, tp_r=tp_r, sl_r=sl_r, commission=commission, slippage=slippage
     )
 
     metrics = compute_metrics(
@@ -91,6 +91,9 @@ def run_full_eval(
     logger.info("Max Drawdown : %.2f R", metrics.get("max_drawdown_r", 0))
     logger.info("Net Profit(R): %.2f R", metrics.get("total_r", 0))
     logger.info("Net Profit($): $%.2f", metrics.get("net_profit_dollar", 0))
+    logger.info("Sharpe Ratio : %.2f", metrics.get("sharpe_ratio", 0))
+    logger.info("Sortino Ratio: %.2f", metrics.get("sortino_ratio", 0))
+    logger.info("Calmar Ratio : %.2f", metrics.get("calmar_ratio", 0))
     logger.info("Final Capital: $%.2f", metrics.get("final_capital", initial_capital))
     logger.info("------------------------")
 
@@ -109,6 +112,9 @@ def run_full_eval(
         "Profit Factor": f"{metrics['profit_factor']:.2f}",
         "Net Profit (R)": f"{metrics['total_r']:.2f}R",
         "Net Profit ($)": f"${metrics['net_profit_dollar']:.2f}",
+        "Sharpe Ratio": f"{metrics['sharpe_ratio']:.2f}",
+        "Sortino Ratio": f"{metrics['sortino_ratio']:.2f}",
+        "Calmar Ratio": f"{metrics['calmar_ratio']:.2f}",
         "Final Capital ($)": f"${metrics['final_capital']:.2f}",
     }
 
@@ -140,6 +146,9 @@ def main():
         "--sl", type=float, default=1.0, help="Stop Loss R-multiple (default 1.0)"
     )
     parser.add_argument(
+        "--slippage", type=float, default=0.0, help="Slippage in price units (default 0.0)"
+    )
+    parser.add_argument(
         "--outdir",
         type=str,
         default="outputs/reports",
@@ -161,12 +170,13 @@ def main():
         sys.exit(1)
 
     logger.info(
-        "Running trade simulation (Signal: %s, TP: %.1fR, SL: %.1fR)",
+        "Running trade simulation (Signal: %s, TP: %.1fR, SL: %.1fR, Slippage: %.2f)",
         args.label,
         args.tp,
         args.sl,
+        args.slippage,
     )
-    trades = simulate_trades(df, signal_col=args.label, tp_r=args.tp, sl_r=args.sl)
+    trades = simulate_trades(df, signal_col=args.label, tp_r=args.tp, sl_r=args.sl, slippage=args.slippage)
 
     # Print metrics
     metrics = compute_metrics(trades)
@@ -176,6 +186,9 @@ def main():
     logger.info("Profit Factor: %.2f", metrics["profit_factor"])
     logger.info("Max Drawdown : %.2f R", metrics["max_drawdown_r"])
     logger.info("Net Profit   : %.2f R", metrics["total_r"])
+    logger.info("Sharpe Ratio : %.2f", metrics["sharpe_ratio"])
+    logger.info("Sortino Ratio: %.2f", metrics["sortino_ratio"])
+    logger.info("Calmar Ratio : %.2f", metrics["calmar_ratio"])
     logger.info("------------------------")
 
     # Generate Visuals

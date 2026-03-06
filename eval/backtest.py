@@ -28,6 +28,7 @@ def simulate_trades(
     atr_col: str = "atr_14",
     atr_mult: float = 0.5,
     commission: float = 0.0,
+    slippage: float = 0.0,
 ) -> pl.DataFrame:
     """
     Simulate trades sequentially based on signals.
@@ -49,6 +50,7 @@ def simulate_trades(
         atr_col:       ATR column for setting SL/TP distances.
         atr_mult:      ATR risk basis. Base risk distance = `atr_mult * atr`.
         commission:    Fixed commission in price units to deduct per trade.
+        slippage:      Slippage in price units applied on both entry and exit.
 
     Returns:
         DataFrame of completed trades with PnL.
@@ -119,10 +121,10 @@ def simulate_trades(
                 reason = "TIME"
 
             if exit_price is not None:
-                # Deduct commission R
+                # Deduct commission & slippage R (slippage applies to both entry and exit)
                 if risk_dist > 0:
-                    commission_r = commission / risk_dist
-                    pnl_r -= commission_r
+                    cost_r = (commission + 2 * slippage) / risk_dist
+                    pnl_r -= cost_r
 
                 trades.append(
                     {
@@ -184,6 +186,9 @@ def compute_metrics(
             "profit_factor": 0.0,
             "net_profit_dollar": 0.0,
             "final_capital": initial_capital,
+            "sharpe_ratio": 0.0,
+            "sortino_ratio": 0.0,
+            "calmar_ratio": 0.0,
         }
 
     pnl = trades_df["pnl_r"].to_numpy()
@@ -206,6 +211,17 @@ def compute_metrics(
     net_profit_dollar = float(equity[-1] * risk_dollar) if len(equity) > 0 else 0.0
     final_capital = initial_capital + net_profit_dollar
 
+    # Advanced Metrics
+    mean_pnl = np.mean(pnl) if total_trades > 0 else 0.0
+    std_pnl = np.std(pnl) if total_trades > 0 else 0.0
+    sharpe = mean_pnl / std_pnl if std_pnl > 0 else 0.0
+
+    downside_pnl = pnl[pnl < 0]
+    std_downside = np.std(downside_pnl) if len(downside_pnl) > 0 else 0.0
+    sortino = mean_pnl / std_downside if std_downside > 0 else 0.0
+
+    calmar = float(equity[-1] / max_dd) if max_dd > 0 else 0.0
+
     return {
         "total_trades": total_trades,
         "win_rate": float(win_rate),
@@ -214,4 +230,7 @@ def compute_metrics(
         "profit_factor": float(profit_factor),
         "net_profit_dollar": float(net_profit_dollar),
         "final_capital": float(final_capital),
+        "sharpe_ratio": float(sharpe),
+        "sortino_ratio": float(sortino),
+        "calmar_ratio": float(calmar),
     }

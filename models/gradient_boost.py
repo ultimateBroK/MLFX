@@ -30,6 +30,7 @@ import numpy as np
 import polars as pl
 from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import TimeSeriesSplit
+from sklearn.utils.class_weight import compute_sample_weight
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ FEATURE_BLACKLIST = {
 Backend = Literal["xgb", "lgb"]
 
 
-# ── Feature prep (shared with knn.py) ──────────────────────────────────────────
+# ── Feature prep ──────────────────────────────────────────────────────────────
 
 
 def get_feature_columns(df: pl.DataFrame) -> list[str]:
@@ -75,8 +76,8 @@ def prepare_xy(
     subset = df.select(feature_cols + [label_col]).drop_nulls()
     X = subset.select(feature_cols).to_numpy().astype(np.float32)
     y = subset[label_col].to_numpy().astype(np.int64)
-    # Remap {-1, 0, 1} → {0, 1, 2} for multi-class classifiers
-    y = y + 1  # SHORT→0, NEUTRAL→1, LONG→2
+    # Remap {-2, -1, 0, 1, 2} → {0, 1, 2, 3, 4} for multi-class classifiers
+    y = y + 2  # STRONG SHORT→0, WEAK SHORT→1, NEUTRAL→2, WEAK LONG→3, STRONG LONG→4
     return X, y, feature_cols
 
 
@@ -94,10 +95,12 @@ def _xgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
         "subsample": trial.suggest_float("subsample", 0.6, 1.0),
         "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
         "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+        "alpha": trial.suggest_float("alpha", 1e-8, 10.0, log=True),
+        "lambda": trial.suggest_float("lambda", 1e-8, 10.0, log=True),
         "use_label_encoder": False,
         "eval_metric": "mlogloss",
         "objective": "multi:softmax",
-        "num_class": 3,
+        "num_class": 5,
         "verbosity": 0,
         "random_state": 42,
     }
@@ -105,8 +108,9 @@ def _xgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
     tscv = TimeSeriesSplit(n_splits=n_splits)
     scores: list[float] = []
     for train_idx, val_idx in tscv.split(X):
+        sw_train = compute_sample_weight("balanced", y[train_idx])
         model = xgb.XGBClassifier(**params)
-        model.fit(X[train_idx], y[train_idx], verbose=False)
+        model.fit(X[train_idx], y[train_idx], sample_weight=sw_train, verbose=False)
         preds = model.predict(X[val_idx])
         scores.append(f1_score(y[val_idx], preds, average="macro", zero_division=0))
     return float(np.mean(scores))
@@ -123,8 +127,10 @@ def _lgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
         "subsample": trial.suggest_float("subsample", 0.6, 1.0),
         "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
         "min_child_samples": trial.suggest_int("min_child_samples", 5, 50),
+        "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+        "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
         "objective": "multiclass",
-        "num_class": 3,
+        "num_class": 5,
         "verbose": -1,
         "random_state": 42,
     }
@@ -132,8 +138,9 @@ def _lgb_objective(trial, X: np.ndarray, y: np.ndarray, n_splits: int) -> float:
     tscv = TimeSeriesSplit(n_splits=n_splits)
     scores: list[float] = []
     for train_idx, val_idx in tscv.split(X):
+        sw_train = compute_sample_weight("balanced", y[train_idx])
         model = lgb.LGBMClassifier(**params)
-        model.fit(X[train_idx], y[train_idx])
+        model.fit(X[train_idx], y[train_idx], sample_weight=sw_train)
         preds = model.predict(X[val_idx])
         scores.append(f1_score(y[val_idx], preds, average="macro", zero_division=0))
     return float(np.mean(scores))
@@ -168,24 +175,43 @@ def train_xgboost(
         "verbosity": 0,
         "random_state": 42,
     }
+
+    # -- Collect final OOS predictions using TimeSeriesSplit
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    oos_preds = np.full(len(y), -1, dtype=y.dtype)
+    for train_idx, val_idx in tscv.split(X):
+        sw_train = compute_sample_weight("balanced", y[train_idx])
+        model_cv = xgb.XGBClassifier(**best_params)
+        model_cv.fit(X[train_idx], y[train_idx], sample_weight=sw_train, verbose=False)
+        oos_preds[val_idx] = model_cv.predict(X[val_idx])
+
+    oos_mask = oos_preds != -1
+    f1_macro_oos = float(f1_score(y[oos_mask], oos_preds[oos_mask], average="macro", zero_division=0))
+
+    # -- Train final model on full dataset
     model = xgb.XGBClassifier(**best_params)
-    model.fit(X, y, verbose=False)
+    sw = compute_sample_weight("balanced", y)
+    model.fit(X, y, sample_weight=sw, verbose=False)
     preds = model.predict(X)
 
     metrics = {
         "backend": "xgb",
         "best_params": study.best_params,
         "best_cv_f1_macro": study.best_value,
+        "f1_macro_oos": f1_macro_oos,
         "f1_macro_train": float(f1_score(y, preds, average="macro", zero_division=0)),
         "f1_weighted_train": float(
             f1_score(y, preds, average="weighted", zero_division=0)
         ),
         "n_samples": len(X),
         "n_trials": n_trials,
-        "report": classification_report(y, preds, zero_division=0, output_dict=True),
+        "report_oos": classification_report(y[oos_mask], oos_preds[oos_mask], zero_division=0, output_dict=True),
     }
     logger.info(
-        "XGB  best_cv_f1=%.4f  best_params=%s", study.best_value, study.best_params
+        "XGB  OOS F1: %.4f | Train F1: %.4f | best_params: %s",
+        metrics["f1_macro_oos"],
+        metrics["f1_macro_train"],
+        study.best_params,
     )
     return model, metrics
 
@@ -210,28 +236,47 @@ def train_lightgbm(
 
     best_params = study.best_params | {
         "objective": "multiclass",
-        "num_class": 3,
+        "num_class": 5,
         "verbose": -1,
         "random_state": 42,
     }
+
+    # -- Collect final OOS predictions using TimeSeriesSplit
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    oos_preds = np.full(len(y), -1, dtype=y.dtype)
+    for train_idx, val_idx in tscv.split(X):
+        sw_train = compute_sample_weight("balanced", y[train_idx])
+        model_cv = lgb.LGBMClassifier(**best_params)
+        model_cv.fit(X[train_idx], y[train_idx], sample_weight=sw_train)
+        oos_preds[val_idx] = model_cv.predict(X[val_idx])
+
+    oos_mask = oos_preds != -1
+    f1_macro_oos = float(f1_score(y[oos_mask], oos_preds[oos_mask], average="macro", zero_division=0))
+
+    # -- Train final model on full dataset
     model = lgb.LGBMClassifier(**best_params)
-    model.fit(X, y)
+    sw = compute_sample_weight("balanced", y)
+    model.fit(X, y, sample_weight=sw)
     preds = model.predict(X)
 
     metrics = {
         "backend": "lgb",
         "best_params": study.best_params,
         "best_cv_f1_macro": study.best_value,
+        "f1_macro_oos": f1_macro_oos,
         "f1_macro_train": float(f1_score(y, preds, average="macro", zero_division=0)),
         "f1_weighted_train": float(
             f1_score(y, preds, average="weighted", zero_division=0)
         ),
         "n_samples": len(X),
         "n_trials": n_trials,
-        "report": classification_report(y, preds, zero_division=0, output_dict=True),
+        "report_oos": classification_report(y[oos_mask], oos_preds[oos_mask], zero_division=0, output_dict=True),
     }
     logger.info(
-        "LGB  best_cv_f1=%.4f  best_params=%s", study.best_value, study.best_params
+        "LGB  OOS F1: %.4f | Train F1: %.4f | best_params: %s",
+        metrics["f1_macro_oos"],
+        metrics["f1_macro_train"],
+        study.best_params,
     )
     return model, metrics
 
@@ -324,6 +369,62 @@ def load_model(path: Path) -> Any:
     return joblib.load(path)
 
 
+def select_features(
+    X: np.ndarray, y: np.ndarray, feature_cols: list[str], backend: str, top_k: int = 20
+) -> tuple[np.ndarray, list[str]]:
+    """Drop highly correlated features and select top_k using SHAP on a baseline model."""
+    import pandas as pd
+    import shap
+    import xgboost as xgb
+    import lightgbm as lgb
+
+    logger.info("Dropping correlated features (>0.9)...")
+    df_X = pd.DataFrame(X, columns=feature_cols)
+    corr_matrix = df_X.corr(method="spearman").abs()
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
+
+    keep_cols = [c for c in feature_cols if c not in to_drop]
+    keep_idx = [feature_cols.index(c) for c in keep_cols]
+    X_filtered = X[:, keep_idx]
+    logger.info("Dropped %d features due to correlation. Remaining: %d", len(to_drop), len(keep_cols))
+
+    if len(keep_cols) <= top_k:
+        return X_filtered, keep_cols
+
+    logger.info("Computing SHAP values to select top %d features...", top_k)
+    if backend == "xgb":
+        baseline = xgb.XGBClassifier(random_state=42, use_label_encoder=False, eval_metric="mlogloss")
+    else:
+        baseline = lgb.LGBMClassifier(random_state=42, verbose=-1)
+
+    # Use class weights for the baseline too
+    from sklearn.utils.class_weight import compute_sample_weight
+    sw = compute_sample_weight("balanced", y)
+    baseline.fit(X_filtered, y, sample_weight=sw)
+    
+    explainer = shap.TreeExplainer(baseline)
+
+    sample_size = min(10000, X_filtered.shape[0])
+    sample_idx = np.random.choice(X_filtered.shape[0], sample_size, replace=False)
+    X_sample = X_filtered[sample_idx]
+
+    shap_values = explainer.shap_values(X_sample)
+
+    if isinstance(shap_values, list):
+        mean_abs_shap = np.sum([np.abs(sv).mean(axis=0) for sv in shap_values], axis=0)
+    elif len(shap_values.shape) == 3:
+        mean_abs_shap = np.abs(shap_values).mean(axis=(0, 2))
+    else:
+        mean_abs_shap = np.abs(shap_values).mean(axis=0)
+
+    top_indices = np.argsort(mean_abs_shap)[-top_k:][::-1]
+    final_cols = [keep_cols[i] for i in top_indices]
+
+    logger.info("Selected top %d features: %s", top_k, ", ".join(final_cols))
+    return X_filtered[:, top_indices], final_cols
+
+
 # ── File-level runner ──────────────────────────────────────────────────────────
 
 
@@ -365,6 +466,8 @@ def run_gradient_boost(
         len(feature_cols),
         backend,
     )
+
+    X, feature_cols = select_features(X, y, feature_cols, backend, top_k=20)
 
     if backend == "xgb":
         model, metrics = train_xgboost(X, y, n_trials=n_trials, n_splits=n_splits)
@@ -421,5 +524,5 @@ if __name__ == "__main__":
         plot_shap=not args.no_shap,
     )
     if result:
-        print(f"Best CV F1: {result['best_cv_f1_macro']:.4f}")
+        print(f"OOS F1 macro: {result['f1_macro_oos']:.4f}")
         print(f"Train F1 macro: {result['f1_macro_train']:.4f}")
