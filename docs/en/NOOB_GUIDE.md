@@ -1,49 +1,105 @@
-# System Anatomy: A Guide for Beginners 🧠
+# ML_FX - Beginner Guide
 
-Welcome! Instead of confusing you with dense code immediately, this document explains **how the bot works behind the scenes**. By understanding the big picture, you'll have an easier time navigating the project.
+If you are new to the repository, read this before running commands. The goal is to understand what the project does, how data moves through the system, and why the pipeline must be run in order.
 
-Think of building an AI trading bot like refining raw coffee beans into a perfect espresso. It requires a structured 4-step Data Pipeline.
+## 1. What this project does
 
----
+ML_FX is a research pipeline for price data:
+- download historical tick data
+- resample it into OHLCV bars
+- build technical features
+- generate future-direction labels
+- train models
+- backtest on labeled datasets
 
-## 🔧 The 4 Core Stages
+It is not a finished live-trading bot.
 
-### 1️⃣ Raw Data Extraction (Ticks to Candles)
-The market records data using "Ticks" (every single price change). Computers can't easily learn from raw ticks because there's too much noise.
-The `resample.py` script compacts millions of these raw ticks into structured Candlesticks (like 1 Hour, 5 Minute, or 15 Minute charts).
+## 2. High-level pipeline
 
-### 2️⃣ Feature Engineering (Giving the AI context)
-If you just give an AI a bunch of green and red candles, it doesn't know where the tops or bottoms are.
-The `features.py` script calculates and attaches over 133 technical indicators to these candles. 
-*   **Example:** A specific candle might now have a tag that says "RSI is 30 (oversold)" or "Price is 5 pips away from last week's support." This gives the AI the context it needs to see the market properly.
+```text
+Tick data
+  -> OHLCV
+  -> Features
+  -> Labels
+  -> Train
+  -> Backtest
+```
 
-### 3️⃣ Labeling (Grading the Exam)
-To train an AI, you have to give it a historical test where the "answers" are already filled in. 
-The `labels.py` script peeks into the future. If it sees that Gold's price shot up over the next 10 candles, it marks the current candle with a `"LONG"` label. It repeats this process across billions of candles over a 10-year history.
+Each stage maps to a file group:
+- `pipeline/download_data.py`
+- `pipeline/resample.py`
+- `pipeline/features.py`
+- `pipeline/labels.py`
+- `models/*.py`
+- `eval/run_eval.py`
 
-### 4️⃣ Machine Learning (Finding the Patterns)
-Now the magic happens. We feed all this data (Features + Labels) into a Machine Learning model like XGBoost or an LSTM network.
-The AI scans the data and figures out the underlying rules:
-> *"Aha! I've noticed that whenever MACD crosses up AND RSI touches 30 AND we are in the London session... the chance of a successful LONG trade is 70%!"*
+## 3. Why the order matters
 
-### 5️⃣ Backtesting (The Practice Run)
-You never deploy a brand new AI directly to live trading. 
-We use the `backtest.py` simulation engine to force the AI to trade historical data blindly, observing strict Risk Management rules (e.g., risking $100 to make $150). 
-When the simulation finishes, it provides a full report showing its Win Rate and an Equity Curve (a chart showing wealth progression). 
+### 3.1 Tick -> OHLCV
 
-Check out [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) to learn how to read these backtest reports.
+Tick data is dense and noisy. `resample.py` converts ticks into bars such as `1m`, `5m`, and `1H`, which makes later processing manageable.
 
----
+### 3.2 OHLCV -> Features
 
-## 🎯 Essential Mindsets for ML_FX
+`features.py` adds context to each bar, for example:
+- session state from `ICT Killzone`
+- `Support/Resistance` levels
+- `Pivot Points`
+- common indicators such as RSI, MACD, ATR, and EMA
 
-If you're just getting started, here are a few things to keep in mind:
+Without features, the model only sees raw price values and has much less structure to learn from.
 
-1. **The Bot is NOT a Crystal Ball:** The AI doesn't predict the future flawlessly. It strictly operates on probability. It finds historical patterns with high win rates and relies on strict Stop Losses and Take Profits to handle the inevitable losing trades.
-2. **Follow the Exact Sequence:** The pipeline must be run in order: **Data -> Candles -> Features -> Labels -> Train**. Trying to train the AI before calculating its features will result in immediate "File Missing" errors. Check [USAGE_GUIDE.md](USAGE_GUIDE.md) for the exact run order.
-3. **Use the Glossary:** If you see a term you don't know (like *Tick*, *Parquet*, *OHLCV*, *Optuna*), check [GLOSSARY.md](GLOSSARY.md) for a simple definition.
-4. **Don't Panic on Errors:** If your terminal shows errors, take a breath and open [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Over 99% of common issues (like missing files or memory limits) are documented there with quick fixes.
+### 3.3 Features -> Labels
 
----
+`labels.py` creates labels such as `label_5`, `label_10`, and `label_20`. Each label describes the future direction after a given look-ahead horizon.
 
-You're fully prepared! Head over to the [Usage Guide](USAGE_GUIDE.md) and start running some commands!
+This is what turns the problem into supervised learning.
+
+### 3.4 Labels -> Train
+
+Files under `models/` read labeled data and train the selected backend. The repository currently includes several backends:
+- `ml_models.py`
+- `lstm.py`
+- `transformer.py`
+- `cnn_lstm.py`
+- `online_sgd.py`
+- `stats_baseline.py`
+- `neural_forecast.py`
+
+### 3.5 Train -> Backtest
+
+`eval/run_eval.py` and `eval/backtest.py` simulate trades from a signal column, while `viz/charts.py` writes:
+- candlestick HTML
+- equity curve PNG
+- heatmap PNG
+
+## 4. Fastest way to start
+
+If you only want to try the repo quickly:
+
+```bash
+pixi install
+pixi run python main.py
+```
+
+Inside the TUI, follow this order:
+1. `Download Data`
+2. `Pipeline`
+3. `Train Model`
+4. `Backtest`
+
+If you prefer CLI commands, open `USAGE_GUIDE.md`.
+
+## 5. Things to remember
+
+- if training fails because files are missing, you usually skipped `features.py` or `labels.py`
+- `outputs/models/` stores model artifacts and metrics
+- `outputs/reports/` stores backtest reports
+- `agent/` is not yet a complete end-user feature
+
+## 6. What to read next
+
+- `USAGE_GUIDE.md`: command-by-command usage
+- `EVALUATION_GUIDE.md`: how to read backtest outputs
+- `TROUBLESHOOTING.md`: environment and data issues
+- `GLOSSARY.md`: common terms

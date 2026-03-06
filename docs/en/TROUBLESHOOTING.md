@@ -1,47 +1,117 @@
-# Troubleshooting Guide
+# ML_FX - Troubleshooting
 
-Occasionally, you might encounter issues due to environment setup or memory limits. If you see red errors in your terminal, check this guide for a quick fix.
+This guide covers the most common environment and pipeline issues.
 
----
+## 1. `pixi: command not found`
 
-### 🚨 Error 1: `pixi: command not found`
-*   **Symptom**: The terminal throws an error when you try to run any `pixi` command.
-*   **Cause**: Pixi is not installed, or your terminal hasn't been restarted since installation.
-*   **Fix**: 
-    1. Follow the installation steps closely in the [Usage Guide](USAGE_GUIDE.md).
-    2. Close your Terminal or VSCode completely and open it again.
+Common causes:
+- Pixi is not installed
+- Pixi was installed but the terminal was not restarted
 
-### 🚨 Error 2: Missing Package (`ModuleNotFoundError`)
-*   **Symptom**: You see errors like `ModuleNotFoundError: No module named 'xgboost'`.
-*   **Cause**: Your environment hasn't installed all necessary project libraries.
-*   **Fix**: Run this command to sync your environment:
-    ```bash
-    pixi install
-    ```
-
-### 🚨 Error 3: File Not Found Errors (`SystemExit: No feature files found`)
-*   **Symptom**: You trigger a labeling or training script, and it complains about missing files or empty DataFrames.
-*   **Cause**: You skipped a step. For example, you tried to generate labels without first generating features.
-*   **Fix**: Follow the pipeline steps in strict order as defined in the [Usage Guide](USAGE_GUIDE.md): Download Data -> Resample Candles -> Generate Features -> Label.
-
-### 🚨 Error 4: Out Of Memory (OOM) / Crashes
-*   **Symptom**: Your computer runs out of RAM and kills the script.
-*   **Cause**: You might be trying to load all 10+ years of raw `.parquet` tick data into memory at once, which can exceed 20GB.
-*   **Fix**: Always use Polars' `scan_parquet()` (Lazy Evaluation) to process data in chunks without overloading RAM, rather than `read_parquet()`.
-
-### 🚨 Error 5: Download randomly freezes or network drops
-*   **Symptom**: `download_data.py` stops running halfway through downloading historical data.
-*   **Fix**: The script automatically tracks progress in `completed_months.json`. Simply rerun `pixi run python pipeline/download_data.py`, and it will resume exactly from where it left off.
-
----
-
-### 💡 Quick Tip: Performing a Clean Reset
-If you accidentally modified pipeline scripts and generated corrupted data files, you can easily delete your generated caches and start fresh without losing the original raw tick data.
+Fix:
+1. install Pixi using `USAGE_GUIDE.md`
+2. restart your terminal or IDE
+3. run:
 
 ```bash
-# This cleans all generated candles, features, and labels.
-# It safely keeps raw TICK data intact so you don't have to download it again.
-rm -rf data/ohlcv/* data/features/* data/labels/*
+pixi install
+```
 
-# Afterwards, safely re-run the Resampling, Features, and Labeling scripts.
+## 2. Missing package errors
+
+Example:
+
+```text
+ModuleNotFoundError: No module named 'xgboost'
+```
+
+Cause:
+- the environment has not been fully synchronized
+
+Fix:
+
+```bash
+pixi install
+```
+
+## 3. Missing files during feature generation, labeling, or training
+
+Examples:
+- files missing in `data/ohlcv/`
+- files missing in `data/features/`
+- files missing in `data/labels/`
+
+Cause:
+- the pipeline was run out of order
+
+Correct order:
+
+```text
+download -> qa -> resample -> features -> labels -> train -> backtest
+```
+
+If training fails, inspect these directories in order:
+- `data/raw/{symbol}/`
+- `data/ohlcv/{symbol}/{tf}/`
+- `data/features/{symbol}/{tf}/`
+- `data/labels/{symbol}/{tf}/`
+
+## 4. Out-of-memory or killed processes
+
+Cause:
+- too much tick data is being loaded at once
+
+Fix:
+- start with a larger timeframe such as `1H`
+- process one symbol at a time
+- if you write custom analysis scripts, prefer `scan_parquet()` over `read_parquet()` for large datasets
+
+## 5. Interrupted downloads
+
+`pipeline/download_data.py` can resume using `completed_months.json`.
+
+In most cases, simply rerun:
+
+```bash
+pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx
+```
+
+If you want to force a full re-check of completed months:
+
+```bash
+pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx --force-repair
+```
+
+## 6. Clean reset of generated data
+
+If you want to regenerate OHLCV, features, or labels while keeping raw data:
+
+```bash
+rm -rf data/ohlcv/* data/features/* data/labels/*
+```
+
+Then rerun:
+
+```bash
+pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
+pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
+pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H
+```
+
+## 7. Backtest does not generate reports
+
+Check:
+- whether the path passed to `--data` exists
+- whether the `--label` column exists in the parquet file
+- whether the output directory is writable
+
+Example:
+
+```bash
+pixi run python eval/run_eval.py \
+  --data data/labels/XAUUSD/1H/2024-01.parquet \
+  --symbol XAUUSD \
+  --tf 1H \
+  --label label_10 \
+  --outdir outputs/reports
 ```
