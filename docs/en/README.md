@@ -56,14 +56,19 @@ download
   -> pipeline
   -> train
   -> evaluate
+  -> serve / batch-predict
+  -> drift
 ```
 
 What each stage does:
 - `download`: fetch raw tick data
 - `qa`: audit raw data for gaps or anomalies
 - `pipeline`: build OHLCV, features, and labels
-- `train`: fit the selected backend
+- `train`: fit the selected backend (with tracking + registry update)
 - `evaluate`: run backtests and generate reports
+- `serve`: start the FastAPI real-time inference endpoint
+- `batch-predict`: run offline predictions and write parquet outputs
+- `drift`: compare recent feature distributions vs reference statistics
 
 ## Quickstart
 
@@ -105,8 +110,12 @@ ML_FX/
 │   ├── ingestion/     # Dukascopy downloader
 │   ├── pipeline/      # qa, resampling, feature engineering, labeling
 │   ├── features/      # domain-specific feature modules
-│   ├── training/      # dataset loading, persistence, backend registry
-│   └── evaluation/    # backtest, reporting, evaluation runner
+│   ├── training/      # backend implementations + training orchestration
+│   ├── evaluation/    # backtest, reporting, evaluation runner
+│   ├── tracking/      # experiment tracking adapters (MLflow/File)
+│   ├── registry/      # model registry (JSON-backed)
+│   ├── serving/       # FastAPI API + batch inference
+│   └── monitoring/    # drift detection + structured logging
 ├── docs/
 ├── docs/en/
 ├── data/

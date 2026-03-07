@@ -26,11 +26,10 @@ Legend:
 - [x] `sgd`
 - [x] `stats`
 - [x] `neuralforecast`
-- [x] `bilstm` implementation exists in the codebase but is not exposed in the CLI/TUI
+- [x] `bilstm`
 
 ## 3. Recommended Next Steps
 
-- [ ] decide whether `bilstm` should be exposed in the CLI/TUI
 - [ ] add a unified benchmark flow to compare backends on the same dataset
 - [ ] expand end-to-end train/evaluate coverage on smaller fixture datasets
 - [ ] consider exporting summary metrics or report summaries for monitoring workflows

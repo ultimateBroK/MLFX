@@ -93,6 +93,11 @@ class ModelRegistry:
                 for k, v in metrics.items()
                 if isinstance(v, (int, float))
             },
+            "feature_columns": [
+                column
+                for column in metrics.get("selected_features", [])
+                if isinstance(column, str)
+            ],
             "artifact_path": str(artifact_path or metrics.get("artifact_path", "")),
             "tags": tags or {},
         }

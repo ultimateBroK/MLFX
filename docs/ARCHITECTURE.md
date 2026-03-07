@@ -288,8 +288,8 @@ mlfx.serving.api
 
 mlfx.serving.batch
   ├── mlfx.registry.models
-  ├── mlfx.training.data
-  └── mlfx.training.feature_selection
+  ├── mlfx.serving.features
+  └── mlfx.serving.inference
 
 mlfx.monitoring.drift
   └── scipy.stats (KS test)

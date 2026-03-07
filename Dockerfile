@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # --- runtime stage ---
 FROM python:3.12-slim AS runtime
 
-RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/lib/libta_lib* /usr/lib/

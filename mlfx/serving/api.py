@@ -20,9 +20,11 @@ GET  /models           — list registered models
 from __future__ import annotations
 
 import logging
-import pickle
-from pathlib import Path
 from typing import Any
+
+import numpy as np
+
+from mlfx.serving.inference import load_artifact, predict_labels
 
 logger = logging.getLogger(__name__)
 
@@ -86,23 +88,10 @@ _MODEL_CACHE: dict[str, Any] = {}
 
 
 def _load_model(artifact_path: str) -> Any:
-    """Load a pickle or torch model from *artifact_path* (cached)."""
+    """Load model artifact from *artifact_path* (cached)."""
     if artifact_path in _MODEL_CACHE:
         return _MODEL_CACHE[artifact_path]
-
-    path = Path(artifact_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Artifact not found: {artifact_path}")
-
-    if path.suffix in (".pt", ".pth"):
-        import torch  # noqa: PLC0415
-
-        payload = torch.load(path, map_location="cpu", weights_only=False)
-        _MODEL_CACHE[artifact_path] = payload
-        return payload
-
-    with path.open("rb") as fh:
-        model = pickle.load(fh)  # noqa: S301
+    model = load_artifact(artifact_path)
     _MODEL_CACHE[artifact_path] = model
     return model
 
@@ -155,18 +144,24 @@ def predict(request: PredictRequest) -> PredictResponse:
     if not artifact_path:
         raise HTTPException(status_code=500, detail="Registry entry has no artifact_path.")
 
+    feature_names: list[str] = entry.get("feature_columns") or sorted(request.features.keys())
+    missing_features = [feature for feature in feature_names if feature not in request.features]
+    if missing_features:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Missing required feature(s): {missing_features[:10]}",
+        )
+
     try:
         model = _load_model(artifact_path)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    import numpy as np  # noqa: PLC0415
-
-    feature_names = sorted(request.features.keys())
     X = np.array([[request.features[f] for f in feature_names]], dtype=np.float32)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
     try:
-        raw_pred = model.predict(X)[0]
+        raw_pred = predict_labels(model, X)[0]
         prediction = int(raw_pred) - 2  # remap [0,4] → [-2,2]
         confidence = None
         if hasattr(model, "predict_proba"):

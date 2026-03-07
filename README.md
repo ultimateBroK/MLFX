@@ -116,16 +116,14 @@ ML_FX/
 │   ├── pipeline/       # qa, resampling, feature engineering, labeling
 │   ├── features/       # feature modules theo domain (indicators)
 │   ├── training/
-│   │   ├── backends/   # Backend package (interface + re-exports)
-│   │   │   ├── base.py         # BackendRunner protocol, TrainingConfig, TrainResult
-│   │   │   └── __init__.py     # re-exports run_* from backend_*.py
-│   │   ├── backend_*.py        # Implementations (mlf, lstm, transformer, ...)
+│   │   ├── backends/           # Backend implementations (mlf, lstm, transformer, ...)
+│   │   │   └── base.py         # BackendRunner protocol, TrainingConfig, TrainResult
+│   │   ├── data.py             # Dataset loading helpers
+│   │   ├── feature_selection.py# Feature selection helpers
+│   │   ├── artifacts.py        # Artifact persistence helpers
 │   │   ├── config.py           # Public TrainingConfig/TrainResult aliases
 │   │   ├── runner.py           # High-level orchestrator (track + register)
-│   │   ├── registry.py         # Backend key → module:function map
-│   │   ├── dataset.py          # Data loading helpers
-│   │   ├── features.py         # Feature selection helpers
-│   │   └── persistence.py      # Artifact save helpers
+│   │   └── registry.py         # Backend key → module:function map
 │   ├── evaluation/     # backtest, reporting, evaluation runner
 │   ├── tracking/       # Experiment tracking (MLflow / file-based fallback)
 │   ├── registry/       # Model registry (JSON-backed, MLflow-extensible)

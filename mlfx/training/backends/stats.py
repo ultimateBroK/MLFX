@@ -119,6 +119,7 @@ def run_stats(
     df_nixtla = prepare_nixtla_df(df, label_col).tail(5000)
     sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits)
     save_model(sf, metrics, out_path)
+    metrics["artifact_path"] = str(out_path)
     return metrics
 
 

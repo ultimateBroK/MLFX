@@ -145,12 +145,19 @@ def _register_artifact(config: TrainingConfig, metrics: dict[str, Any]) -> None:
         from mlfx.registry.models import get_registry
 
         registry = get_registry()
+        artifact_path = metrics.get("artifact_path")
+        if not artifact_path:
+            logger.warning(
+                "Backend %s did not return artifact_path; registry entry may be unusable for serving.",
+                config.backend,
+            )
         registry.register(
             backend=config.backend,
             symbol=config.symbol,
             tf=config.tf,
             label_col=config.label_col,
             metrics=metrics,
+            artifact_path=artifact_path,
         )
     except Exception as exc:
         logger.debug("Model registry update failed: %s", exc)

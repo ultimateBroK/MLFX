@@ -108,7 +108,9 @@ def run_online_sgd(
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
     clf, scaler, metrics = train_online_sgd(X, y)
+    metrics["selected_features"] = feature_cols
     save_model(clf, scaler, metrics, out_path)
+    metrics["artifact_path"] = str(out_path)
     return metrics
 
 

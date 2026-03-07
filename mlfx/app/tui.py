@@ -35,7 +35,8 @@ from mlfx.ingestion.download import run_download_job
 from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
 from mlfx.pipeline.resampling import resample_symbol_tf
-from mlfx.training.registry import get_backend_runner
+from mlfx.training.config import TrainingConfig
+from mlfx.training.runner import run_training
 
 CONFIG_FILE = DEFAULT_PATHS.config_file
 
@@ -374,21 +375,16 @@ class TrainTab(TabPane):
             logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
             capturer = _LogCapturer(self._log, sys.stdout)
             with redirect_stdout(capturer), redirect_stderr(capturer):  # type: ignore[arg-type]
-                runner = get_backend_runner(backend)
-                runner_kwargs: dict[str, Any] = {
-                    "symbol": symbol,
-                    "tf": tf,
-                    "label_col": label_col,
-                    "force": force,
-                }
-                if backend == "mlf":
-                    runner_kwargs["n_trials"] = n_trials
-                    runner_kwargs["n_splits"] = n_splits
-                elif backend == "stats":
-                    runner_kwargs["n_splits"] = n_splits
-                elif backend == "neuralforecast":
-                    runner_kwargs["n_windows"] = n_splits
-                result = runner(**runner_kwargs)
+                cfg = TrainingConfig(
+                    symbol=symbol,
+                    tf=tf,
+                    label_col=label_col,
+                    backend=backend,
+                    n_trials=n_trials,
+                    n_splits=n_splits,
+                    force=force,
+                )
+                result = run_training(cfg)
             if result:
                 self.app.call_from_thread(
                     self._log.write,

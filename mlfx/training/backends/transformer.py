@@ -398,6 +398,7 @@ def run_transformer(
         epochs=epochs,
     )
     save_model(model, metrics, out_path)
+    metrics["artifact_path"] = str(out_path)
     return metrics
 
 if __name__ == "__main__":

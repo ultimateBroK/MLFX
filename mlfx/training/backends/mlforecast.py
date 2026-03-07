@@ -146,6 +146,7 @@ def train_ml_models(
         "f1_macro_train": train_f1,
         "best_params": best_params,
         "n_samples": len(df_preps),
+        "selected_features": feature_cols,
         "model_type": "LGBMClassifier_MLForecast",
     }
 
@@ -184,6 +185,7 @@ def run_ml_models(
         n_splits=n_splits,
     )
     save_model(mlf, metrics, out_path)
+    metrics["artifact_path"] = str(out_path)
     return metrics
 
 

@@ -14,13 +14,15 @@ Usage::
 from __future__ import annotations
 
 import logging
-import pickle
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
+from mlfx.serving.features import load_feature_dataset, select_numeric_feature_columns
+from mlfx.serving.inference import load_artifact, predict_labels
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +48,9 @@ def run_batch_inference(
         Summary with ``rows``, ``artifact_path``, and ``output_path``.
     """
     from mlfx.registry.models import get_registry  # noqa: PLC0415
-    from mlfx.training.data import load_labelled_dataset  # noqa: PLC0415
-    from mlfx.training.feature_selection import select_numeric_feature_columns  # noqa: PLC0415
-
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_feature_dataset(symbol, tf, paths=paths)
     if df is None or df.is_empty():
-        logger.error("No data found for %s %s", symbol, tf)
+        logger.error("No feature data found for %s %s", symbol, tf)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
     reg = get_registry()
@@ -65,14 +64,16 @@ def run_batch_inference(
         logger.error("Artifact not found: %s", artifact_path)
         return {"rows": 0, "artifact_path": artifact_path, "output_path": ""}
 
-    model = _load_pickle(artifact_path)
-    feature_cols = select_numeric_feature_columns(df)
+    model = load_artifact(artifact_path)
+    feature_cols = entry.get("feature_columns") or select_numeric_feature_columns(df)
+    missing = [column for column in feature_cols if column not in df.columns]
+    if missing:
+        logger.error("Missing feature columns required by model: %s", missing[:10])
+        return {"rows": 0, "artifact_path": artifact_path, "output_path": ""}
     X = df.select(feature_cols).to_numpy()
 
-    import numpy as np  # noqa: PLC0415
-
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-    raw_preds = model.predict(X)
+    raw_preds = predict_labels(model, X)
     predictions = (raw_preds - 2).tolist()  # remap [0,4] → [-2,2]
 
     result_df = df.with_columns(pl.Series("prediction", predictions, dtype=pl.Int8))
@@ -90,8 +91,3 @@ def run_batch_inference(
         "output_path": str(out_file),
     }
 
-
-def _load_pickle(artifact_path: str) -> Any:
-    """Load a pickle-serialised model from disk."""
-    with open(artifact_path, "rb") as fh:
-        return pickle.load(fh)  # noqa: S301

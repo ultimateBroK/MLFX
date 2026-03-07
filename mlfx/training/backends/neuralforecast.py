@@ -158,6 +158,7 @@ def run_neural_forecast(
         max_steps=max_steps,
     )
     save_model(nf, metrics, out_path)
+    metrics["artifact_path"] = str(out_path)
     return metrics
 
 
