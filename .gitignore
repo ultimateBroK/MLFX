@@ -4,6 +4,7 @@
 
 # Agent
 .agent/*
+.cursor/*
 
 # Data and Output
 data/*
