@@ -11,14 +11,11 @@ import polars as pl
 import pyarrow.parquet as pq
 import talib
 
-from mlfx.config.paths import DEFAULT_PATHS
+from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 from mlfx.features.indicators.killzone import add_killzone_features
 from mlfx.features.indicators.sr_pp import add_sr_pp_features
 
 logger = logging.getLogger(__name__)
-
-OHLCV_DIR = DEFAULT_PATHS.ohlcv_root
-FEATURES_DIR = DEFAULT_PATHS.features_root
 
 
 def _add_ta(df: pl.DataFrame, name: str, values: np.ndarray) -> pl.DataFrame:
@@ -191,10 +188,12 @@ def run_feature_pipeline(
     pivot_type: str = "traditional",
     pivot_anchor: str = "daily",
     force: bool = False,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
     """Build and persist feature parquet files for one symbol/timeframe."""
-    in_dir = OHLCV_DIR / symbol / tf
-    out_dir = FEATURES_DIR / symbol / tf
+    in_dir = paths.ohlcv_dir(symbol, tf)
+    out_dir = paths.features_dir(symbol, tf)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     stats = {"processed": 0, "skipped": 0, "total_bars": 0, "total_features": 0}

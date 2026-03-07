@@ -9,12 +9,9 @@ import logging
 import polars as pl
 import pyarrow.parquet as pq
 
-from mlfx.config.paths import DEFAULT_PATHS
+from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 
 logger = logging.getLogger(__name__)
-
-FEATURES_DIR = DEFAULT_PATHS.features_root
-LABELS_DIR = DEFAULT_PATHS.labels_root
 
 HORIZONS: list[int] = [5, 10, 20]
 ATR_MULT: float = 0.5
@@ -89,10 +86,12 @@ def run_label_pipeline(
     atr_period: int = 14,
     atr_mult: float = ATR_MULT,
     force: bool = False,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
     """Read feature parquet files, add labels, and persist outputs."""
-    in_dir = FEATURES_DIR / symbol / tf
-    out_dir = LABELS_DIR / symbol / tf
+    in_dir = paths.features_dir(symbol, tf)
+    out_dir = paths.labels_dir(symbol, tf)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     atr_col = f"atr_{atr_period}"

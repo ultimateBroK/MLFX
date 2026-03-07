@@ -78,7 +78,7 @@ Các khóa cần nhớ:
 - `pivot_type`: `traditional`, `fibonacci`, `woodie`, `classic`, `demark`, `camarilla`
 - `pivot_anchor`: `daily`, `weekly`, `monthly`
 - `label_col`: `label_5`, `label_10`, `label_20`
-- `backend`: `mlf`, `lstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
+- `backend`: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
 
 ## 4. TUI
 
@@ -175,6 +175,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 Backend hiện hỗ trợ qua CLI/TUI:
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -228,7 +229,7 @@ Artifacts mặc định:
 - `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
 - `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
-## 6. Luồng chạy đầy đủ
+## 6. Luồng chạy đầy đủ (MLOps)
 
 ```bash
 # 1) Tải dữ liệu tick
@@ -240,12 +241,96 @@ pixi run mlfx qa --symbol XAUUSD --asset-class fx
 # 3) OHLCV + features + labels
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H --pivot traditional --anchor daily --atr-mult 0.5
 
-# 4) Train
+# 4) Train (tự động track + register)
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
 
 # 5) Evaluate
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+
+# 6) Xem model registry
+pixi run mlfx models --symbol XAUUSD --tf 1H
+
+# 7) Batch predict để kiểm tra trước khi deploy
+pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
+
+# 8) Serve
+pixi run mlfx serve --port 8000
 ```
+
+### 5.6 Serving real-time (FastAPI)
+
+```bash
+# Khởi động inference server
+pixi run mlfx serve --port 8000
+
+# Hoặc qua Docker
+docker-compose up api
+
+# Health check
+curl http://localhost:8000/health
+
+# List registered models
+curl http://localhost:8000/models
+
+# Predict
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "XAUUSD",
+    "tf": "1H",
+    "label_col": "label_10",
+    "features": {"rsi_14": 65.2, "atr_14": 0.003, ...}
+  }'
+```
+
+### 5.7 Batch inference
+
+```bash
+pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
+# → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
+```
+
+### 5.8 Drift detection
+
+Bước 1 – lưu reference sau khi train:
+```bash
+# Tự động sau run_training(), hoặc thủ công:
+python -c "
+from mlfx.monitoring.drift import save_reference
+import polars as pl
+df = pl.read_parquet('data/labels/XAUUSD/1H/*.parquet')
+feature_cols = [c for c in df.columns if c not in ['datetime','label_5','label_10','label_20']]
+save_reference(df, feature_cols, 'XAUUSD', '1H')
+"
+```
+
+Bước 2 – kiểm tra drift định kỳ:
+```bash
+pixi run mlfx drift --symbol XAUUSD --tf 1H
+# In JSON report và exit code 1 nếu phát hiện drift nghiêm trọng
+```
+
+### 5.9 Model registry
+
+```bash
+# Liệt kê tất cả versions
+pixi run mlfx models
+
+# Lọc theo symbol/tf
+pixi run mlfx models --symbol XAUUSD --tf 1H
+```
+
+### 5.10 MLflow tracking (tùy chọn)
+
+Khởi động MLflow server qua Docker:
+```bash
+docker-compose --profile tracking up mlflow
+# UI tại http://localhost:5000
+```
+
+Khi server đang chạy, tracking tự động dùng MLflow thay cho file fallback.
+
+---
 
 ## 7. Checklist xác minh nhanh
 
@@ -253,8 +338,10 @@ Sau mỗi bước, nên kiểm tra:
 - sau `download`: có file parquet trong `data/raw/{symbol}/`
 - sau `qa`: có file báo cáo chất lượng dữ liệu
 - sau `pipeline`: có parquet trong `data/ohlcv/`, `data/features/`, `data/labels/`
-- sau `train`: có artifact mới trong `outputs/models/{symbol}/{tf}/`
+- sau `train`: có artifact mới trong `outputs/models/{symbol}/{tf}/` và entry trong `outputs/models/registry.json`
 - sau `evaluate`: có HTML/PNG mới trong `outputs/reports/`
+- sau `batch-predict`: có parquet trong `outputs/predictions/`
+- sau `drift`: không có cảnh báo drift nghiêm trọng (exit code 0)
 
 ## 8. Cleanup an toàn
 

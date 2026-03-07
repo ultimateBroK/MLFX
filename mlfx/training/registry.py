@@ -11,24 +11,23 @@ BackendRunner = Callable[..., dict[str, Any]]
 
 
 BACKEND_REGISTRY: dict[str, tuple[str, str]] = {
-    "mlf": ("mlfx.training.backends", "run_ml_models"),
-    "lstm": ("mlfx.training.backends", "run_lstm"),
-    "transformer": ("mlfx.training.backends", "run_transformer"),
-    "cnn_lstm": ("mlfx.training.backends", "run_cnn_lstm"),
-    "sgd": ("mlfx.training.backends", "run_online_sgd"),
-    "stats": ("mlfx.training.backends", "run_stats"),
-    "neuralforecast": ("mlfx.training.backends", "run_neural_forecast"),
+    "mlf":           ("mlfx.training.backends.mlforecast",    "run_ml_models"),
+    "lstm":          ("mlfx.training.backends.lstm",          "run_lstm"),
+    "bilstm":        ("mlfx.training.backends.bilstm",        "run_bilstm"),
+    "transformer":   ("mlfx.training.backends.transformer",   "run_transformer"),
+    "cnn_lstm":      ("mlfx.training.backends.cnn_lstm",      "run_cnn_lstm"),
+    "sgd":           ("mlfx.training.backends.online_sgd",    "run_online_sgd"),
+    "stats":         ("mlfx.training.backends.stats",         "run_stats"),
+    "neuralforecast":("mlfx.training.backends.neuralforecast","run_neural_forecast"),
 }
 
 
 def get_backend_runner(backend: str) -> BackendRunner:
-    """Resolve a backend key into its legacy-compatible runner."""
+    """Resolve a backend key to its runner callable."""
     if backend not in BACKEND_REGISTRY:
         raise ValueError(
             f"Unknown backend '{backend}'. Choose from: {sorted(BACKEND_REGISTRY)}"
         )
-
     module_name, symbol_name = BACKEND_REGISTRY[backend]
     module = import_module(module_name)
-    runner = getattr(module, symbol_name)
-    return runner
+    return getattr(module, symbol_name)

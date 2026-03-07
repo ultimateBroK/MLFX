@@ -9,7 +9,7 @@ import polars as pl
 class TestTrainingDatasetHelpers:
     def test_load_labelled_dataset_reads_and_sorts_months(self, tmp_path: Path):
         from mlfx.config.paths import ProjectPaths
-        from mlfx.training.dataset import load_labelled_dataset
+        from mlfx.training.data import load_labelled_dataset
 
         paths = ProjectPaths(project_root=tmp_path)
         labels_dir = paths.labels_dir("XAUUSD", "1H")
@@ -37,7 +37,7 @@ class TestTrainingDatasetHelpers:
 
 class TestTrainingFeatureHelpers:
     def test_select_numeric_feature_columns_excludes_targets_and_prices(self):
-        from mlfx.training.features import select_numeric_feature_columns
+        from mlfx.training.feature_selection import select_numeric_feature_columns
 
         df = pl.DataFrame(
             {
@@ -56,7 +56,7 @@ class TestTrainingFeatureHelpers:
 
 class TestTrainingPersistenceHelpers:
     def test_write_metrics_json_persists_metrics_file(self, tmp_path: Path):
-        from mlfx.training.persistence import write_metrics_json
+        from mlfx.training.artifacts import write_metrics_json
 
         metrics_path = tmp_path / "model.metrics.json"
         write_metrics_json({"f1": 0.8}, metrics_path)

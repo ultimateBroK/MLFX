@@ -18,9 +18,9 @@ from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.utils.class_weight import compute_sample_weight
 from torch.utils.data import DataLoader, TensorDataset
-from mlfx.training.dataset import build_model_output_path, load_labelled_dataset
-from mlfx.training.features import select_numeric_feature_columns
-from mlfx.training.persistence import save_torch_artifact
+from mlfx.training.data import build_model_output_path, load_labelled_dataset
+from mlfx.training.feature_selection import select_numeric_feature_columns
+from mlfx.training.artifacts import save_torch_artifact
 
 logger = logging.getLogger(__name__)
 

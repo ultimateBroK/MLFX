@@ -10,12 +10,9 @@ from pathlib import Path
 import polars as pl
 import pyarrow.parquet as pq
 
-from mlfx.config.paths import DEFAULT_PATHS
+from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 
 logger = logging.getLogger(__name__)
-
-RAW_DIR = DEFAULT_PATHS.raw_root
-OHLCV_DIR = DEFAULT_PATHS.ohlcv_root
 
 TIMEFRAMES: dict[str, str] = {
     "1m": "1m",
@@ -129,14 +126,16 @@ def resample_symbol_tf(
     symbol: str = "XAUUSD",
     tf: str = "1H",
     force: bool = False,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
     """Resample all raw monthly tick files for one symbol/timeframe."""
     if tf not in TIMEFRAMES:
         raise ValueError(f"Unknown timeframe '{tf}'. Choose from: {list(TIMEFRAMES)}")
 
     period = TIMEFRAMES[tf]
-    out_dir = OHLCV_DIR / symbol / tf
-    raw_root = RAW_DIR / symbol
+    out_dir = paths.ohlcv_dir(symbol, tf)
+    raw_root = paths.raw_data_dir(symbol)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if not raw_root.exists():
@@ -182,10 +181,12 @@ def resample_all_timeframes(
     symbol: str = "XAUUSD",
     timeframes: list[str] | None = None,
     force: bool = False,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, dict]:
     """Resample one symbol into all requested timeframes."""
     targets = timeframes or list(TIMEFRAMES)
     results: dict[str, dict] = {}
     for tf in targets:
-        results[tf] = resample_symbol_tf(symbol=symbol, tf=tf, force=force)
+        results[tf] = resample_symbol_tf(symbol=symbol, tf=tf, force=force, paths=paths)
     return results

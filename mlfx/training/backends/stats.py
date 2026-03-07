@@ -13,8 +13,8 @@ from sklearn.metrics import f1_score
 from statsforecast import StatsForecast
 from statsforecast.models import AutoARIMA, MSTL, SeasonalNaive
 
-from mlfx.training.dataset import build_model_output_path, load_labelled_dataset
-from mlfx.training.persistence import save_pickle_artifact
+from mlfx.training.data import build_model_output_path, load_labelled_dataset
+from mlfx.training.artifacts import save_pickle_artifact
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,9 @@ from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
 from mlfx.pipeline.qa_data import run_quality_audit
 from mlfx.pipeline.resampling import resample_symbol_tf
+from mlfx.training.config import TrainingConfig
 from mlfx.training.registry import get_backend_runner
+from mlfx.training.runner import run_training
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -62,11 +64,39 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--sl", type=float, default=1.0)
     evaluate.add_argument("--slippage", type=float, default=0.0)
 
+    serve = subparsers.add_parser("serve", help="Start the real-time inference API server")
+    serve.add_argument("--host", default="0.0.0.0")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--reload", action="store_true")
+
+    batch = subparsers.add_parser("batch-predict", help="Run batch inference and write predictions")
+    batch.add_argument("--symbol", default="XAUUSD")
+    batch.add_argument("--tf", default="1H")
+    batch.add_argument("--label", default="label_10")
+
+    drift = subparsers.add_parser("drift", help="Detect feature drift vs training reference")
+    drift.add_argument("--symbol", default="XAUUSD")
+    drift.add_argument("--tf", default="1H")
+    drift.add_argument("--label", default="label_10")
+    drift.add_argument("--threshold-ks", type=float, default=0.1)
+    drift.add_argument("--threshold-psi", type=float, default=0.2)
+
+    models = subparsers.add_parser("models", help="List registered model versions")
+    models.add_argument("--symbol", default=None)
+    models.add_argument("--tf", default=None)
+    models.add_argument("--backend", default=None)
+
     return parser
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    try:
+        from mlfx.monitoring.logging_config import configure_logging
+
+        configure_logging(level="INFO")
+    except Exception:
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
     parser = build_parser()
     args = parser.parse_args()
 
@@ -103,21 +133,16 @@ def main() -> None:
         return
 
     if args.command == "train":
-        runner = get_backend_runner(args.backend)
-        runner_kwargs = {
-            "symbol": args.symbol,
-            "tf": args.tf,
-            "label_col": args.label,
-            "force": args.force,
-        }
-        if args.backend == "mlf":
-            runner_kwargs["n_trials"] = args.n_trials
-            runner_kwargs["n_splits"] = args.n_splits
-        elif args.backend == "stats":
-            runner_kwargs["n_splits"] = args.n_splits
-        elif args.backend == "neuralforecast":
-            runner_kwargs["n_windows"] = args.n_splits
-        runner(**runner_kwargs)
+        cfg = TrainingConfig(
+            symbol=args.symbol,
+            tf=args.tf,
+            label_col=args.label,
+            backend=args.backend,
+            n_trials=args.n_trials,
+            n_splits=args.n_splits,
+            force=args.force,
+        )
+        run_training(cfg)
         return
 
     if args.command == "qa":
@@ -139,3 +164,60 @@ def main() -> None:
             sl_r=args.sl,
             slippage=args.slippage,
         )
+        return
+
+    if args.command == "serve":
+        try:
+            import uvicorn  # noqa: PLC0415
+        except ImportError:
+            logging.getLogger(__name__).error(
+                "uvicorn not installed. Run: pip install fastapi uvicorn"
+            )
+            return
+        uvicorn.run(
+            "mlfx.serving.api:app",
+            host=args.host,
+            port=args.port,
+            reload=args.reload,
+        )
+        return
+
+    if args.command == "batch-predict":
+        from mlfx.serving.batch import run_batch_inference  # noqa: PLC0415
+
+        result = run_batch_inference(
+            symbol=args.symbol,
+            tf=args.tf,
+            label_col=args.label,
+        )
+        print(result)
+        return
+
+    if args.command == "drift":
+        from mlfx.monitoring.drift import DriftDetector  # noqa: PLC0415
+        from mlfx.training.data import load_labelled_dataset  # noqa: PLC0415
+
+        df = load_labelled_dataset(args.symbol, args.tf)
+        if df is None:
+            logging.getLogger(__name__).error("No data for %s %s", args.symbol, args.tf)
+            return
+        detector = DriftDetector.load(symbol=args.symbol, tf=args.tf)
+        report = detector.detect(
+            df,
+            threshold_ks=args.threshold_ks,
+            threshold_psi=args.threshold_psi,
+        )
+        print(report)
+        return
+
+    if args.command == "models":
+        from mlfx.registry.models import get_registry  # noqa: PLC0415
+
+        reg = get_registry()
+        entries = reg.list_models(
+            symbol=args.symbol,
+            tf=args.tf,
+            backend=args.backend,
+        )
+        import json  # noqa: PLC0415
+        print(json.dumps(entries, indent=2, default=str))

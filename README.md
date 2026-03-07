@@ -48,22 +48,29 @@ pixi install
 - `pixi run verify` để chạy bộ test smoke/contract trọng tâm
 - `pixi run clean-generated` để dọn cache và generated artifacts an toàn
 
-## Luồng vận hành chuẩn
+## Luồng vận hành chuẩn (MLOps pipeline)
 
 ```text
-download
-  -> qa
-  -> pipeline
-  -> train
-  -> evaluate
+download  →  qa  →  pipeline  →  train  →  evaluate
+                                   ↓            ↓
+                               tracking       reports
+                               registry
+                                   ↓
+                              serve / batch-predict
+                                   ↓
+                                drift
 ```
 
 Ý nghĩa từng bước:
-- `download`: tải raw tick data
+- `download`: tải raw tick data từ Dukascopy
 - `qa`: audit raw data để phát hiện gap hoặc dữ liệu bất thường
-- `pipeline`: tạo OHLCV, feature và label
-- `train`: huấn luyện backend đã chọn
+- `pipeline`: resample → feature engineering → labeling
+- `train`: huấn luyện backend đã chọn (kết quả được track và register tự động)
 - `evaluate`: chạy backtest và sinh báo cáo
+- `serve`: khởi động FastAPI inference server
+- `batch-predict`: chạy inference theo lô và ghi kết quả ra parquet
+- `drift`: so sánh phân phối feature live vs training để phát hiện drift
+- `models`: liệt kê các model version đã đăng ký
 
 ## Bắt đầu nhanh
 
@@ -85,35 +92,58 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 ## Backend huấn luyện hiện có
 
-- `mlf`
-- `lstm`
-- `transformer`
-- `cnn_lstm`
-- `sgd`
-- `stats`
-- `neuralforecast`
+| Key | Mô tả |
+|---|---|
+| `mlf` | MLForecast + LightGBM (default) |
+| `lstm` | PyTorch LSTM với HPO Optuna |
+| `bilstm` | Bidirectional LSTM |
+| `transformer` | PyTorch Transformer encoder |
+| `cnn_lstm` | CNN + LSTM hybrid |
+| `sgd` | Online SGDClassifier (sklearn) |
+| `stats` | StatsForecast baseline (AutoARIMA, SeasonalNaive) |
+| `neuralforecast` | NeuralForecast (NHiTS, NBEATS) |
 
 Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md).
 
-## Cấu trúc dự án
+## Cấu trúc dự án (MLOps)
 
 ```text
 ML_FX/
 ├── mlfx/
-│   ├── app/           # CLI và TUI
-│   ├── config/        # path policy và config loader
-│   ├── ingestion/     # downloader Dukascopy
-│   ├── pipeline/      # qa, resampling, feature engineering, labeling
-│   ├── features/      # feature modules theo domain
-│   ├── training/      # dataset loading, persistence, backend registry
-│   └── evaluation/    # backtest, reporting, evaluation runner
-├── docs/              # tài liệu tiếng Việt
-├── docs/en/           # tài liệu tiếng Anh
-├── data/              # raw, ohlcv, features, labels
-├── outputs/           # model artifacts và reports
-├── logs/              # log hoặc artifact tạm nếu cần
-├── config.toml        # giá trị mặc định cho CLI/TUI
-└── pyproject.toml     # package metadata, Pixi config, tasks
+│   ├── app/            # CLI và TUI
+│   ├── config/         # path policy và config loader
+│   ├── ingestion/      # downloader Dukascopy
+│   ├── pipeline/       # qa, resampling, feature engineering, labeling
+│   ├── features/       # feature modules theo domain (indicators)
+│   ├── training/
+│   │   ├── backends/   # Backend package (interface + re-exports)
+│   │   │   ├── base.py         # BackendRunner protocol, TrainingConfig, TrainResult
+│   │   │   └── __init__.py     # re-exports run_* from backend_*.py
+│   │   ├── backend_*.py        # Implementations (mlf, lstm, transformer, ...)
+│   │   ├── config.py           # Public TrainingConfig/TrainResult aliases
+│   │   ├── runner.py           # High-level orchestrator (track + register)
+│   │   ├── registry.py         # Backend key → module:function map
+│   │   ├── dataset.py          # Data loading helpers
+│   │   ├── features.py         # Feature selection helpers
+│   │   └── persistence.py      # Artifact save helpers
+│   ├── evaluation/     # backtest, reporting, evaluation runner
+│   ├── tracking/       # Experiment tracking (MLflow / file-based fallback)
+│   ├── registry/       # Model registry (JSON-backed, MLflow-extensible)
+│   ├── serving/        # FastAPI real-time API + batch inference
+│   └── monitoring/     # Feature drift detection + structured JSON logging
+├── docs/               # tài liệu tiếng Việt
+├── docs/en/            # tài liệu tiếng Anh
+├── data/               # raw, ohlcv, features, labels
+├── outputs/
+│   ├── models/         # model artifacts + registry.json
+│   ├── reports/        # HTML/PNG backtest reports
+│   ├── runs/           # file-tracker run JSONs (if not using MLflow)
+│   ├── predictions/    # batch inference results
+│   └── monitoring/     # drift reference snapshots + alerts
+├── Dockerfile          # multi-stage container image
+├── docker-compose.yml  # API server + optional MLflow server
+├── config.toml         # giá trị mặc định cho CLI/TUI
+└── pyproject.toml      # package metadata, Pixi config, tasks
 ```
 
 ## Artifacts chính
@@ -135,6 +165,7 @@ ML_FX/
 
 - [docs/NOOB_GUIDE.md](docs/NOOB_GUIDE.md) nếu mới vào repo
 - [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md) nếu cần chạy từng lệnh cụ thể
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) mô tả kiến trúc MLOps chi tiết
 - [docs/EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md) nếu muốn hiểu report và metrics
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) nếu đang gặp lỗi môi trường hoặc dữ liệu
 

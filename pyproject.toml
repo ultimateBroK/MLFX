@@ -1,17 +1,13 @@
 [project]
 authors = [{ name = "Hieu Nguyen", email = "hieuteo03@gmail.com" }]
 dependencies = [
-    "questdb[dataframe]>=4.1.0,<5",
-    "openai>=2.24.0,<3",
-    "chromadb>=1.5.2,<2",
-    "lmstudio>=1.5.0,<2",
-    "agno[os]>=2.5.6,<3",
     "textual>=8.0.2,<9",
     "ipykernel>=7.2.0,<8",
     "neuralforecast>=3.1.5,<4",
     "statsforecast>=2.0.3,<3",
     "mlforecast>=1.0.2,<2",
     "lightgbm",
+    "uvicorn>=0.37.0,<0.38",
 ]
 description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "ML_FX"
@@ -22,6 +18,15 @@ version = "0.1.0"
 [project.scripts]
 mlfx = "mlfx.app.cli:main"
 mlfx-tui = "mlfx.app.tui:main"
+
+[project.optional-dependencies]
+integrations = [
+    "questdb[dataframe]>=4.1.0,<5",
+    "openai>=2.24.0,<3",
+    "chromadb>=1.5.2,<2",
+    "lmstudio>=1.5.0,<2",
+    "agno[os]>=2.5.6,<3",
+]
 
 [build-system]
 build-backend = "hatchling.build"
@@ -39,7 +44,7 @@ ML_FX = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 test = "pytest"
-verify = "pytest tests/test_project_contract.py tests/test_evaluation_contract.py tests/test_mlfx_pipeline.py tests/integration/test_entrypoints.py"
+verify = "pytest tests/test_project_contract.py tests/test_training_contract.py tests/test_evaluation_contract.py tests/test_mlfx_pipeline.py tests/integration/test_entrypoints.py"
 clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs && mkdir -p outputs/models outputs/reports logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
 
 [tool.pixi.dependencies]
