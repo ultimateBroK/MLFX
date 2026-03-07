@@ -243,7 +243,7 @@ pixi run mlfx batch-predict --symbol XAUUSD --tf 1H
 
 ### Feature Drift
 
-1. Sau training: `save_reference(train_df, feature_cols, symbol, tf)` → `outputs/monitoring/`
+1. Sau training: `save_reference(train_df, feature_cols, symbol, tf)` → `outputs/monitoring/{symbol}/{tf}/`
 2. Định kỳ: `DriftDetector.load(symbol, tf).detect(live_df)` → KS-test + PSI
 
 ```bash

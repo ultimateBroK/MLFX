@@ -44,9 +44,9 @@ class TestEvaluationReportingContract:
         )
 
         generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", tmp_path)
-        assert (tmp_path / "XAUUSD_1H_label_10_R15_candlestick.html").exists()
-        assert (tmp_path / "XAUUSD_1H_label_10_R15_equity.png").exists()
-        assert (tmp_path / "XAUUSD_1H_label_10_R15_heatmap.png").exists()
+        assert (tmp_path / "label_10_R15_candlestick.html").exists()
+        assert (tmp_path / "label_10_R15_equity.png").exists()
+        assert (tmp_path / "label_10_R15_heatmap.png").exists()
 
 
 class TestEvaluationRunnerContract:
@@ -78,4 +78,4 @@ class TestEvaluationRunnerContract:
 
         assert "Total Trades" in summary
         assert "Win Rate (%)" in summary
-        assert (tmp_path / "XAUUSD_1H_label_10_R15_candlestick.html").exists()
+        assert (tmp_path / "XAUUSD" / "1H" / "label_10_R15_candlestick.html").exists()

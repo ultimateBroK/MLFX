@@ -72,7 +72,7 @@ def save_reference(
     Path
         Path to the written reference JSON.
     """
-    base = out_dir or (DEFAULT_PATHS.outputs_root / "monitoring" / symbol / tf)
+    base = out_dir or DEFAULT_PATHS.monitoring_dir(symbol, tf)
     base.mkdir(parents=True, exist_ok=True)
 
     reference: dict[str, Any] = {"symbol": symbol, "tf": tf, "features": {}}
@@ -129,7 +129,7 @@ class DriftDetector:
 
         Raises :class:`FileNotFoundError` if no reference exists yet.
         """
-        base = ref_dir or (DEFAULT_PATHS.outputs_root / "monitoring" / symbol / tf)
+        base = ref_dir or DEFAULT_PATHS.monitoring_dir(symbol, tf)
         path = base / _REFERENCE_FILENAME
         if not path.exists():
             raise FileNotFoundError(

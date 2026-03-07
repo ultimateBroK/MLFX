@@ -60,7 +60,7 @@ class FileTracker(BaseTracker):
     """
 
     def __init__(self, runs_dir: Path | None = None) -> None:
-        self._runs_dir = runs_dir or (DEFAULT_PATHS.outputs_root / "runs")
+        self._runs_dir = runs_dir or DEFAULT_PATHS.runs_root
         self._runs_dir.mkdir(parents=True, exist_ok=True)
 
     def _path(self, run_id: str) -> Path:

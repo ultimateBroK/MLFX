@@ -15,6 +15,7 @@ logs/*
 !logs/.gitkeep
 /download.log
 /lightning_logs/
+/outputs
 
 # Tooling and test caches
 .pytest_cache/

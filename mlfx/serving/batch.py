@@ -78,7 +78,7 @@ def run_batch_inference(
 
     result_df = df.with_columns(pl.Series("prediction", predictions, dtype=pl.Int8))
 
-    out_dir = output_path or (paths.outputs_root / "predictions" / symbol / tf)
+    out_dir = output_path or paths.predictions_dir(symbol, tf)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f"{label_col}_predictions.parquet"

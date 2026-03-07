@@ -75,7 +75,7 @@ XAUUSD_1H_label_10_R15
 
 ## 4. Các file được sinh ra
 
-Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/`:
+Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/{symbol}/{tf}/`:
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
 - `{prefix}_heatmap.png`
@@ -83,9 +83,9 @@ Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/`:
 Ví dụ:
 
 ```text
-outputs/reports/XAUUSD_1H_label_10_R15_candlestick.html
-outputs/reports/XAUUSD_1H_label_10_R15_equity.png
-outputs/reports/XAUUSD_1H_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_candlestick.html
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
 ```
 
 ## 5. Các metric chính
@@ -157,7 +157,7 @@ Evaluation thường fail hoặc cho kết quả rỗng khi:
 
 Sau khi chạy, nên kiểm tra:
 - CLI có in ra summary metrics hay không
-- `outputs/reports/` có 3 artifact mới hay không
+- `outputs/reports/{symbol}/{tf}/` có 3 artifact mới hay không
 - tên file có đúng prefix kỳ vọng hay không
 - số trade có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
 
@@ -182,5 +182,5 @@ trades = simulate_trades(
 )
 metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
 print(metrics)
-generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports"))
+generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports/XAUUSD/1H"))
 ```

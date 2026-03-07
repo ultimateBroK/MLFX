@@ -36,7 +36,27 @@ class TestProjectPaths:
             paths.models_dir("XAUUSD", "1H")
             == tmp_path / "outputs" / "models" / "XAUUSD" / "1H"
         )
-        assert paths.reports_dir == tmp_path / "outputs" / "reports"
+        assert paths.reports_root == tmp_path / "outputs" / "reports"
+        assert paths.runs_root == tmp_path / "outputs" / "runs"
+        assert paths.predictions_root == tmp_path / "outputs" / "predictions"
+        assert paths.monitoring_root == tmp_path / "outputs" / "monitoring"
+
+        assert (
+            paths.reports_dir("XAUUSD", "1H")
+            == tmp_path / "outputs" / "reports" / "XAUUSD" / "1H"
+        )
+        assert (
+            paths.runs_dir("XAUUSD", "1H")
+            == tmp_path / "outputs" / "runs" / "XAUUSD" / "1H"
+        )
+        assert (
+            paths.predictions_dir("XAUUSD", "1H")
+            == tmp_path / "outputs" / "predictions" / "XAUUSD" / "1H"
+        )
+        assert (
+            paths.monitoring_dir("XAUUSD", "1H")
+            == tmp_path / "outputs" / "monitoring" / "XAUUSD" / "1H"
+        )
         assert paths.lightning_logs_dir == tmp_path / "lightning_logs"
 
 

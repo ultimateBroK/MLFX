@@ -213,7 +213,7 @@ def generate_full_report(
 ) -> None:
     """Generate the full report bundle for a backtest run."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    prefix = f"{symbol}_{tf}_{label_name}"
+    prefix = label_name
 
     plot_interactive_candlestick(
         df=df,

@@ -45,8 +45,20 @@ class ProjectPaths:
         return self.outputs_root / "models"
 
     @property
-    def reports_dir(self) -> Path:
+    def reports_root(self) -> Path:
         return self.outputs_root / "reports"
+
+    @property
+    def runs_root(self) -> Path:
+        return self.outputs_root / "runs"
+
+    @property
+    def predictions_root(self) -> Path:
+        return self.outputs_root / "predictions"
+
+    @property
+    def monitoring_root(self) -> Path:
+        return self.outputs_root / "monitoring"
 
     @property
     def lightning_logs_dir(self) -> Path:
@@ -69,6 +81,18 @@ class ProjectPaths:
 
     def models_dir(self, symbol: str, tf: str) -> Path:
         return self.models_root / symbol / tf
+
+    def reports_dir(self, symbol: str, tf: str) -> Path:
+        return self.reports_root / symbol / tf
+
+    def runs_dir(self, symbol: str, tf: str) -> Path:
+        return self.runs_root / symbol / tf
+
+    def predictions_dir(self, symbol: str, tf: str) -> Path:
+        return self.predictions_root / symbol / tf
+
+    def monitoring_dir(self, symbol: str, tf: str) -> Path:
+        return self.monitoring_root / symbol / tf
 
 
 DEFAULT_PATHS = ProjectPaths(project_root=Path(__file__).resolve().parents[2])

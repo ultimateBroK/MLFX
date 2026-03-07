@@ -12,8 +12,12 @@ from mlfx.pipeline.labeling import run_label_pipeline
 from mlfx.pipeline.qa_data import run_quality_audit
 from mlfx.pipeline.resampling import resample_symbol_tf
 from mlfx.training.config import TrainingConfig
-from mlfx.training.registry import get_backend_runner
 from mlfx.training.runner import run_training
+
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     download.add_argument("--start-year", type=int, default=2015)
     download.add_argument("--start-month", type=int, default=1)
     download.add_argument("--concurrency", type=int, default=20)
-    download.add_argument("--force", action="store_true")
+    download.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
 
     pipeline = subparsers.add_parser("pipeline", help="Run ETL pipeline stages")
     pipeline.add_argument("--symbol", default="XAUUSD")
@@ -35,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     pipeline.add_argument("--anchor", default="daily")
     pipeline.add_argument("--atr-period", type=int, default=14)
     pipeline.add_argument("--atr-mult", type=float, default=0.5)
-    pipeline.add_argument("--force", action="store_true")
+    pipeline.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
     pipeline.add_argument("--skip-resample", action="store_true")
     pipeline.add_argument("--skip-features", action="store_true")
     pipeline.add_argument("--skip-labels", action="store_true")
@@ -51,7 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--backend", default="mlf")
     train.add_argument("--n-trials", type=int, default=15)
     train.add_argument("--n-splits", type=int, default=5)
-    train.add_argument("--force", action="store_true")
+    train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
 
     evaluate = subparsers.add_parser("evaluate", help="Run full symbol backtest")
     evaluate.add_argument("--symbol", default="XAUUSD")
@@ -185,39 +189,67 @@ def main() -> None:
     if args.command == "batch-predict":
         from mlfx.serving.batch import run_batch_inference  # noqa: PLC0415
 
-        result = run_batch_inference(
-            symbol=args.symbol,
-            tf=args.tf,
-            label_col=args.label,
-        )
-        print(result)
+        with console.status("[bold green]Running batch inference..."):
+            result = run_batch_inference(
+                symbol=args.symbol,
+                tf=args.tf,
+                label_col=args.label,
+            )
+        console.print(result)
         return
 
     if args.command == "drift":
         from mlfx.monitoring.drift import DriftDetector  # noqa: PLC0415
         from mlfx.training.data import load_labelled_dataset  # noqa: PLC0415
 
-        df = load_labelled_dataset(args.symbol, args.tf)
-        if df is None:
-            logging.getLogger(__name__).error("No data for %s %s", args.symbol, args.tf)
-            return
-        detector = DriftDetector.load(symbol=args.symbol, tf=args.tf)
-        report = detector.detect(
-            df,
-            threshold_ks=args.threshold_ks,
-            threshold_psi=args.threshold_psi,
-        )
-        print(report)
+        with console.status("[bold green]Detecting feature drift..."):
+            df = load_labelled_dataset(args.symbol, args.tf)
+            if df is None:
+                logging.getLogger(__name__).error("No data for %s %s", args.symbol, args.tf)
+                return
+            detector = DriftDetector.load(symbol=args.symbol, tf=args.tf)
+            report = detector.detect(
+                df,
+                threshold_ks=args.threshold_ks,
+                threshold_psi=args.threshold_psi,
+            )
+        console.print(report)
         return
 
     if args.command == "models":
         from mlfx.registry.models import get_registry  # noqa: PLC0415
 
-        reg = get_registry()
-        entries = reg.list_models(
-            symbol=args.symbol,
-            tf=args.tf,
-            backend=args.backend,
-        )
-        import json  # noqa: PLC0415
-        print(json.dumps(entries, indent=2, default=str))
+        with console.status("[bold green]Fetching models..."):
+            reg = get_registry()
+            entries = reg.list_models(
+                symbol=args.symbol,
+                tf=args.tf,
+                backend=args.backend,
+            )
+        
+        if not entries:
+            console.print("[yellow]No models found in the registry.[/yellow]")
+            return
+            
+        table = Table(title="Registered Model Versions", show_header=True, header_style="bold magenta")
+        
+        # Determine all available keys for columns
+        keys = []
+        for e in entries:
+            for k in e.keys():
+                if k not in keys:
+                    keys.append(k)
+        
+        # Standard columns first
+        std_columns = ["symbol", "tf", "backend", "run_id", "accuracy"]
+        ordered_keys = [k for k in std_columns if k in keys] + [k for k in keys if k not in std_columns]
+        
+        for k in ordered_keys:
+            table.add_column(str(k))
+            
+        for e in entries:
+            row = [str(e.get(k, "")) for k in ordered_keys]
+            table.add_row(*row)
+            
+        console.print(table)
+        return

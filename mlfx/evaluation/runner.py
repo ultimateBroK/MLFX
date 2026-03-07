@@ -112,7 +112,7 @@ def run_dataset_eval(
         risk_pct=risk_pct,
     )
 
-    report_dir = Path(out_dir) if out_dir is not None else paths.reports_dir
+    report_dir = (Path(out_dir) / symbol / tf) if out_dir is not None else paths.reports_dir(symbol, tf)
     out_name = f"{label_col}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
 

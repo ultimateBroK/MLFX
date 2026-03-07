@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import warnings
 
 import lightgbm as lgb
 import numpy as np
@@ -31,19 +32,28 @@ def get_feature_columns(df: pl.DataFrame) -> list[str]:
     return select_numeric_feature_columns(df)
 
 
+# Lag order used by MLForecast; trim this many leading rows so lag features have no nulls.
+MLF_LAG_ORDER = 5
+
+
 def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
-    """Format dataframe for Nixtla MLForecast (unique_id, ds, y)."""
+    """Format dataframe for Nixtla MLForecast (unique_id, ds, y).
+
+    Drops rows with null in any feature/label, then trims the first MLF_LAG_ORDER
+    rows per series so that lag features (1..5) are never null, avoiding
+    mlforecast "Found null values" warnings.
+    """
     feature_cols = get_feature_columns(df)
     subset = df.select(["timestamp", label_col] + feature_cols).drop_nulls()
 
     unique_id_col = pl.lit("XAUUSD").alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
-
-    # Map labels {-2, -1, 0, 1, 2} to {0, 1, 2, 3, 4} for multi-class classifiers.
     y_col = (pl.col(label_col) + 2).cast(pl.Int64).alias("y")
-
     subset = subset.with_columns([unique_id_col, ds_col, y_col])
 
+    # Trim first MLF_LAG_ORDER rows per series so lag features have no nulls.
+    if len(subset) > MLF_LAG_ORDER:
+        subset = subset.slice(MLF_LAG_ORDER)
     return subset.select(["unique_id", "ds", "y"] + feature_cols), feature_cols
 
 
@@ -104,13 +114,25 @@ def train_ml_models(
     n_trials: int = 15,
     n_splits: int = 5,
 ) -> tuple[MLForecast, dict]:
+    # Avoid hundreds of "Found null values in ema_200" from mlforecast (lag warmup).
+    warnings.filterwarnings(
+        "ignore",
+        message="Found null values",
+        category=UserWarning,
+        module="mlforecast",
+    )
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     study = optuna.create_study(direction="maximize")
-
+    logger.info(
+        "Hyperparameter search: n_trials=%d, n_splits=%d, samples=%d",
+        n_trials,
+        n_splits,
+        len(df),
+    )
     study.optimize(
         lambda trial: _lgb_objective(trial, df, feature_cols, n_splits=n_splits),
         n_trials=n_trials,
-        show_progress_bar=False,
+        show_progress_bar=True,
     )
 
     best_params = study.best_params | {
@@ -175,9 +197,18 @@ def run_ml_models(
 
     df = load_labelled_dataset(symbol, tf)
     if df is None or label_col not in df.columns:
+        logger.warning("No labelled data or missing column %s", label_col)
         return {}
 
+    n_raw = len(df)
     df_nixtla, feature_cols = prepare_nixtla_df(df, label_col)
+    n_used = len(df_nixtla)
+    logger.info(
+        "Data: %d rows loaded → %d after drop_nulls + warmup trim (%d features)",
+        n_raw,
+        n_used,
+        len(feature_cols),
+    )
     mlf, metrics = train_ml_models(
         df_nixtla,
         feature_cols,

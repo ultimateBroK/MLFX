@@ -72,23 +72,29 @@ def run_training(
     except Exception:
         logger.exception("Backend %s raised an exception.", config.backend)
         if run_id:
-            _end_tracking_run(run_id, status="FAILED", metrics={})
+            _end_tracking_run(run_id, status="FAILED", metrics={}, config=config)
         raise
 
     elapsed = time.perf_counter() - t0
     metrics["elapsed_seconds"] = round(elapsed, 2)
 
     if run_id:
-        _end_tracking_run(run_id, status="FINISHED", metrics=metrics)
+        _end_tracking_run(run_id, status="FINISHED", metrics=metrics, config=config)
 
     if enable_registry and metrics:
         _register_artifact(config, metrics)
 
+    summary = {
+        k: v
+        for k, v in metrics.items()
+        if k not in ("best_params", "history", "history_tail", "selected_features")
+        and isinstance(v, (int, float, str))
+    }
     logger.info(
-        "Training complete — backend=%s  elapsed=%.1fs  metrics=%s",
+        "Training complete — backend=%s  elapsed=%.1fs  %s",
         config.backend,
         elapsed,
-        {k: v for k, v in metrics.items() if k not in ("best_params", "history", "history_tail")},
+        summary,
     )
     return metrics
 
@@ -101,8 +107,9 @@ def run_training(
 def _start_tracking_run(config: TrainingConfig) -> str | None:
     try:
         from mlfx.tracking.tracker import get_tracker
+        from mlfx.config.paths import DEFAULT_PATHS
 
-        tracker = get_tracker()
+        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
         return tracker.start_run(
             run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label_col}",
             params={
@@ -124,11 +131,13 @@ def _end_tracking_run(
     run_id: str,
     status: str,
     metrics: dict[str, Any],
+    config: TrainingConfig,
 ) -> None:
     try:
         from mlfx.tracking.tracker import get_tracker
+        from mlfx.config.paths import DEFAULT_PATHS
 
-        tracker = get_tracker()
+        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
         loggable = {
             k: v
             for k, v in metrics.items()
