@@ -1,23 +1,24 @@
 # ML_FX - Hướng dẫn cho người mới
 
-Nếu bạn mới vào repo, hãy đọc tài liệu này trước khi chạy lệnh. Mục tiêu là hiểu dự án đang làm gì, dữ liệu đi qua những bước nào, và vì sao phải chạy pipeline đúng thứ tự.
+Nếu bạn mới vào repo, hãy đọc tài liệu này trước. Mục tiêu là hiểu dữ liệu đi đâu, vì sao phải chạy đúng thứ tự, và cách bắt đầu an toàn bằng `Pixi`.
 
 ## 1. Dự án này làm gì
 
 ML_FX là một pipeline nghiên cứu cho dữ liệu giá:
-- lấy dữ liệu tick lịch sử
-- gom dữ liệu thành nến OHLCV
-- tạo feature kỹ thuật
-- gắn nhãn hướng giá trong tương lai
-- huấn luyện mô hình
-- backtest trên dữ liệu đã gắn nhãn
+- tải tick data lịch sử
+- gom thành OHLCV
+- tạo feature kỹ thuật và feature theo bối cảnh ICT
+- gắn nhãn hướng giá tương lai
+- train model
+- backtest và xuất báo cáo
 
-Nó không phải là một bot giao dịch tự động hoàn chỉnh đang sẵn sàng chạy live.
+Nó là môi trường nghiên cứu và đánh giá, không phải bot giao dịch live hoàn chỉnh.
 
 ## 2. Pipeline tổng quát
 
 ```text
 Tick data
+  -> QA
   -> OHLCV
   -> Features
   -> Labels
@@ -25,79 +26,87 @@ Tick data
   -> Backtest
 ```
 
-Mỗi bước tương ứng với một nhóm file:
-- [pipeline/download_data.py](../pipeline/download_data.py)
-- [pipeline/resample.py](../pipeline/resample.py)
-- [pipeline/features.py](../pipeline/features.py)
-- [pipeline/labels.py](../pipeline/labels.py)
-- [models/](../models/) (các file `*.py`)
-- [eval/run_eval.py](../eval/run_eval.py)
+Trong code, các bước này nằm trong:
+- `mlfx.ingestion`
+- `mlfx.pipeline`
+- `mlfx.training`
+- `mlfx.evaluation`
 
-## 3. Vì sao phải đi theo đúng thứ tự
+## 3. Vì sao phải chạy đúng thứ tự
 
-### 3.1 Tick -> OHLCV
+### Tick -> QA
 
-Dữ liệu tick rất dày và nhiều nhiễu. [pipeline/resample.py](../pipeline/resample.py) chuyển tick thành nến như `1m`, `5m`, `1H` để các bước sau dễ xử lý hơn.
+Sau khi download, nên audit raw data để phát hiện gap, tháng lỗi, hoặc dữ liệu bất thường trước khi đi tiếp.
 
-### 3.2 OHLCV -> Features
+### Tick -> OHLCV
 
-[pipeline/features.py](../pipeline/features.py) gắn thêm ngữ cảnh vào mỗi cây nến, ví dụ:
-- trạng thái session theo `ICT Killzone`
-- mức `Support/Resistance`
-- `Pivot Points`
-- indicator phổ biến như RSI, MACD, ATR, EMA
+Tick data rất dày. Resampling biến chúng thành nến như `1m`, `5m`, `1H` để các bước sau dễ xử lý hơn.
 
-Không có feature thì model chỉ thấy giá thô và rất khó học được cấu trúc thị trường.
+### OHLCV -> Features
 
-### 3.3 Features -> Labels
+Feature engineering thêm ngữ cảnh như:
+- session theo `ICT Killzone`
+- support/resistance
+- pivot points
+- RSI, MACD, ATR, EMA
 
-[pipeline/labels.py](../pipeline/labels.py) sinh nhãn như `label_5`, `label_10`, `label_20`. Mỗi nhãn mô tả hướng giá sau một số lượng nến nhìn trước.
+### Features -> Labels
 
-Đây là bước tạo mục tiêu để bài toán trở thành supervised learning.
+Các cột như `label_5`, `label_10`, `label_20` biến dữ liệu thành bài toán supervised learning.
 
-### 3.4 Labels -> Train
+### Labels -> Train
 
-Các file trong `models/` đọc dữ liệu đã gắn nhãn và huấn luyện backend tương ứng. Repo hiện có nhiều backend khác nhau như:
-- [models/ml_models.py](../models/ml_models.py)
-- [models/lstm.py](../models/lstm.py)
-- [models/transformer.py](../models/transformer.py)
-- [models/cnn_lstm.py](../models/cnn_lstm.py)
-- [models/online_sgd.py](../models/online_sgd.py)
-- [models/stats_baseline.py](../models/stats_baseline.py)
-- [models/neural_forecast.py](../models/neural_forecast.py)
+CLI/TUI hiện hỗ trợ các backend:
+- `mlf`
+- `lstm`
+- `transformer`
+- `cnn_lstm`
+- `sgd`
+- `stats`
+- `neuralforecast`
 
-### 3.5 Train -> Backtest
+### Train -> Backtest
 
-[eval/run_eval.py](../eval/run_eval.py) và [eval/backtest.py](../eval/backtest.py) dùng cột tín hiệu để mô phỏng giao dịch, rồi [viz/charts.py](../viz/charts.py) tạo báo cáo:
+Backtest dùng cột label làm tín hiệu để mô phỏng giao dịch và sinh:
 - candlestick HTML
 - equity curve PNG
 - heatmap PNG
 
 ## 4. Cách bắt đầu nhanh
 
-Nếu bạn chỉ muốn chạy thử repo:
+Nếu chỉ muốn chạy thử:
 
 ```bash
 pixi install
-pixi run python main.py
+pixi run mlfx-tui
 ```
 
-Trong TUI, bạn có thể đi theo thứ tự:
-1. `Download Data`
-2. `Pipeline`
-3. `Train Model`
-4. `Backtest`
+Hoặc CLI:
 
-Nếu bạn thích CLI, xem [USAGE_GUIDE.md](USAGE_GUIDE.md).
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
 
-## 5. Những điều nên nhớ
+## 5. Kết quả nên thấy sau mỗi bước
 
-- Nếu thiếu file ở bước train, nguyên nhân thường là chưa chạy [pipeline/features.py](../pipeline/features.py) hoặc [pipeline/labels.py](../pipeline/labels.py)
-- `outputs/models/` là nơi lưu model và metrics
-- `outputs/reports/` là nơi lưu báo cáo backtest
-- `agent/` hiện chưa phải phần hoàn chỉnh để sử dụng như tính năng chính
+- sau `download`: có parquet trong `data/raw/{symbol}/`
+- sau `qa`: có báo cáo markdown trong `data/raw/{symbol}/`
+- sau `pipeline`: có parquet trong `data/ohlcv/`, `data/features/`, `data/labels/`
+- sau `train`: có artifact trong `outputs/models/{symbol}/{tf}/`
+- sau `evaluate`: có HTML/PNG trong `outputs/reports/`
 
-## 6. Nên đọc tiếp gì
+## 6. Điều nên nhớ
+
+- nếu train lỗi vì thiếu file, thường là bạn chưa chạy `mlfx pipeline`
+- `outputs/models/` lưu model và metrics
+- `outputs/reports/` lưu báo cáo backtest
+- `pixi run clean-generated` dọn cache và output cũ mà không đụng `data/raw/`
+
+## 7. Đọc tiếp gì
 
 - [USAGE_GUIDE.md](USAGE_GUIDE.md): cách chạy từng lệnh
 - [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md): cách đọc kết quả backtest

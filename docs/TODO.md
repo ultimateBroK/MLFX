@@ -1,88 +1,42 @@
-# ML_FX - Trạng thái và việc còn lại
+# ML_FX - Trạng thái hiện tại và hướng tiếp theo
 
-Tài liệu này tóm tắt trạng thái hiện tại của repo dựa trên code đang có, không phải theo các bản kế hoạch cũ.
+Tài liệu này tóm tắt những capability chính hiện có và các hạng mục nên làm tiếp theo.
 
 Chú giải:
-- `[x]` đã có trong repo
-- `[/]` đang làm dở hoặc đã có khung nhưng chưa hoàn chỉnh
-- `[ ]` chưa triển khai
+- `[x]` đã sẵn sàng để dùng
+- `[ ]` là hạng mục nên cân nhắc hoặc triển khai tiếp
 
-## 1. Thu thập và kiểm tra dữ liệu
+## 1. Năng lực hiện tại
 
-- [x] [pipeline/download_data.py](../pipeline/download_data.py)
-  - [x] tải dữ liệu tick từ Dukascopy
-  - [x] hỗ trợ `fx` và `crypto`
-  - [x] lưu state trong `completed_months.json`
-  - [x] có cơ chế resume và repair
-- [x] [pipeline/qa_data.py](../pipeline/qa_data.py)
-  - [x] kiểm tra gap dữ liệu
-  - [x] rà lỗi giá trị bất thường
-  - [x] xuất báo cáo QA dạng Markdown
+- [x] CLI hợp nhất `mlfx`
+- [x] TUI `mlfx-tui`
+- [x] downloader dữ liệu trong `mlfx.ingestion`
+- [x] QA, resample, feature engineering, labeling trong `mlfx.pipeline`
+- [x] train backend trong `mlfx.training`
+- [x] backtest và reporting trong `mlfx.evaluation`
+- [x] package runtime đóng gói qua `mlfx`
+- [x] workflow phát triển và vận hành chuẩn qua Pixi
 
-## 2. Pipeline dữ liệu
+## 2. Backend hiện có
 
-- [x] [pipeline/resample.py](../pipeline/resample.py)
-  - [x] chuyển tick sang OHLCV
-  - [x] hỗ trợ `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
-- [x] [pipeline/features.py](../pipeline/features.py)
-  - [x] feature từ `ICT Killzone`
-  - [x] feature từ `Support/Resistance`
-  - [x] feature từ `Pivot Points`
-  - [x] feature TA phổ biến
-- [x] [pipeline/labels.py](../pipeline/labels.py)
-  - [x] sinh `label_5`, `label_10`, `label_20`
-  - [x] dùng ATR multiplier để giảm nhiễu
+- [x] `mlf`
+- [x] `lstm`
+- [x] `transformer`
+- [x] `cnn_lstm`
+- [x] `sgd`
+- [x] `stats`
+- [x] `neuralforecast`
+- [x] `bilstm` implementation có trong codebase nhưng chưa expose ở CLI/TUI
 
-## 3. Backend huấn luyện hiện có
+## 3. Hướng ưu tiên hợp lý tiếp theo
 
-- [x] [models/ml_models.py](../models/ml_models.py)
-- [x] [models/lstm.py](../models/lstm.py)
-- [x] [models/transformer.py](../models/transformer.py)
-- [x] [models/cnn_lstm.py](../models/cnn_lstm.py)
-- [x] [models/online_sgd.py](../models/online_sgd.py)
-- [x] [models/stats_baseline.py](../models/stats_baseline.py)
-- [x] [models/neural_forecast.py](../models/neural_forecast.py)
-- [x] [models/bilstm.py](../models/bilstm.py)
+- [ ] quyết định có expose `bilstm` trong CLI/TUI hay không
+- [ ] bổ sung benchmark thống nhất để so sánh backend trên cùng dataset
+- [ ] mở rộng test end-to-end cho train và evaluate trên fixture dataset nhỏ hơn nữa
+- [ ] cân nhắc thêm workflow export metrics hoặc report summary phục vụ monitoring
 
-Ghi chú:
-- TUI hiện expose các backend: `mlf`, `lstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
-- [models/bilstm.py](../models/bilstm.py) có trong repo nhưng hiện chưa nằm trong danh sách backend của TUI
+## 4. Gợi ý khi chọn việc tiếp theo
 
-## 4. Đánh giá và báo cáo
-
-- [x] [eval/backtest.py](../eval/backtest.py)
-- [x] [eval/run_eval.py](../eval/run_eval.py)
-- [x] [viz/charts.py](../viz/charts.py)
-  - [x] candlestick HTML
-  - [x] equity curve PNG
-  - [x] heatmap PNG
-
-Đầu ra mặc định:
-- `outputs/models/`
-- `outputs/reports/`
-
-## 5. Giao diện vận hành
-
-- [x] [main.py](../main.py)
-  - [x] tab `Download Data`
-  - [x] tab `Pipeline`
-  - [x] tab `Train Model`
-  - [x] tab `Backtest`
-- [x] [config.toml](../config.toml)
-  - [x] điền sẵn giá trị mặc định cho TUI
-
-## 6. Agent
-
-- `agent/` hiện là khu vực dành cho giai đoạn sau
-- [pyproject.toml](../pyproject.toml) vẫn đóng gói package `agent`
-- trạng thái thực tế hiện tại là:
-  - [/] thư mục đã tồn tại
-  - [ ] chưa có implementation vận hành hoàn chỉnh để dùng như tính năng chính
-
-## 7. Việc còn lại hợp lý
-
-- [ ] đồng bộ `config.toml` comments với backend thật đang dùng trong TUI
-- [ ] quyết định có đưa `bilstm.py` vào TUI hay không
-- [ ] xác định rõ chiến lược đánh giá giữa dữ liệu gắn nhãn và dữ liệu dự báo thực
-- [ ] nếu tiếp tục làm `agent/`, cần tài liệu hóa rõ trạng thái và phạm vi trước khi mở rộng README
-- [ ] bổ sung tài liệu hoặc script benchmark để so sánh các backend trên cùng dataset
+- nếu mục tiêu là so sánh mô hình: ưu tiên benchmark thống nhất
+- nếu mục tiêu là ổn định vận hành: ưu tiên test end-to-end và export summary metrics
+- nếu mục tiêu là mở rộng khả năng thử nghiệm: cân nhắc expose `bilstm`

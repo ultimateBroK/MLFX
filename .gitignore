@@ -1,51 +1,52 @@
-# pixi environments
+# Pixi environments
 .pixi/*
 !.pixi/config.toml
+.pixi-cache/
+.cache/
 
-# Agent
-.agent/*
-.cursor/*
-
-# Data and Output
+# Generated data and outputs
 data/*
 !data/.gitkeep
 outputs/models/*
 !outputs/models/.gitkeep
 outputs/reports/*
 !outputs/reports/.gitkeep
-
-# Logs
 logs/*
 !logs/.gitkeep
 /download.log
-/lightning_logs/*
+/lightning_logs/
+
+# Tooling and test caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+__pycache__/
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+
+# Jupyter notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Virtual environments
+.venv/*
+env/
+venv/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# Pytest cache
-.pytest_cache/*
-.coverage
-htmlcov/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Jupyter Notebooks
-.ipynb_checkpoints
-*.ipynb
-
-# Venv
-.venv/*
-env/
-venv/
-
+# Local editor and agent state
+.agent/*
+.cursor/*
 .vscode/*
+.qoder/
 .github/*
 
 task.md

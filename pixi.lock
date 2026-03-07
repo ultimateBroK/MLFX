@@ -3920,7 +3920,7 @@ packages:
 - pypi: ./
   name: ml-fx
   version: 0.1.0
-  sha256: 2f89ae6e029ffa7f8d1ed5730b6a3f0129f0b221fda948955e4c6a51a63f8c27
+  sha256: 8eaf123025a56d5c4d680edae469eb2f3ec4ec5a504dd793508f66d7c857c4b4
   requires_dist:
   - questdb[dataframe]>=4.1.0,<5
   - openai>=2.24.0,<3

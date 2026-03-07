@@ -18,6 +18,8 @@ Tài liệu này gom các thuật ngữ thường gặp trong repo.
 - `SHORT`: tín hiệu kỳ vọng giá giảm
 - `NEUTRAL`: không có tín hiệu đủ mạnh
 - `R-multiple` hoặc `R`: đơn vị lợi nhuận và rủi ro chuẩn hóa theo mức risk mỗi lệnh
+- `Commission`: chi phí giao dịch được trừ vào PnL giả lập
+- `Slippage`: trượt giá giả lập khi vào hoặc thoát lệnh
 
 ## 3. Feature engineering
 
@@ -38,7 +40,15 @@ Tài liệu này gom các thuật ngữ thường gặp trong repo.
 - `TimeSeriesSplit`: cách chia dữ liệu theo thời gian cho bài toán chuỗi thời gian
 - `Optuna`: thư viện tìm kiếm siêu tham số
 
-## 5. Các backend hiện có
+## 5. Đánh giá và report
+
+- `Profit Factor`: tổng lãi chia tổng lỗ
+- `Sharpe Ratio`: lợi nhuận trung bình so với độ biến động tổng thể
+- `Sortino Ratio`: lợi nhuận trung bình so với downside volatility
+- `Calmar Ratio`: lợi nhuận so với drawdown tối đa
+- `Heatmap`: biểu đồ hiệu suất theo giờ UTC và ngày trong tuần
+
+## 6. Các backend hiện có
 
 - `mlf`: pipeline `MLForecast + LightGBM`
 - `lstm`: model LSTM
@@ -47,13 +57,13 @@ Tài liệu này gom các thuật ngữ thường gặp trong repo.
 - `sgd`: online SGD baseline
 - `stats`: baseline thống kê
 - `neuralforecast`: backend NeuralForecast
-- `bilstm`: backend có trong repo nhưng chưa nằm trong TUI
+- `bilstm`: backend có trong codebase nhưng chưa nằm trong CLI/TUI
 
-## 6. Đầu ra của repo
+## 7. Đầu ra của repo
 
 - `data/raw/`: dữ liệu tick gốc
 - `data/ohlcv/`: dữ liệu nến sau resample
 - `data/features/`: dữ liệu đã thêm feature
 - `data/labels/`: dữ liệu đã gắn nhãn
-- `outputs/models/`: model và metrics
+- `outputs/models/`: model artifacts, metrics và metadata train
 - `outputs/reports/`: báo cáo backtest và biểu đồ

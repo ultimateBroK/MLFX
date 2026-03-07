@@ -1,127 +1,186 @@
 # ML_FX - Hướng dẫn đánh giá
 
-Tài liệu này giải thích cách chạy backtest và đọc các báo cáo được sinh ra bởi [eval/run_eval.py](../eval/run_eval.py) và [viz/charts.py](../viz/charts.py).
+Tài liệu này mô tả cách chạy `mlfx evaluate`, cách đọc metrics, và cách hiểu các artifact được sinh ra.
 
 ## 1. Dữ liệu đầu vào
 
-Luồng đánh giá hiện tại đọc trực tiếp một file parquet đã gắn nhãn, ví dụ:
+Evaluation đọc toàn bộ dữ liệu đã gắn nhãn trong:
 
 ```text
-data/labels/XAUUSD/1H/2024-01.parquet
+data/labels/{symbol}/{tf}/*.parquet
 ```
 
-Thông thường bạn sẽ dùng một trong các cột:
+Dataset đầu vào cần có tối thiểu:
+- cột `timestamp`
+- cột OHLC như `open`, `high`, `low`, `close`
+- cột ATR mặc định là `atr_14`
+- cột tín hiệu bạn truyền qua `--label`
+
+Các cột tín hiệu thường dùng:
 - `label_5`
 - `label_10`
 - `label_20`
 
-Backtest không phụ thuộc vào một file `predictions.parquet` riêng. Nếu dữ liệu đầu vào đã có cột tín hiệu phù hợp, [eval/run_eval.py](../eval/run_eval.py) có thể dùng trực tiếp cột đó.
-
-## 2. Chạy backtest
+## 2. Lệnh chạy backtest
 
 ```bash
-pixi run python eval/run_eval.py \
-  --data data/labels/XAUUSD/1H/2024-01.parquet \
+pixi run mlfx evaluate \
   --symbol XAUUSD \
   --tf 1H \
   --label label_10 \
+  --capital 10000 \
+  --risk 1.0 \
+  --commission 0.1 \
   --tp 1.5 \
   --sl 1.0 \
-  --slippage 0.0 \
-  --outdir outputs/reports
+  --slippage 0.0
 ```
 
 Ý nghĩa tham số:
-- `--data`: file parquet đầu vào
-- `--symbol`: tên symbol để đặt tiêu đề biểu đồ
-- `--tf`: timeframe để gắn vào output
-- `--label`: cột tín hiệu sẽ dùng khi mô phỏng giao dịch
-- `--tp`: take-profit theo đơn vị R
-- `--sl`: stop-loss theo đơn vị R
-- `--slippage`: độ trượt giá
-- `--outdir`: thư mục xuất báo cáo, mặc định là `outputs/reports`
+- `--symbol`: mã instrument
+- `--tf`: timeframe đang evaluate
+- `--label`: cột tín hiệu dùng để vào lệnh
+- `--capital`: vốn ban đầu để quy đổi từ `R` sang dollar
+- `--risk`: % vốn rủi ro trên mỗi lệnh
+- `--commission`: chi phí commission trên mỗi lệnh
+- `--tp`: take-profit theo đơn vị `R`
+- `--sl`: stop-loss theo đơn vị `R`
+- `--slippage`: trượt giá giả lập
 
-## 3. Các chỉ số chính
+## 3. Naming convention của report
 
-Kết quả in ra terminal thường gồm:
-- `Total Trades`: tổng số lệnh được mô phỏng
-- `Win Rate (%)`: tỷ lệ lệnh chạm TP trước SL
-- `Profit Factor`: tổng lãi chia tổng lỗ
-- `Net Profit (R)`: tổng lợi nhuận tính theo đơn vị R
-- `Net Profit ($)`: lợi nhuận quy đổi theo vốn ban đầu và mức rủi ro
+Runner tạo `out_name` theo công thức:
+
+```text
+{label_col}_R{int(tp_r * 10)}
+```
+
+Sau đó reporting tạo prefix đầy đủ:
+
+```text
+{symbol}_{tf}_{out_name}
+```
+
+Ví dụ với:
+- `symbol = XAUUSD`
+- `tf = 1H`
+- `label = label_10`
+- `tp = 1.5`
+
+thì prefix là:
+
+```text
+XAUUSD_1H_label_10_R15
+```
+
+## 4. Các file được sinh ra
+
+Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/`:
+- `{prefix}_candlestick.html`
+- `{prefix}_equity.png`
+- `{prefix}_heatmap.png`
+
+Ví dụ:
+
+```text
+outputs/reports/XAUUSD_1H_label_10_R15_candlestick.html
+outputs/reports/XAUUSD_1H_label_10_R15_equity.png
+outputs/reports/XAUUSD_1H_label_10_R15_heatmap.png
+```
+
+## 5. Các metric chính
+
+Output tóm tắt thường gồm:
+- `Total Trades`
+- `Win Rate (%)`
+- `Profit Factor`
+- `Net Profit (R)`
+- `Net Profit ($)`
 - `Sharpe Ratio`
 - `Sortino Ratio`
 - `Calmar Ratio`
 - `Final Capital ($)`
 
 Diễn giải nhanh:
-- `Profit Factor > 1` nghĩa là chiến lược có lãi trên tập dữ liệu đó
-- `Max drawdown` và `Final Capital` giúp nhìn rủi ro thực tế, không chỉ nhìn tỷ lệ thắng
-- `Net Profit (R)` hữu ích khi so sánh nhiều cấu hình khác nhau trên cùng một chuẩn rủi ro
+- `Total Trades`: số lệnh được mô phỏng
+- `Win Rate (%)`: tỷ lệ lệnh lãi; không nên dùng độc lập
+- `Profit Factor`: tổng lãi chia tổng lỗ; `> 1` mới là mức tối thiểu
+- `Net Profit (R)`: lợi nhuận chuẩn hóa, rất hữu ích để so sánh nhiều cấu hình
+- `Net Profit ($)`: quy đổi theo `capital` và `risk`
+- `Sharpe Ratio`: lợi nhuận trung bình so với độ biến động tổng thể
+- `Sortino Ratio`: tương tự Sharpe nhưng chỉ phạt downside volatility
+- `Calmar Ratio`: tổng lợi nhuận so với drawdown tối đa
+- `Final Capital ($)`: vốn cuối cùng sau khi áp chi phí và kết quả giao dịch
 
-## 4. Các file được sinh ra
+## 6. Cách đọc từng loại report
 
-[viz/charts.py](../viz/charts.py) hiện tạo 3 loại báo cáo trong `outputs/reports`:
+### 6.1 Candlestick HTML
 
-- `{prefix}_candlestick.html`
-- `{prefix}_equity.png`
-- `{prefix}_heatmap.png`
-
-Với `prefix = {label}_R{tp*10}`. Ví dụ:
-
-```text
-outputs/reports/label_10_R15_candlestick.html
-outputs/reports/label_10_R15_equity.png
-outputs/reports/label_10_R15_heatmap.png
-```
-
-## 5. Cách đọc từng biểu đồ
-
-### 5.1 Candlestick
-
-File HTML candlestick dùng Plotly để hiển thị:
+Hiển thị:
 - nến giá
-- marker LONG/SHORT/NEUTRAL
-- các panel indicator nếu có trong dataset
+- marker vào lệnh LONG/SHORT
+- panel RSI nếu dataset có `rsi_14`
 
-File này phù hợp khi bạn muốn soi từng tín hiệu tại đúng thời điểm xuất hiện.
+Phù hợp để:
+- kiểm tra điểm vào lệnh có hợp lý không
+- xem signal có bị dồn vào một đoạn ngắn bất thường không
 
-### 5.2 Equity curve
+### 6.2 Equity curve PNG
 
-File `*_equity.png` hiển thị:
-- đường tích lũy lợi nhuận theo R
-- phần drawdown phía dưới
+Hiển thị:
+- cumulative PnL theo đơn vị `R`
+- drawdown ở panel dưới
 
-Nếu đường equity tăng nhưng drawdown quá sâu, chiến lược có thể khó dùng trong vận hành thực tế.
+Phù hợp để:
+- nhìn nhịp tăng trưởng vốn
+- so sánh độ “mượt” giữa nhiều cấu hình
 
-### 5.3 Heatmap
+### 6.3 Heatmap PNG
 
-File `*_heatmap.png` tóm tắt hiệu suất theo giờ UTC và ngày trong tuần.
+Hiển thị hiệu suất trung bình theo:
+- giờ UTC
+- ngày trong tuần
 
-Heatmap hữu ích khi bạn muốn trả lời các câu hỏi như:
-- tín hiệu có mạnh hơn ở London hay New York không
-- chiến lược có đang hoạt động kém ở một số khung giờ cụ thể không
-- có nên lọc thêm theo phiên giao dịch không
+Phù hợp để:
+- xác định xem nên thêm time filter hay session filter hay không
 
-## 6. Một ví dụ tối giản bằng Python
+## 7. Failure modes thường gặp
 
-```bash
-pixi run python -c "
-import polars as pl
-from eval.backtest import simulate_trades, compute_metrics
-from viz.charts import generate_full_report
+Evaluation thường fail hoặc cho kết quả rỗng khi:
+- không có parquet trong `data/labels/{symbol}/{tf}/`
+- cột `--label` không tồn tại
+- cột `atr_14` không tồn tại
+- dữ liệu quá ít khiến gần như không có trade
+- signal không có giá trị `1` hoặc `-1`
+
+## 8. Checklist xác minh sau khi evaluate
+
+Sau khi chạy, nên kiểm tra:
+- CLI có in ra summary metrics hay không
+- `outputs/reports/` có 3 artifact mới hay không
+- tên file có đúng prefix kỳ vọng hay không
+- số trade có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
+
+## 9. Ví dụ Python tối thiểu
+
+```python
 from pathlib import Path
 
-df = pl.read_parquet('data/labels/XAUUSD/1H/2024-01.parquet')
-trades = simulate_trades(df, signal_col='label_10', tp_r=1.5, sl_r=1.0, slippage=0.0)
-metrics = compute_metrics(trades)
+import polars as pl
+
+from mlfx.evaluation.backtest import compute_metrics, simulate_trades
+from mlfx.evaluation.reporting import generate_full_report
+
+df = pl.read_parquet("data/labels/XAUUSD/1H/2024-01.parquet")
+trades = simulate_trades(
+    df,
+    signal_col="label_10",
+    tp_r=1.5,
+    sl_r=1.0,
+    commission=0.1,
+    slippage=0.0,
+)
+metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
 print(metrics)
-generate_full_report('XAUUSD', '1H', df, trades, 'label_10_R15', Path('outputs/reports'))
-"
+generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports"))
 ```
-
-## 7. Gợi ý kiểm tra kết quả
-
-- so sánh nhiều `label_col` khác nhau trên cùng một symbol và timeframe
-- không chỉ nhìn `Win Rate`; luôn đối chiếu thêm `Profit Factor`, `Net Profit (R)`, và drawdown
-- nếu biểu đồ heatmap cho thấy tín hiệu yếu ngoài giờ thanh khoản cao, thử thêm bộ lọc theo session trong pipeline hoặc logic giao dịch

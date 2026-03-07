@@ -18,6 +18,8 @@ This file collects the most common terms used across the repository.
 - `SHORT`: a signal expecting price to fall
 - `NEUTRAL`: no strong signal
 - `R-multiple` or `R`: normalized risk and return unit per trade
+- `Commission`: transaction cost applied to simulated trades
+- `Slippage`: simulated execution price slippage on entry or exit
 
 ## 3. Feature engineering
 
@@ -38,7 +40,15 @@ This file collects the most common terms used across the repository.
 - `TimeSeriesSplit`: a time-aware split strategy for time-series evaluation
 - `Optuna`: a hyperparameter optimization library
 
-## 5. Current backends
+## 5. Evaluation and reporting
+
+- `Profit Factor`: gross profit divided by gross loss
+- `Sharpe Ratio`: mean return relative to overall volatility
+- `Sortino Ratio`: mean return relative to downside volatility
+- `Calmar Ratio`: total return relative to maximum drawdown
+- `Heatmap`: a performance chart grouped by UTC hour and weekday
+
+## 6. Current backends
 
 - `mlf`: `MLForecast + LightGBM` pipeline
 - `lstm`: LSTM model
@@ -47,13 +57,13 @@ This file collects the most common terms used across the repository.
 - `sgd`: online SGD baseline
 - `stats`: statistical baseline
 - `neuralforecast`: NeuralForecast backend
-- `bilstm`: backend present in the repo but not currently exposed in the TUI
+- `bilstm`: backend present in the codebase but not currently exposed in the CLI/TUI
 
-## 6. Repository outputs
+## 7. Repository outputs
 
 - `data/raw/`: raw tick data
 - `data/ohlcv/`: resampled candle data
 - `data/features/`: feature datasets
 - `data/labels/`: labeled datasets
-- `outputs/models/`: saved models and metrics
+- `outputs/models/`: saved models, metrics, and training metadata
 - `outputs/reports/`: backtest reports and charts

@@ -1,23 +1,30 @@
 # ML_FX - Troubleshooting
 
-This guide covers the most common environment and pipeline issues.
+This guide covers common environment and operational issues for the `mlfx` workflow.
 
-## 1. `pixi: command not found`
+## 1. Quick Diagnostic Checklist
+
+When a stage fails, check in this order:
+1. whether `pixi install` has been run
+2. whether the command is being executed through `pixi run`
+3. whether the current stage has its required input data
+4. whether the previous stage produced its expected output
+5. whether old caches or generated artifacts are polluting the workspace
+
+## 2. `pixi: command not found`
 
 Common causes:
 - Pixi is not installed
-- Pixi was installed but the terminal was not restarted
+- Pixi was installed but the terminal or IDE was not restarted
 
 Fix:
-1. install Pixi using [USAGE_GUIDE.md](USAGE_GUIDE.md)
-2. restart your terminal or IDE
-3. run:
 
 ```bash
+curl -fsSL https://pixi.sh/install.sh | bash
 pixi install
 ```
 
-## 2. Missing package errors
+## 3. Missing package or import errors
 
 Example:
 
@@ -25,93 +32,137 @@ Example:
 ModuleNotFoundError: No module named 'xgboost'
 ```
 
-Cause:
-- the environment has not been fully synchronized
-
 Fix:
 
 ```bash
 pixi install
 ```
 
-## 3. Missing files during feature generation, labeling, or training
+If it still fails:
+- confirm you are running commands with `pixi run`
+- try `pixi run python -c "import polars"` to verify the environment
 
-Examples:
-- files missing in `data/ohlcv/`
-- files missing in `data/features/`
-- files missing in `data/labels/`
+## 4. Missing files during pipeline or training
 
-Cause:
-- the pipeline was run out of order
+If files are missing from `data/ohlcv/`, `data/features/`, or `data/labels/`, the workflow was usually run out of order.
 
 Correct order:
 
 ```text
-download -> qa -> resample -> features -> labels -> train -> backtest
+download -> qa -> pipeline -> train -> evaluate
 ```
 
-If training fails, inspect these directories in order:
+Inspect these directories in order:
 - `data/raw/{symbol}/`
 - `data/ohlcv/{symbol}/{tf}/`
 - `data/features/{symbol}/{tf}/`
 - `data/labels/{symbol}/{tf}/`
 
-## 4. Out-of-memory or killed processes
-
-Cause:
-- too much tick data is being loaded at once
-
-Fix:
-- start with a larger timeframe such as `1H`
-- process one symbol at a time
-- if you write custom analysis scripts, prefer `scan_parquet()` over `read_parquet()` for large datasets
-
 ## 5. Interrupted downloads
 
-[pipeline/download_data.py](../../pipeline/download_data.py) can resume using `completed_months.json`.
+The downloader resumes from `completed_months.json`.
 
-In most cases, simply rerun:
-
-```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx
-```
-
-If you want to force a full re-check of completed months:
+Rerun:
 
 ```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx --force-repair
+pixi run mlfx download --symbol XAUUSD --asset-class fx
 ```
 
-## 6. Clean reset of generated data
+Force a full re-check:
 
-If you want to regenerate OHLCV, features, or labels while keeping raw data:
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --force
+```
+
+If the downloaded data looks suspicious, follow up with:
+
+```bash
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+```
+
+## 6. Invalid backend during training
+
+The CLI currently supports:
+- `mlf`
+- `lstm`
+- `transformer`
+- `cnn_lstm`
+- `sgd`
+- `stats`
+- `neuralforecast`
+
+Check quickly with:
+
+```bash
+pixi run mlfx train --help
+```
+
+## 7. Out-of-memory or killed processes
+
+Suggestions:
+- start with a larger timeframe such as `1H`
+- process one symbol at a time
+- reduce the time range for initial experiments
+- prefer `scan_parquet()` over `read_parquet()` in custom scripts
+
+## 8. Clean caches and old outputs
+
+Use the standard task:
+
+```bash
+pixi run clean-generated
+```
+
+This clears reproducible workspace state such as:
+- `.cache/`
+- `.pixi-cache/`
+- `.pytest_cache/`
+- `.ruff_cache/`
+- `__pycache__/`
+- `lightning_logs/`
+- contents of `outputs/models/`
+- contents of `outputs/reports/`
+
+It does not remove `data/raw/`.
+
+## 9. Rebuild intermediate datasets while keeping raw data
+
+If you need to rebuild intermediate datasets:
 
 ```bash
 rm -rf data/ohlcv/* data/features/* data/labels/*
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H --pivot traditional --anchor daily --atr-mult 0.5
 ```
 
-Then rerun:
+Use this only when you explicitly want a full intermediate rebuild.
 
-```bash
-pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H
-```
-
-## 7. Backtest does not generate reports
+## 10. Backtest does not generate reports
 
 Check:
-- whether the path passed to `--data` exists
-- whether the `--label` column exists in the parquet file
-- whether the output directory is writable
+- whether `data/labels/{symbol}/{tf}/` contains parquet files
+- whether the `--label` column exists
+- whether the `atr_14` column exists
+- whether `outputs/reports/` is writable
 
-Example:
+Valid example:
 
 ```bash
-pixi run python eval/run_eval.py \
-  --data data/labels/XAUUSD/1H/2024-01.parquet \
-  --symbol XAUUSD \
-  --tf 1H \
-  --label label_10 \
-  --outdir outputs/reports
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
+
+Notes:
+- the CLI does not currently expose an `--outdir` option
+- reports are written to `outputs/reports/` by default
+
+## 11. Verify the repo after config or docs changes
+
+Run:
+
+```bash
+pixi run verify
+```
+
+This is useful after:
+- changing Pixi configuration
+- updating docs or entrypoints
+- cleaning caches and outputs, then checking the main workflow still behaves correctly
