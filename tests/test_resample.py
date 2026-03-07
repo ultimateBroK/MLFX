@@ -1,7 +1,7 @@
 """
 tests/test_resample.py
 ======================
-Unit tests for pipeline/resample.py
+Unit tests for `mlfx.pipeline.resampling`.
 
 Run: pytest tests/test_resample.py -v
 """
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 import polars as pl
 import pytest
 
-from pipeline.resample import resample_to_ohlcv, detect_gaps, TIMEFRAMES
+from mlfx.pipeline.resampling import TIMEFRAMES, detect_gaps, resample_to_ohlcv
 
 
 class TestResampleToOhlcv:

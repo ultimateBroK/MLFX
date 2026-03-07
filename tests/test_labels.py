@@ -1,7 +1,7 @@
 """
 tests/test_labels.py
 ====================
-Unit tests for pipeline/labels.py
+Unit tests for `mlfx.pipeline.labeling`.
 
 Run: pytest tests/test_labels.py -v
 """
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 import polars as pl
 import pytest
 
-from pipeline.labels import (
+from mlfx.pipeline.labeling import (
     add_labels,
     compute_class_balance,
     stratified_train_test_split,

@@ -1,23 +1,30 @@
 # ML_FX - Khắc phục sự cố
 
-Tài liệu này gom các lỗi thường gặp khi cài môi trường hoặc chạy pipeline.
+Tài liệu này gom các lỗi thường gặp khi cài môi trường hoặc chạy workflow `mlfx`.
 
-## 1. `pixi: command not found`
+## 1. Checklist chẩn đoán nhanh
+
+Khi một bước thất bại, hãy kiểm tra theo thứ tự:
+1. `pixi install` đã chạy chưa
+2. đang chạy lệnh bằng `pixi run` hay không
+3. dữ liệu đầu vào của bước hiện tại có tồn tại không
+4. output của bước trước có sinh ra đúng thư mục không
+5. workspace có đang bị nhiễu bởi cache hoặc artifact cũ không
+
+## 2. `pixi: command not found`
 
 Nguyên nhân thường gặp:
 - chưa cài Pixi
-- đã cài nhưng terminal chưa được mở lại
+- đã cài nhưng terminal hoặc IDE chưa được mở lại
 
 Cách xử lý:
-1. cài Pixi theo [USAGE_GUIDE.md](USAGE_GUIDE.md)
-2. đóng terminal hoặc IDE rồi mở lại
-3. chạy lại:
 
 ```bash
+curl -fsSL https://pixi.sh/install.sh | bash
 pixi install
 ```
 
-## 2. Thiếu package
+## 3. Thiếu package hoặc import lỗi
 
 Ví dụ:
 
@@ -25,93 +32,137 @@ Ví dụ:
 ModuleNotFoundError: No module named 'xgboost'
 ```
 
-Nguyên nhân:
-- môi trường chưa được đồng bộ đủ dependency
-
 Cách xử lý:
 
 ```bash
 pixi install
 ```
 
-## 3. Thiếu file ở bước feature, label, hoặc train
+Nếu vẫn lỗi:
+- kiểm tra bạn có chạy bằng `pixi run ...` hay không
+- thử `pixi run python -c "import polars"` để xác nhận environment
 
-Ví dụ:
-- không tìm thấy file trong `data/ohlcv/`
-- không tìm thấy file trong `data/features/`
-- không tìm thấy file trong `data/labels/`
+## 4. Thiếu file ở bước pipeline hoặc train
 
-Nguyên nhân:
-- chạy sai thứ tự pipeline
+Nếu thiếu dữ liệu trong `data/ohlcv/`, `data/features/`, hoặc `data/labels/`, thường là do chạy sai thứ tự.
 
 Thứ tự đúng:
 
 ```text
-download -> qa -> resample -> features -> labels -> train -> backtest
+download -> qa -> pipeline -> train -> evaluate
 ```
 
-Nếu train lỗi, hãy kiểm tra lần lượt:
+Kiểm tra lần lượt:
 - `data/raw/{symbol}/`
 - `data/ohlcv/{symbol}/{tf}/`
 - `data/features/{symbol}/{tf}/`
 - `data/labels/{symbol}/{tf}/`
 
-## 4. Hết RAM hoặc process bị kill
-
-Nguyên nhân:
-- đang đọc quá nhiều dữ liệu tick cùng lúc
-
-Cách xử lý:
-- bắt đầu với timeframe lớn hơn như `1H`
-- xử lý từng symbol một
-- nếu cần tự viết thêm script phân tích, ưu tiên `scan_parquet()` thay vì `read_parquet()` cho dữ liệu lớn
-
 ## 5. Download bị dừng giữa chừng
 
-[pipeline/download_data.py](../pipeline/download_data.py) có cơ chế resume dựa trên `completed_months.json`.
+Downloader dùng `completed_months.json` để resume.
 
-Thường chỉ cần chạy lại:
-
-```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx
-```
-
-Nếu muốn ép kiểm tra lại các tháng đã hoàn tất:
+Chạy lại:
 
 ```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --asset-class fx --force-repair
+pixi run mlfx download --symbol XAUUSD --asset-class fx
 ```
 
-## 6. Muốn làm sạch dữ liệu trung gian
+Nếu muốn kiểm tra lại toàn bộ:
 
-Nếu bạn muốn tạo lại OHLCV, features, hoặc labels từ đầu mà vẫn giữ dữ liệu raw:
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --force
+```
+
+Nếu chất lượng dữ liệu đáng ngờ sau download:
+
+```bash
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+```
+
+## 6. Train báo backend không hợp lệ
+
+CLI hiện hỗ trợ:
+- `mlf`
+- `lstm`
+- `transformer`
+- `cnn_lstm`
+- `sgd`
+- `stats`
+- `neuralforecast`
+
+Kiểm tra nhanh:
+
+```bash
+pixi run mlfx train --help
+```
+
+## 7. Hết RAM hoặc process bị kill
+
+Gợi ý:
+- bắt đầu với timeframe lớn hơn như `1H`
+- xử lý từng symbol một
+- giảm scope kiểm thử xuống một khoảng thời gian ngắn hơn
+- với script tự viết, ưu tiên `scan_parquet()` cho dữ liệu lớn
+
+## 8. Muốn dọn cache và output cũ
+
+Dùng task chuẩn:
+
+```bash
+pixi run clean-generated
+```
+
+Task này dọn các phần có thể tái sinh an toàn như:
+- `.cache/`
+- `.pixi-cache/`
+- `.pytest_cache/`
+- `.ruff_cache/`
+- `__pycache__/`
+- `lightning_logs/`
+- nội dung trong `outputs/models/{symbol}/{tf}/`
+- nội dung trong `outputs/reports/{symbol}/{tf}/`
+
+Task này không xóa `data/raw/`.
+
+## 9. Muốn tạo lại dữ liệu trung gian nhưng giữ raw data
+
+Nếu cần rebuild hoàn toàn phần trung gian:
 
 ```bash
 rm -rf data/ohlcv/* data/features/* data/labels/*
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H --pivot traditional --anchor daily --atr-mult 0.5
 ```
 
-Sau đó chạy lại:
+Chỉ dùng khi bạn chắc chắn muốn sinh lại toàn bộ parquet trung gian.
 
-```bash
-pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H
-```
-
-## 7. Backtest không tạo báo cáo
+## 10. Backtest không tạo báo cáo
 
 Kiểm tra:
-- file truyền vào `--data` có tồn tại không
-- cột truyền vào `--label` có nằm trong parquet không
-- thư mục output có quyền ghi không
+- thư mục `data/labels/{symbol}/{tf}/` có parquet không
+- cột tín hiệu truyền qua `--label` có tồn tại không
+- cột `atr_14` có tồn tại không
+- thư mục `outputs/reports/{symbol}/{tf}/` có ghi được không
 
-Lệnh mẫu:
+Lệnh mẫu hợp lệ:
 
 ```bash
-pixi run python eval/run_eval.py \
-  --data data/labels/XAUUSD/1H/2024-01.parquet \
-  --symbol XAUUSD \
-  --tf 1H \
-  --label label_10 \
-  --outdir outputs/reports
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
+
+Lưu ý:
+- CLI hiện không có tham số `--outdir`
+- report mặc định được ghi vào `outputs/reports/{symbol}/{tf}/`
+
+## 11. Cần kiểm tra repo có còn sạch không
+
+Chạy:
+
+```bash
+pixi run verify
+```
+
+Lệnh này phù hợp khi bạn vừa:
+- đổi cấu hình Pixi
+- chỉnh docs/entrypoints
+- dọn cache/output và muốn chắc workflow chính vẫn ổn

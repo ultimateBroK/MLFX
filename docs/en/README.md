@@ -1,14 +1,13 @@
 # ML_FX
 
-ML_FX is a market data and price-direction research project built around tick ingestion, technical feature pipelines, multiple forecasting backends, and backtest reporting.
+`ML_FX` is an MLOps-style research pipeline for market data. Its main stages are:
+- downloading historical tick data from Dukascopy
+- converting ticks into OHLCV bars across multiple timeframes
+- generating technical and ICT-oriented features
+- building training labels
+- training, evaluating, and reporting model results
 
-The repository currently covers:
-- downloading tick data from Dukascopy
-- resampling tick data into OHLCV bars
-- building features from `ICT Killzone`, `Support/Resistance`, `Pivot Points`, and TA indicators
-- generating `label_5`, `label_10`, and `label_20`
-- training several model backends from the TUI or CLI
-- running backtests and saving reports to `outputs/reports`
+The repository is operated in a `Pixi-first` way. Day-to-day commands should be run through `pixi run`.
 
 ## Documentation Map
 
@@ -29,97 +28,121 @@ The repository currently covers:
   - [GLOSSARY.md](../GLOSSARY.md)
   - [TODO.md](../TODO.md)
 
-## Current Workflow
+## Environment Requirements
 
-```text
-download_data.py
-  -> resample.py
-  -> features.py
-  -> labels.py
-  -> train backend
-  -> eval/run_eval.py
-  -> outputs/reports
+- Pixi installed locally
+- Linux 64-bit is the platform currently pinned in `pyproject.toml`
+- Python is managed by Pixi for the supported workflow; no separate `uv` or `venv` flow is required
+
+Install the environment:
+
+```bash
+pixi install
 ```
 
-Main data pipeline:
-- [pipeline/download_data.py](../../pipeline/download_data.py): writes raw tick data to `data/raw/{symbol}/`
-- [pipeline/resample.py](../../pipeline/resample.py): writes OHLCV data to `data/ohlcv/{symbol}/{tf}/`
-- [pipeline/features.py](../../pipeline/features.py): writes feature datasets to `data/features/{symbol}/{tf}/`
-- [pipeline/labels.py](../../pipeline/labels.py): writes labeled datasets to `data/labels/{symbol}/{tf}/`
+## Official Entrypoints
 
-Training backends currently available in the TUI:
-- `mlf` → [models/ml_models.py](../../models/ml_models.py)
-- `lstm` → [models/lstm.py](../../models/lstm.py)
-- `transformer` → [models/transformer.py](../../models/transformer.py)
-- `cnn_lstm` → [models/cnn_lstm.py](../../models/cnn_lstm.py)
-- `sgd` → [models/online_sgd.py](../../models/online_sgd.py)
-- `stats` → [models/stats_baseline.py](../../models/stats_baseline.py)
-- `neuralforecast` → [models/neural_forecast.py](../../models/neural_forecast.py)
+- `pixi run mlfx` for the unified CLI
+- `pixi run mlfx-tui` for the Textual TUI
+- `pixi run test` to run the full test suite
+- `pixi run verify` to run the focused smoke/contract checks
+- `pixi run clean-generated` to clear common caches and generated artifacts
 
-The `agent/` directory is still a planned area and should not be treated as a complete production feature yet.
+## Standard Operating Flow
+
+```text
+download
+  -> qa
+  -> pipeline
+  -> train
+  -> evaluate
+  -> serve / batch-predict
+  -> drift
+```
+
+What each stage does:
+- `download`: fetch raw tick data
+- `qa`: audit raw data for gaps or anomalies
+- `pipeline`: build OHLCV, features, and labels
+- `train`: fit the selected backend (with tracking + registry update)
+- `evaluate`: run backtests and generate reports
+- `serve`: start the FastAPI real-time inference endpoint
+- `batch-predict`: run offline predictions and write parquet outputs
+- `drift`: compare recent feature distributions vs reference statistics
+
+## Quickstart
+
+Launch the TUI:
+
+```bash
+pixi run mlfx-tui
+```
+
+Or run the CLI end to end:
+
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
+
+## Available Training Backends
+
+- `mlf`
+- `lstm`
+- `transformer`
+- `cnn_lstm`
+- `sgd`
+- `stats`
+- `neuralforecast`
+
+For full parameter references and operational examples, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## Project Layout
 
 ```text
 ML_FX/
-├── indicators/        # ICT, S/R, and Pivot feature engineering
-├── pipeline/          # Download, resample, features, labels, QA
-├── models/            # Training backends in active use
-├── eval/              # Backtest and evaluation entrypoints
-├── viz/               # Chart and report generation
-├── docs/              # Vietnamese documentation
-├── docs/en/           # English documentation
-├── data/              # Raw, OHLCV, features, labels
-├── outputs/           # Saved models and generated reports
-├── main.py            # TUI with Download, Pipeline, Train, Backtest tabs
-├── config.toml        # Default values loaded by the TUI
-└── pyproject.toml     # Package metadata and dependencies
+├── mlfx/
+│   ├── app/           # CLI and TUI
+│   ├── config/        # path policy and config loading
+│   ├── ingestion/     # Dukascopy downloader
+│   ├── pipeline/      # qa, resampling, feature engineering, labeling
+│   ├── features/      # domain-specific feature modules
+│   ├── training/      # backend implementations + training orchestration
+│   ├── evaluation/    # backtest, reporting, evaluation runner
+│   ├── tracking/      # experiment tracking adapters (MLflow/File)
+│   ├── registry/      # model registry (JSON-backed)
+│   ├── serving/       # FastAPI API + batch inference
+│   └── monitoring/    # drift detection + structured logging
+├── docs/
+├── docs/en/
+├── data/
+├── outputs/
+├── logs/
+├── config.toml
+└── pyproject.toml
 ```
 
-## Quickstart
+## Main Artifacts
 
-The practical way to run the project is through `Pixi`. [pyproject.toml](../../pyproject.toml) declares `requires-python >= 3.11`, while the Pixi environment is currently pinned to Python `3.13`.
+- `data/raw/{symbol}/`: raw tick data and download state files
+- `data/ohlcv/{symbol}/{tf}/`: resampled parquet files
+- `data/features/{symbol}/{tf}/`: feature-enriched datasets
+- `data/labels/{symbol}/{tf}/`: labeled datasets
+- `outputs/models/{symbol}/{tf}/`: model artifacts, metrics, and training metadata
+- `outputs/reports/{symbol}/{tf}/`: HTML and PNG evaluation reports
 
-```bash
-pixi install
-pixi run python main.py
-```
+## Cleanup Policy
 
-TUI shortcuts:
-- `q`: quit
-- `d`: toggle dark/light mode
+- keep `data/raw/` if you want to rebuild the downstream pipeline without downloading again
+- `data/ohlcv/`, `data/features/`, `data/labels/`, `outputs/`, `lightning_logs/`, `.pixi-cache/`, and `.cache/` are reproducible artifacts
+- use `pixi run clean-generated` when you want to clean common generated state in the workspace
 
-Main tabs:
-- `Download Data`: fetch Dukascopy tick data
-- `Pipeline`: run resample, features, and labels
-- `Train Model`: choose a backend and train
-- `Backtest`: run evaluation on labeled datasets
+## Recommended Next Reading
 
-## CLI Example
-
-```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --start-year 2024
-pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H
-pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10
-pixi run python eval/run_eval.py --data data/labels/XAUUSD/1H/2024-01.parquet --symbol XAUUSD --tf 1H --label label_10
-```
-
-For full parameter reference and backend-specific commands, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
-
-## Outputs
-
-- Models: `outputs/models/{symbol}/{tf}/`
-- Reports: `outputs/reports/`
-- Intermediate datasets:
-  - `data/raw/`
-  - `data/ohlcv/`
-  - `data/features/`
-  - `data/labels/`
-
-## Notes
-
-- This file is the English landing page.
-- Detailed operational guides live in `docs/en/`.
-- The Vietnamese entry point is [README.md](../../README.md).
+- [NOOB_GUIDE.md](NOOB_GUIDE.md) if you are new to the repository
+- [USAGE_GUIDE.md](USAGE_GUIDE.md) for command-by-command operation
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) for report structure and metric interpretation
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for environment or data issues

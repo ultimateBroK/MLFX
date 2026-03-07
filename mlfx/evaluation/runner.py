@@ -1,0 +1,129 @@
+"""Evaluation runner with centralized path resolution."""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+import polars as pl
+
+from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
+from .backtest import compute_metrics, simulate_trades
+from .reporting import generate_full_report
+
+logger = logging.getLogger(__name__)
+
+
+def load_labelled_dataset(
+    symbol: str,
+    tf: str,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
+) -> pl.DataFrame | None:
+    """Load and sort all labeled parquet files for a symbol/timeframe."""
+    data_dir = paths.labels_dir(symbol, tf)
+    if not data_dir.exists():
+        return None
+
+    parquet_files = sorted(data_dir.glob("*.parquet"))
+    if not parquet_files:
+        return None
+
+    frames: list[pl.DataFrame] = []
+    for parquet_file in parquet_files:
+        try:
+            frames.append(pl.read_parquet(parquet_file))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to load %s: %s", parquet_file, exc)
+
+    if not frames:
+        return None
+
+    return pl.concat(frames).sort("timestamp")
+
+
+def run_full_eval(
+    symbol: str,
+    tf: str,
+    label_col: str,
+    initial_capital: float = 10000.0,
+    risk_pct: float = 1.0,
+    commission: float = 0.1,
+    tp_r: float = 1.5,
+    sl_r: float = 1.0,
+    slippage: float = 0.0,
+    out_dir: str | Path | None = None,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
+) -> dict[str, str]:
+    """Run backtest on all labeled parquet files for one symbol/timeframe."""
+    df = load_labelled_dataset(symbol, tf, paths=paths)
+    if df is None or df.is_empty():
+        logger.error("No labeled data found for %s %s", symbol, tf)
+        return {}
+
+    return run_dataset_eval(
+        df,
+        symbol=symbol,
+        tf=tf,
+        label_col=label_col,
+        initial_capital=initial_capital,
+        risk_pct=risk_pct,
+        commission=commission,
+        tp_r=tp_r,
+        sl_r=sl_r,
+        slippage=slippage,
+        out_dir=out_dir,
+        paths=paths,
+    )
+
+
+def run_dataset_eval(
+    df: pl.DataFrame,
+    *,
+    symbol: str,
+    tf: str,
+    label_col: str,
+    initial_capital: float = 10000.0,
+    risk_pct: float = 1.0,
+    commission: float = 0.1,
+    tp_r: float = 1.5,
+    sl_r: float = 1.0,
+    slippage: float = 0.0,
+    out_dir: str | Path | None = None,
+    paths: ProjectPaths = DEFAULT_PATHS,
+) -> dict[str, str]:
+    """Run backtest/report generation for a provided labelled dataset."""
+    if df.is_empty():
+        logger.error("Dataset is empty for %s %s", symbol, tf)
+        return {}
+
+    trades = simulate_trades(
+        df,
+        signal_col=label_col,
+        tp_r=tp_r,
+        sl_r=sl_r,
+        commission=commission,
+        slippage=slippage,
+    )
+    metrics = compute_metrics(
+        trades,
+        initial_capital=initial_capital,
+        risk_pct=risk_pct,
+    )
+
+    report_dir = (Path(out_dir) / symbol / tf) if out_dir is not None else paths.reports_dir(symbol, tf)
+    out_name = f"{label_col}_R{int(tp_r * 10)}"
+    generate_full_report(symbol, tf, df, trades, out_name, report_dir)
+
+    return {
+        "Total Trades": f"{metrics['total_trades']}",
+        "Win Rate (%)": f"{metrics['win_rate']:.2f}%",
+        "Profit Factor": f"{metrics['profit_factor']:.2f}",
+        "Net Profit (R)": f"{metrics['total_r']:.2f}R",
+        "Net Profit ($)": f"${metrics['net_profit_dollar']:.2f}",
+        "Sharpe Ratio": f"{metrics['sharpe_ratio']:.2f}",
+        "Sortino Ratio": f"{metrics['sortino_ratio']:.2f}",
+        "Calmar Ratio": f"{metrics['calmar_ratio']:.2f}",
+        "Final Capital ($)": f"${metrics['final_capital']:.2f}",
+    }

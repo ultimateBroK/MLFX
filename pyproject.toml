@@ -1,16 +1,46 @@
 [project]
-authors = [{name = "Hieu Nguyen", email = "hieuteo03@gmail.com"}]
-dependencies = ["questdb[dataframe]>=4.1.0,<5", "openai>=2.24.0,<3", "chromadb>=1.5.2,<2", "lmstudio>=1.5.0,<2", "agno[os]>=2.5.6,<3", "textual>=8.0.2,<9", "ipykernel>=7.2.0,<8", "neuralforecast>=3.1.5,<4", "statsforecast>=2.0.3,<3", "mlforecast>=1.0.2,<2", "lightgbm"]
+authors = [{ name = "Hieu Nguyen", email = "hieuteo03@gmail.com" }]
+dependencies = [
+    "textual>=8.0.2,<9",
+    "ipykernel>=7.2.0,<8",
+    "neuralforecast>=3.1.5,<4",
+    "statsforecast>=2.0.3,<3",
+    "mlforecast>=1.0.2,<2",
+    "fastapi>=0.135.1,<0.136", 
+    "scipy>=1.7.3,<1.16.0", 
+    "pydantic>=2.12.5,<3", 
+    "uvicorn>=0.41.0,<0.42",
+]
+description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "ML_FX"
+readme = "README.md"
 requires-python = ">= 3.11"
 version = "0.1.0"
+
+[project.scripts]
+mlfx = "mlfx.app.cli:main"
+mlfx-tui = "mlfx.app.tui:main"
+
+[project.optional-dependencies]
+serving = [
+    "fastapi>=0.116.0,<0.117",
+    "pydantic>=2.11.0,<3",
+    "uvicorn>=0.37.0,<0.38",
+]
+integrations = [
+    "questdb[dataframe]>=4.1.0,<5",
+    "openai>=2.24.0,<3",
+    "chromadb>=1.5.2,<2",
+    "lmstudio>=1.5.0,<2",
+    "agno[os]>=2.5.6,<3",
+]
 
 [build-system]
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["indicators", "pipeline", "models", "eval", "viz", "agent"]
+packages = ["mlfx"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -20,6 +50,9 @@ platforms = ["linux-64"]
 ML_FX = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+test = "pytest"
+verify = "pytest tests/test_project_contract.py tests/test_training_contract.py tests/test_training_runner_registry_contract.py tests/test_registry_serving_contract.py tests/test_serving_api_contract.py tests/test_tracking_monitoring_contract.py tests/test_evaluation_contract.py tests/test_mlfx_pipeline.py tests/integration/test_entrypoints.py"
+clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs && mkdir -p outputs/models outputs/reports logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
 
 [tool.pixi.dependencies]
 polars = ">=1.38.1,<2"
@@ -31,13 +64,15 @@ aiohttp = ">=3.9,<4"
 matplotlib = ">=3.10.8,<4"
 plotly = ">=6.5.2,<7"
 seaborn = ">=0.13.2,<0.14"
-scikit-learn = ">=1.8,<2"
+scikit-learn = ">=1.8.0,<2"
 xgboost = ">=3.2,<4"
-lightgbm = ">=4.6,<5"
+lightgbm = ">=4.6.0,<5"
 pytorch-cpu = ">=2.10,<3"
 optuna = ">=4.7,<5"
 shap = ">=0.50,<1"
 pandas = ">=3.0.1,<4"
+rich = ">=14.3.3,<15"
+lightning = ">=2.6.1,<3"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

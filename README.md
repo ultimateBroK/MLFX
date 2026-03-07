@@ -1,14 +1,13 @@
 # ML_FX
 
-ML_FX là dự án phân tích dữ liệu giá và huấn luyện mô hình dự báo hướng giá dựa trên dữ liệu tick, pipeline đặc trưng kỹ thuật, và backtest theo phong cách giao dịch định lượng.
+`ML_FX` là một pipeline MLOps nghiên cứu dữ liệu thị trường, tập trung vào 5 giai đoạn chính:
+- tải tick data lịch sử từ Dukascopy
+- chuẩn hóa thành OHLCV theo nhiều timeframe
+- sinh feature kỹ thuật và feature theo ngữ cảnh ICT
+- gắn nhãn phục vụ huấn luyện
+- train, evaluate và xuất báo cáo
 
-Repo hiện tập trung vào:
-- tải dữ liệu tick từ Dukascopy
-- resample sang OHLCV nhiều khung thời gian
-- tạo đặc trưng từ `ICT Killzone`, `Support/Resistance`, `Pivot Points`, và TA indicators
-- gắn nhãn `label_5`, `label_10`, `label_20`
-- huấn luyện nhiều backend khác nhau từ TUI hoặc CLI
-- chạy backtest và xuất báo cáo vào `outputs/reports`
+Repo được vận hành theo hướng `Pixi-first`. Mọi lệnh thường ngày nên chạy qua `pixi run`.
 
 ## Tài liệu
 
@@ -29,102 +28,144 @@ Repo hiện tập trung vào:
   - [GLOSSARY.md](docs/en/GLOSSARY.md)
   - [TODO.md](docs/en/TODO.md)
 
-## Quy trình hiện tại
+## Yêu cầu môi trường
 
-```text
-download_data.py
-  -> resample.py
-  -> features.py
-  -> labels.py
-  -> train backend
-  -> eval/run_eval.py
-  -> outputs/reports
-```
+- Pixi đã được cài trên máy
+- Linux 64-bit là platform hiện được pin trong `pyproject.toml`
+- Python được quản lý bởi Pixi, không cần tự tạo `uv` hoặc `venv` riêng cho workflow chuẩn
 
-Pipeline dữ liệu chính:
-- [pipeline/download_data.py](pipeline/download_data.py): tải dữ liệu tick về `data/raw/{symbol}/`
-- [pipeline/resample.py](pipeline/resample.py): tạo OHLCV vào `data/ohlcv/{symbol}/{tf}/`
-- [pipeline/features.py](pipeline/features.py): tạo feature vào `data/features/{symbol}/{tf}/`
-- [pipeline/labels.py](pipeline/labels.py): tạo dữ liệu đã gắn nhãn vào `data/labels/{symbol}/{tf}/`
-
-Các backend huấn luyện hiện có trong TUI:
-- `mlf` → [models/ml_models.py](models/ml_models.py)
-- `lstm` → [models/lstm.py](models/lstm.py)
-- `transformer` → [models/transformer.py](models/transformer.py)
-- `cnn_lstm` → [models/cnn_lstm.py](models/cnn_lstm.py)
-- `sgd` → [models/online_sgd.py](models/online_sgd.py)
-- `stats` → [models/stats_baseline.py](models/stats_baseline.py)
-- `neuralforecast` → [models/neural_forecast.py](models/neural_forecast.py)
-
-Thư mục `agent/` hiện là phần dự kiến cho giai đoạn sau, chưa có implementation hoàn chỉnh để sử dụng như một tính năng chính của repo.
-
-## Cấu trúc dự án
-
-```text
-ML_FX/
-├── indicators/        # Feature engineering theo ICT, S/R, Pivot Points
-├── pipeline/          # Download, resample, features, labels, QA
-├── models/            # Các backend huấn luyện hiện tại
-├── eval/              # Backtest và tổng hợp đánh giá
-├── viz/               # Tạo biểu đồ và báo cáo
-├── docs/              # Tài liệu tiếng Việt
-├── docs/en/           # Tài liệu tiếng Anh
-├── data/              # Raw, OHLCV, features, labels
-├── outputs/           # Models và reports được sinh ra
-├── main.py            # TUI với 4 tab: Download, Pipeline, Train, Backtest
-├── config.toml        # Giá trị mặc định cho TUI
-└── pyproject.toml     # Metadata package và dependencies
-```
-
-## Bắt đầu nhanh
-
-Yêu cầu thực tế để chạy dự án là dùng `Pixi`. [pyproject.toml](pyproject.toml) khai báo `requires-python >= 3.11`, còn môi trường Pixi hiện pin Python `3.13`.
+Cài môi trường:
 
 ```bash
 pixi install
-pixi run python main.py
 ```
 
-Phím tắt trong TUI:
-- `q`: thoát
-- `d`: đổi dark/light mode
+## Entrypoint chính
 
-Bốn tab chính trong TUI:
-- `Download Data`: tải dữ liệu tick
-- `Pipeline`: resample, features, labels
-- `Train Model`: chọn backend và train
-- `Backtest`: chạy mô phỏng trên dữ liệu đã gắn nhãn
+- `pixi run mlfx` cho CLI hợp nhất
+- `pixi run mlfx-tui` cho Textual TUI
+- `pixi run test` để chạy toàn bộ test suite
+- `pixi run verify` để chạy bộ test smoke/contract trọng tâm
+- `pixi run clean-generated` để dọn cache và generated artifacts an toàn
 
-## Chạy bằng CLI
+## Luồng vận hành chuẩn (MLOps pipeline)
 
-Ví dụ một luồng cơ bản:
+```text
+download  →  qa  →  pipeline  →  train  →  evaluate
+                                   ↓            ↓
+                               tracking       reports
+                               registry
+                                   ↓
+                              serve / batch-predict
+                                   ↓
+                                drift
+```
+
+Ý nghĩa từng bước:
+- `download`: tải raw tick data từ Dukascopy
+- `qa`: audit raw data để phát hiện gap hoặc dữ liệu bất thường
+- `pipeline`: resample → feature engineering → labeling
+- `train`: huấn luyện backend đã chọn (kết quả được track và register tự động)
+- `evaluate`: chạy backtest và sinh báo cáo
+- `serve`: khởi động FastAPI inference server
+- `batch-predict`: chạy inference theo lô và ghi kết quả ra parquet
+- `drift`: so sánh phân phối feature live vs training để phát hiện drift
+- `models`: liệt kê các model version đã đăng ký
+
+## Bắt đầu nhanh
+
+Chạy TUI:
 
 ```bash
-pixi run python pipeline/download_data.py --symbol XAUUSD --start-year 2024
-pixi run python pipeline/resample.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/features.py --symbol XAUUSD --tf 1H
-pixi run python pipeline/labels.py --symbol XAUUSD --tf 1H
-pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10
-pixi run python eval/run_eval.py --data data/labels/XAUUSD/1H/2024-01.parquet --symbol XAUUSD --tf 1H --label label_10
+pixi run mlfx-tui
 ```
 
-Chi tiết tham số, backend, và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md).
+Hoặc chạy hoàn toàn bằng CLI:
 
-## Đầu ra
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
 
-- Models: `outputs/models/{symbol}/{tf}/`
-- Reports: `outputs/reports/`
-- Dữ liệu trung gian:
-  - `data/raw/`
-  - `data/ohlcv/`
-  - `data/features/`
-  - `data/labels/`
+## Backend huấn luyện hiện có
 
-## Ghi chú
+| Key | Mô tả |
+|---|---|
+| `mlf` | MLForecast + LightGBM (default) |
+| `lstm` | PyTorch LSTM với HPO Optuna |
+| `bilstm` | Bidirectional LSTM |
+| `transformer` | PyTorch Transformer encoder |
+| `cnn_lstm` | CNN + LSTM hybrid |
+| `sgd` | Online SGDClassifier (sklearn) |
+| `stats` | StatsForecast baseline (AutoARIMA, SeasonalNaive) |
+| `neuralforecast` | NeuralForecast (NHiTS, NBEATS) |
 
-- README này là điểm vào ngắn gọn.
-- Tài liệu thao tác chi tiết nằm trong `docs/`.
-- Tài liệu tiếng Anh nằm trong `docs/en/`.
+Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md).
+
+## Cấu trúc dự án (MLOps)
+
+```text
+ML_FX/
+├── mlfx/
+│   ├── app/            # CLI và TUI
+│   ├── config/         # path policy và config loader
+│   ├── ingestion/      # downloader Dukascopy
+│   ├── pipeline/       # qa, resampling, feature engineering, labeling
+│   ├── features/       # feature modules theo domain (indicators)
+│   ├── training/
+│   │   ├── backends/           # Backend implementations (mlf, lstm, transformer, ...)
+│   │   │   └── base.py         # BackendRunner protocol, TrainingConfig, TrainResult
+│   │   ├── data.py             # Dataset loading helpers
+│   │   ├── feature_selection.py# Feature selection helpers
+│   │   ├── artifacts.py        # Artifact persistence helpers
+│   │   ├── config.py           # Public TrainingConfig/TrainResult aliases
+│   │   ├── runner.py           # High-level orchestrator (track + register)
+│   │   └── registry.py         # Backend key → module:function map
+│   ├── evaluation/     # backtest, reporting, evaluation runner
+│   ├── tracking/       # Experiment tracking (MLflow / file-based fallback)
+│   ├── registry/       # Model registry (JSON-backed, MLflow-extensible)
+│   ├── serving/        # FastAPI real-time API + batch inference
+│   └── monitoring/     # Feature drift detection + structured JSON logging
+├── docs/               # tài liệu tiếng Việt
+├── docs/en/            # tài liệu tiếng Anh
+├── data/               # raw, ohlcv, features, labels
+├── outputs/
+│   ├── models/         # registry.json + {symbol}/{tf}/ (model artifacts)
+│   ├── reports/        # {symbol}/{tf}/ (HTML/PNG backtest reports)
+│   ├── runs/           # {symbol}/{tf}/ (file-tracker run JSONs)
+│   ├── predictions/    # {symbol}/{tf}/ (batch inference results)
+│   └── monitoring/     # {symbol}/{tf}/ (drift reference snapshots + alerts)
+├── Dockerfile          # multi-stage container image
+├── docker-compose.yml  # API server + optional MLflow server
+├── config.toml         # giá trị mặc định cho CLI/TUI
+└── pyproject.toml      # package metadata, Pixi config, tasks
+```
+
+## Artifacts chính
+
+- `data/raw/{symbol}/`: raw tick data và file state download
+- `data/ohlcv/{symbol}/{tf}/`: parquet sau resample
+- `data/features/{symbol}/{tf}/`: parquet đã thêm feature
+- `data/labels/{symbol}/{tf}/`: parquet đã gắn nhãn
+- `outputs/models/{symbol}/{tf}/`: model artifacts, metrics, metadata train
+- `outputs/reports/{symbol}/{tf}/`: HTML/PNG reports từ evaluate
+
+## Chính sách cleanup
+
+- `data/raw/` nên được giữ lại nếu muốn tái tạo pipeline mà không tải lại dữ liệu
+- `data/ohlcv/`, `data/features/`, `data/labels/`, `outputs/`, `lightning_logs/`, `.pixi-cache/`, `.cache/` là phần có thể tái sinh
+- dùng `pixi run clean-generated` khi muốn dọn generated artifacts và cache phổ biến trong workspace
+
+## Bước tiếp theo nên đọc
+
+- [docs/NOOB_GUIDE.md](docs/NOOB_GUIDE.md) nếu mới vào repo
+- [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md) nếu cần chạy từng lệnh cụ thể
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) mô tả kiến trúc MLOps chi tiết
+- [docs/EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md) nếu muốn hiểu report và metrics
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) nếu đang gặp lỗi môi trường hoặc dữ liệu
 
 ## Tác giả
 
