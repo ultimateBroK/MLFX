@@ -65,5 +65,5 @@ Tài liệu này gom các thuật ngữ thường gặp trong repo.
 - `data/ohlcv/`: dữ liệu nến sau resample
 - `data/features/`: dữ liệu đã thêm feature
 - `data/labels/`: dữ liệu đã gắn nhãn
-- `outputs/models/`: model artifacts, metrics và metadata train
-- `outputs/reports/`: báo cáo backtest và biểu đồ
+- `outputs/models/{symbol}/{tf}/`: model artifacts, metrics và metadata train
+- `outputs/reports/{symbol}/{tf}/`: báo cáo backtest và biểu đồ

@@ -224,9 +224,9 @@ Key arguments:
 - `--slippage`
 
 Default artifacts:
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
 ## 6. Full Workflow
 
@@ -254,7 +254,7 @@ After each stage, check:
 - after `qa`: a quality report exists
 - after `pipeline`: parquet files exist under `data/ohlcv/`, `data/features/`, and `data/labels/`
 - after `train`: new artifacts appear under `outputs/models/{symbol}/{tf}/`
-- after `evaluate`: new HTML/PNG reports appear under `outputs/reports/`
+- after `evaluate`: new HTML/PNG reports appear under `outputs/reports/{symbol}/{tf}/`
 
 ## 8. Safe Cleanup
 

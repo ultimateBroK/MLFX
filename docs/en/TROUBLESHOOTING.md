@@ -120,8 +120,8 @@ This clears reproducible workspace state such as:
 - `.ruff_cache/`
 - `__pycache__/`
 - `lightning_logs/`
-- contents of `outputs/models/`
-- contents of `outputs/reports/`
+- contents of `outputs/models/{symbol}/{tf}/`
+- contents of `outputs/reports/{symbol}/{tf}/`
 
 It does not remove `data/raw/`.
 
@@ -142,7 +142,7 @@ Check:
 - whether `data/labels/{symbol}/{tf}/` contains parquet files
 - whether the `--label` column exists
 - whether the `atr_14` column exists
-- whether `outputs/reports/` is writable
+- whether `outputs/reports/{symbol}/{tf}/` is writable
 
 Valid example:
 
@@ -152,7 +152,7 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 Notes:
 - the CLI does not currently expose an `--outdir` option
-- reports are written to `outputs/reports/` by default
+- reports are written to `outputs/reports/{symbol}/{tf}/` by default
 
 ## 11. Verify the repo after config or docs changes
 

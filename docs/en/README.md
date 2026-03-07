@@ -132,7 +132,7 @@ ML_FX/
 - `data/features/{symbol}/{tf}/`: feature-enriched datasets
 - `data/labels/{symbol}/{tf}/`: labeled datasets
 - `outputs/models/{symbol}/{tf}/`: model artifacts, metrics, and training metadata
-- `outputs/reports/`: HTML and PNG evaluation reports
+- `outputs/reports/{symbol}/{tf}/`: HTML and PNG evaluation reports
 
 ## Cleanup Policy
 

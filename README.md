@@ -133,11 +133,11 @@ ML_FX/
 ├── docs/en/            # tài liệu tiếng Anh
 ├── data/               # raw, ohlcv, features, labels
 ├── outputs/
-│   ├── models/         # model artifacts + registry.json
-│   ├── reports/        # HTML/PNG backtest reports
-│   ├── runs/           # file-tracker run JSONs (if not using MLflow)
-│   ├── predictions/    # batch inference results
-│   └── monitoring/     # drift reference snapshots + alerts
+│   ├── models/         # registry.json + {symbol}/{tf}/ (model artifacts)
+│   ├── reports/        # {symbol}/{tf}/ (HTML/PNG backtest reports)
+│   ├── runs/           # {symbol}/{tf}/ (file-tracker run JSONs)
+│   ├── predictions/    # {symbol}/{tf}/ (batch inference results)
+│   └── monitoring/     # {symbol}/{tf}/ (drift reference snapshots + alerts)
 ├── Dockerfile          # multi-stage container image
 ├── docker-compose.yml  # API server + optional MLflow server
 ├── config.toml         # giá trị mặc định cho CLI/TUI
@@ -151,7 +151,7 @@ ML_FX/
 - `data/features/{symbol}/{tf}/`: parquet đã thêm feature
 - `data/labels/{symbol}/{tf}/`: parquet đã gắn nhãn
 - `outputs/models/{symbol}/{tf}/`: model artifacts, metrics, metadata train
-- `outputs/reports/`: HTML/PNG reports từ evaluate
+- `outputs/reports/{symbol}/{tf}/`: HTML/PNG reports từ evaluate
 
 ## Chính sách cleanup
 

@@ -169,7 +169,7 @@ cfg = TrainingConfig(
 | Backend | Điều kiện | Storage |
 |---|---|---|
 | `MlflowTracker` | `mlflow` đã cài | MLflow server hoặc `mlruns/` local |
-| `FileTracker` | Fallback mặc định | `outputs/runs/*.json` |
+| `FileTracker` | Fallback mặc định | `outputs/runs/{symbol}/{tf}/*.json` |
 
 Tracking được gọi tự động trong `runner.run_training()`.  Để tắt:
 

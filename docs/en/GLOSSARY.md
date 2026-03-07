@@ -65,5 +65,5 @@ This file collects the most common terms used across the repository.
 - `data/ohlcv/`: resampled candle data
 - `data/features/`: feature datasets
 - `data/labels/`: labeled datasets
-- `outputs/models/`: saved models, metrics, and training metadata
-- `outputs/reports/`: backtest reports and charts
+- `outputs/models/{symbol}/{tf}/`: saved models, metrics, and training metadata
+- `outputs/reports/{symbol}/{tf}/`: backtest reports and charts

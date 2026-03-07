@@ -75,7 +75,7 @@ XAUUSD_1H_label_10_R15
 
 ## 4. Generated Artifacts
 
-Each run typically writes three artifacts into `outputs/reports/`:
+Each run typically writes three artifacts into `outputs/reports/{symbol}/{tf}/`:
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
 - `{prefix}_heatmap.png`
@@ -83,9 +83,9 @@ Each run typically writes three artifacts into `outputs/reports/`:
 Example:
 
 ```text
-outputs/reports/XAUUSD_1H_label_10_R15_candlestick.html
-outputs/reports/XAUUSD_1H_label_10_R15_equity.png
-outputs/reports/XAUUSD_1H_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_candlestick.html
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png
+outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
 ```
 
 ## 5. Core Metrics
@@ -156,7 +156,7 @@ Evaluation often fails or returns empty results when:
 
 After a run, confirm:
 - the CLI printed summary metrics
-- `outputs/reports/` contains three new artifacts
+- `outputs/reports/{symbol}/{tf}/` contains three new artifacts
 - the generated filenames match the expected prefix
 - trade count is large enough to support interpretation
 
@@ -181,5 +181,5 @@ trades = simulate_trades(
 )
 metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
 print(metrics)
-generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports"))
+generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports/XAUUSD/1H"))
 ```

@@ -97,13 +97,13 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 - after `qa`: a markdown quality report under `data/raw/{symbol}/`
 - after `pipeline`: parquet files under `data/ohlcv/`, `data/features/`, and `data/labels/`
 - after `train`: artifacts under `outputs/models/{symbol}/{tf}/`
-- after `evaluate`: HTML and PNG files under `outputs/reports/`
+- after `evaluate`: HTML and PNG files under `outputs/reports/{symbol}/{tf}/`
 
 ## 6. Things to remember
 
 - if training fails because files are missing, you usually skipped `mlfx pipeline`
-- `outputs/models/` stores model artifacts and metrics
-- `outputs/reports/` stores backtest reports
+- `outputs/models/{symbol}/{tf}/` stores model artifacts and metrics
+- `outputs/reports/{symbol}/{tf}/` stores backtest reports
 - `pixi run clean-generated` removes common caches and old outputs without touching `data/raw/`
 
 ## 7. What to read next

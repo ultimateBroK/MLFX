@@ -97,13 +97,13 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 - sau `qa`: có báo cáo markdown trong `data/raw/{symbol}/`
 - sau `pipeline`: có parquet trong `data/ohlcv/`, `data/features/`, `data/labels/`
 - sau `train`: có artifact trong `outputs/models/{symbol}/{tf}/`
-- sau `evaluate`: có HTML/PNG trong `outputs/reports/`
+- sau `evaluate`: có HTML/PNG trong `outputs/reports/{symbol}/{tf}/`
 
 ## 6. Điều nên nhớ
 
 - nếu train lỗi vì thiếu file, thường là bạn chưa chạy `mlfx pipeline`
-- `outputs/models/` lưu model và metrics
-- `outputs/reports/` lưu báo cáo backtest
+- `outputs/models/{symbol}/{tf}/` lưu model và metrics
+- `outputs/reports/{symbol}/{tf}/` lưu báo cáo backtest
 - `pixi run clean-generated` dọn cache và output cũ mà không đụng `data/raw/`
 
 ## 7. Đọc tiếp gì

@@ -120,8 +120,8 @@ Task này dọn các phần có thể tái sinh an toàn như:
 - `.ruff_cache/`
 - `__pycache__/`
 - `lightning_logs/`
-- nội dung trong `outputs/models/`
-- nội dung trong `outputs/reports/`
+- nội dung trong `outputs/models/{symbol}/{tf}/`
+- nội dung trong `outputs/reports/{symbol}/{tf}/`
 
 Task này không xóa `data/raw/`.
 
@@ -142,7 +142,7 @@ Kiểm tra:
 - thư mục `data/labels/{symbol}/{tf}/` có parquet không
 - cột tín hiệu truyền qua `--label` có tồn tại không
 - cột `atr_14` có tồn tại không
-- thư mục `outputs/reports/` có ghi được không
+- thư mục `outputs/reports/{symbol}/{tf}/` có ghi được không
 
 Lệnh mẫu hợp lệ:
 
@@ -152,7 +152,7 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 Lưu ý:
 - CLI hiện không có tham số `--outdir`
-- report mặc định được ghi vào `outputs/reports/`
+- report mặc định được ghi vào `outputs/reports/{symbol}/{tf}/`
 
 ## 11. Cần kiểm tra repo có còn sạch không
 

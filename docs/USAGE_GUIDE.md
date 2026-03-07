@@ -225,9 +225,9 @@ Tham số chính:
 - `--slippage`
 
 Artifacts mặc định:
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
-- `outputs/reports/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
+- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
 ## 6. Luồng chạy đầy đủ (MLOps)
 
@@ -339,8 +339,8 @@ Sau mỗi bước, nên kiểm tra:
 - sau `qa`: có file báo cáo chất lượng dữ liệu
 - sau `pipeline`: có parquet trong `data/ohlcv/`, `data/features/`, `data/labels/`
 - sau `train`: có artifact mới trong `outputs/models/{symbol}/{tf}/` và entry trong `outputs/models/registry.json`
-- sau `evaluate`: có HTML/PNG mới trong `outputs/reports/`
-- sau `batch-predict`: có parquet trong `outputs/predictions/`
+- sau `evaluate`: có HTML/PNG mới trong `outputs/reports/{symbol}/{tf}/`
+- sau `batch-predict`: có parquet trong `outputs/predictions/{symbol}/{tf}/`
 - sau `drift`: không có cảnh báo drift nghiêm trọng (exit code 0)
 
 ## 8. Cleanup an toàn
