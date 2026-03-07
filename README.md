@@ -13,21 +13,21 @@ Repo hiện tập trung vào:
 ## Tài liệu
 
 - Tiếng Việt:
-  - `README.md`
-  - `docs/NOOB_GUIDE.md`
-  - `docs/USAGE_GUIDE.md`
-  - `docs/EVALUATION_GUIDE.md`
-  - `docs/TROUBLESHOOTING.md`
-  - `docs/GLOSSARY.md`
-  - `docs/TODO.md`
+  - [README.md](README.md)
+  - [NOOB_GUIDE.md](docs/NOOB_GUIDE.md)
+  - [USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
+  - [EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md)
+  - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+  - [GLOSSARY.md](docs/GLOSSARY.md)
+  - [TODO.md](docs/TODO.md)
 - English:
-  - `docs/en/README.md`
-  - `docs/en/NOOB_GUIDE.md`
-  - `docs/en/USAGE_GUIDE.md`
-  - `docs/en/EVALUATION_GUIDE.md`
-  - `docs/en/TROUBLESHOOTING.md`
-  - `docs/en/GLOSSARY.md`
-  - `docs/en/TODO.md`
+  - [README.md](docs/en/README.md)
+  - [NOOB_GUIDE.md](docs/en/NOOB_GUIDE.md)
+  - [USAGE_GUIDE.md](docs/en/USAGE_GUIDE.md)
+  - [EVALUATION_GUIDE.md](docs/en/EVALUATION_GUIDE.md)
+  - [TROUBLESHOOTING.md](docs/en/TROUBLESHOOTING.md)
+  - [GLOSSARY.md](docs/en/GLOSSARY.md)
+  - [TODO.md](docs/en/TODO.md)
 
 ## Quy trình hiện tại
 
@@ -42,19 +42,19 @@ download_data.py
 ```
 
 Pipeline dữ liệu chính:
-- `pipeline/download_data.py`: tải dữ liệu tick về `data/raw/{symbol}/`
-- `pipeline/resample.py`: tạo OHLCV vào `data/ohlcv/{symbol}/{tf}/`
-- `pipeline/features.py`: tạo feature vào `data/features/{symbol}/{tf}/`
-- `pipeline/labels.py`: tạo dữ liệu đã gắn nhãn vào `data/labels/{symbol}/{tf}/`
+- [pipeline/download_data.py](pipeline/download_data.py): tải dữ liệu tick về `data/raw/{symbol}/`
+- [pipeline/resample.py](pipeline/resample.py): tạo OHLCV vào `data/ohlcv/{symbol}/{tf}/`
+- [pipeline/features.py](pipeline/features.py): tạo feature vào `data/features/{symbol}/{tf}/`
+- [pipeline/labels.py](pipeline/labels.py): tạo dữ liệu đã gắn nhãn vào `data/labels/{symbol}/{tf}/`
 
 Các backend huấn luyện hiện có trong TUI:
-- `mlf` -> `models/ml_models.py`
-- `lstm` -> `models/lstm.py`
-- `transformer` -> `models/transformer.py`
-- `cnn_lstm` -> `models/cnn_lstm.py`
-- `sgd` -> `models/online_sgd.py`
-- `stats` -> `models/stats_baseline.py`
-- `neuralforecast` -> `models/neural_forecast.py`
+- `mlf` → [models/ml_models.py](models/ml_models.py)
+- `lstm` → [models/lstm.py](models/lstm.py)
+- `transformer` → [models/transformer.py](models/transformer.py)
+- `cnn_lstm` → [models/cnn_lstm.py](models/cnn_lstm.py)
+- `sgd` → [models/online_sgd.py](models/online_sgd.py)
+- `stats` → [models/stats_baseline.py](models/stats_baseline.py)
+- `neuralforecast` → [models/neural_forecast.py](models/neural_forecast.py)
 
 Thư mục `agent/` hiện là phần dự kiến cho giai đoạn sau, chưa có implementation hoàn chỉnh để sử dụng như một tính năng chính của repo.
 
@@ -78,7 +78,7 @@ ML_FX/
 
 ## Bắt đầu nhanh
 
-Yêu cầu thực tế để chạy dự án là dùng `Pixi`. `pyproject.toml` khai báo `requires-python >= 3.11`, còn môi trường Pixi hiện pin Python `3.13`.
+Yêu cầu thực tế để chạy dự án là dùng `Pixi`. [pyproject.toml](pyproject.toml) khai báo `requires-python >= 3.11`, còn môi trường Pixi hiện pin Python `3.13`.
 
 ```bash
 pixi install
@@ -108,7 +108,7 @@ pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10
 pixi run python eval/run_eval.py --data data/labels/XAUUSD/1H/2024-01.parquet --symbol XAUUSD --tf 1H --label label_10
 ```
 
-Chi tiết tham số, backend, và ví dụ đầy đủ nằm trong `docs/USAGE_GUIDE.md`.
+Chi tiết tham số, backend, và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md).
 
 ## Đầu ra
 

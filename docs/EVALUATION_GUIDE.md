@@ -1,6 +1,6 @@
 # ML_FX - Hướng dẫn đánh giá
 
-Tài liệu này giải thích cách chạy backtest và đọc các báo cáo được sinh ra bởi `eval/run_eval.py` và `viz/charts.py`.
+Tài liệu này giải thích cách chạy backtest và đọc các báo cáo được sinh ra bởi [eval/run_eval.py](../eval/run_eval.py) và [viz/charts.py](../viz/charts.py).
 
 ## 1. Dữ liệu đầu vào
 
@@ -15,7 +15,7 @@ Thông thường bạn sẽ dùng một trong các cột:
 - `label_10`
 - `label_20`
 
-Backtest không phụ thuộc vào một file `predictions.parquet` riêng. Nếu dữ liệu đầu vào đã có cột tín hiệu phù hợp, `eval/run_eval.py` có thể dùng trực tiếp cột đó.
+Backtest không phụ thuộc vào một file `predictions.parquet` riêng. Nếu dữ liệu đầu vào đã có cột tín hiệu phù hợp, [eval/run_eval.py](../eval/run_eval.py) có thể dùng trực tiếp cột đó.
 
 ## 2. Chạy backtest
 
@@ -61,7 +61,7 @@ Diễn giải nhanh:
 
 ## 4. Các file được sinh ra
 
-`viz/charts.py` hiện tạo 3 loại báo cáo trong `outputs/reports`:
+[viz/charts.py](../viz/charts.py) hiện tạo 3 loại báo cáo trong `outputs/reports`:
 
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`

@@ -9,7 +9,7 @@ Common causes:
 - Pixi was installed but the terminal was not restarted
 
 Fix:
-1. install Pixi using `USAGE_GUIDE.md`
+1. install Pixi using [USAGE_GUIDE.md](USAGE_GUIDE.md)
 2. restart your terminal or IDE
 3. run:
 
@@ -68,7 +68,7 @@ Fix:
 
 ## 5. Interrupted downloads
 
-`pipeline/download_data.py` can resume using `completed_months.json`.
+[pipeline/download_data.py](../../pipeline/download_data.py) can resume using `completed_months.json`.
 
 In most cases, simply rerun:
 

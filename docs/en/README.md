@@ -13,21 +13,21 @@ The repository currently covers:
 ## Documentation Map
 
 - English:
-  - `docs/en/README.md`
-  - `docs/en/NOOB_GUIDE.md`
-  - `docs/en/USAGE_GUIDE.md`
-  - `docs/en/EVALUATION_GUIDE.md`
-  - `docs/en/TROUBLESHOOTING.md`
-  - `docs/en/GLOSSARY.md`
-  - `docs/en/TODO.md`
+  - [README.md](README.md)
+  - [NOOB_GUIDE.md](NOOB_GUIDE.md)
+  - [USAGE_GUIDE.md](USAGE_GUIDE.md)
+  - [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md)
+  - [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+  - [GLOSSARY.md](GLOSSARY.md)
+  - [TODO.md](TODO.md)
 - Vietnamese:
-  - `README.md`
-  - `docs/NOOB_GUIDE.md`
-  - `docs/USAGE_GUIDE.md`
-  - `docs/EVALUATION_GUIDE.md`
-  - `docs/TROUBLESHOOTING.md`
-  - `docs/GLOSSARY.md`
-  - `docs/TODO.md`
+  - [README.md](../../README.md)
+  - [NOOB_GUIDE.md](../NOOB_GUIDE.md)
+  - [USAGE_GUIDE.md](../USAGE_GUIDE.md)
+  - [EVALUATION_GUIDE.md](../EVALUATION_GUIDE.md)
+  - [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
+  - [GLOSSARY.md](../GLOSSARY.md)
+  - [TODO.md](../TODO.md)
 
 ## Current Workflow
 
@@ -42,19 +42,19 @@ download_data.py
 ```
 
 Main data pipeline:
-- `pipeline/download_data.py`: writes raw tick data to `data/raw/{symbol}/`
-- `pipeline/resample.py`: writes OHLCV data to `data/ohlcv/{symbol}/{tf}/`
-- `pipeline/features.py`: writes feature datasets to `data/features/{symbol}/{tf}/`
-- `pipeline/labels.py`: writes labeled datasets to `data/labels/{symbol}/{tf}/`
+- [pipeline/download_data.py](../../pipeline/download_data.py): writes raw tick data to `data/raw/{symbol}/`
+- [pipeline/resample.py](../../pipeline/resample.py): writes OHLCV data to `data/ohlcv/{symbol}/{tf}/`
+- [pipeline/features.py](../../pipeline/features.py): writes feature datasets to `data/features/{symbol}/{tf}/`
+- [pipeline/labels.py](../../pipeline/labels.py): writes labeled datasets to `data/labels/{symbol}/{tf}/`
 
 Training backends currently available in the TUI:
-- `mlf` -> `models/ml_models.py`
-- `lstm` -> `models/lstm.py`
-- `transformer` -> `models/transformer.py`
-- `cnn_lstm` -> `models/cnn_lstm.py`
-- `sgd` -> `models/online_sgd.py`
-- `stats` -> `models/stats_baseline.py`
-- `neuralforecast` -> `models/neural_forecast.py`
+- `mlf` → [models/ml_models.py](../../models/ml_models.py)
+- `lstm` → [models/lstm.py](../../models/lstm.py)
+- `transformer` → [models/transformer.py](../../models/transformer.py)
+- `cnn_lstm` → [models/cnn_lstm.py](../../models/cnn_lstm.py)
+- `sgd` → [models/online_sgd.py](../../models/online_sgd.py)
+- `stats` → [models/stats_baseline.py](../../models/stats_baseline.py)
+- `neuralforecast` → [models/neural_forecast.py](../../models/neural_forecast.py)
 
 The `agent/` directory is still a planned area and should not be treated as a complete production feature yet.
 
@@ -78,7 +78,7 @@ ML_FX/
 
 ## Quickstart
 
-The practical way to run the project is through `Pixi`. `pyproject.toml` declares `requires-python >= 3.11`, while the Pixi environment is currently pinned to Python `3.13`.
+The practical way to run the project is through `Pixi`. [pyproject.toml](../../pyproject.toml) declares `requires-python >= 3.11`, while the Pixi environment is currently pinned to Python `3.13`.
 
 ```bash
 pixi install
@@ -106,7 +106,7 @@ pixi run python models/ml_models.py --symbol XAUUSD --tf 1H --label label_10
 pixi run python eval/run_eval.py --data data/labels/XAUUSD/1H/2024-01.parquet --symbol XAUUSD --tf 1H --label label_10
 ```
 
-For full parameter reference and backend-specific commands, see `docs/en/USAGE_GUIDE.md`.
+For full parameter reference and backend-specific commands, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## Outputs
 
@@ -122,4 +122,4 @@ For full parameter reference and backend-specific commands, see `docs/en/USAGE_G
 
 - This file is the English landing page.
 - Detailed operational guides live in `docs/en/`.
-- The Vietnamese entry point is `README.md`.
+- The Vietnamese entry point is [README.md](../../README.md).

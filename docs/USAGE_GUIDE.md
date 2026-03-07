@@ -3,10 +3,10 @@
 Tài liệu này mô tả cách chạy dự án bằng TUI và CLI theo trạng thái code hiện tại.
 
 Tài liệu liên quan:
-- `README.md`
-- `NOOB_GUIDE.md`
-- `EVALUATION_GUIDE.md`
-- `TROUBLESHOOTING.md`
+- [README.md](../README.md)
+- [NOOB_GUIDE.md](NOOB_GUIDE.md)
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## 1. Cài đặt môi trường
 
@@ -18,7 +18,7 @@ pixi install
 ```
 
 Lưu ý:
-- `pyproject.toml` khai báo `requires-python >= 3.11`
+- [pyproject.toml](../pyproject.toml) khai báo `requires-python >= 3.11`
 - môi trường Pixi hiện pin Python `3.13`
 - cách đáng tin cậy nhất là luôn chạy lệnh qua `pixi run`
 
@@ -38,7 +38,7 @@ Phím tắt:
 - `q`: thoát
 - `d`: đổi dark/light mode
 
-`main.py` sẽ đọc `config.toml` lúc khởi động để tự điền giá trị mặc định cho các form.
+[main.py](../main.py) sẽ đọc [config.toml](../config.toml) lúc khởi động để tự điền giá trị mặc định cho các form.
 
 ## 3. `config.toml`
 
@@ -283,11 +283,11 @@ Output mặc định:
 - `outputs/reports/{prefix}_equity.png`
 - `outputs/reports/{prefix}_heatmap.png`
 
-Giải thích ý nghĩa metric và cách đọc biểu đồ nằm trong `EVALUATION_GUIDE.md`.
+Giải thích ý nghĩa metric và cách đọc biểu đồ nằm trong [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md).
 
 ## 8. Lưu ý vận hành
 
 - Chạy pipeline theo đúng thứ tự: raw -> ohlcv -> features -> labels -> train -> backtest
 - Nếu training báo thiếu file, kiểm tra lại thư mục `data/features/` hoặc `data/labels/`
-- Nếu download bị gián đoạn, có thể chạy lại `download_data.py`; script sẽ tiếp tục dựa trên `completed_months.json`
-- Nếu cần làm sạch dữ liệu trung gian, xem `TROUBLESHOOTING.md`
+- Nếu download bị gián đoạn, có thể chạy lại [pipeline/download_data.py](../pipeline/download_data.py); script sẽ tiếp tục dựa trên `completed_months.json`
+- Nếu cần làm sạch dữ liệu trung gian, xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

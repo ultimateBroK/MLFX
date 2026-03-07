@@ -26,22 +26,22 @@ Tick data
 ```
 
 Each stage maps to a file group:
-- `pipeline/download_data.py`
-- `pipeline/resample.py`
-- `pipeline/features.py`
-- `pipeline/labels.py`
-- `models/*.py`
-- `eval/run_eval.py`
+- [pipeline/download_data.py](../../pipeline/download_data.py)
+- [pipeline/resample.py](../../pipeline/resample.py)
+- [pipeline/features.py](../../pipeline/features.py)
+- [pipeline/labels.py](../../pipeline/labels.py)
+- [models/](../../models/) (all `*.py` files)
+- [eval/run_eval.py](../../eval/run_eval.py)
 
 ## 3. Why the order matters
 
 ### 3.1 Tick -> OHLCV
 
-Tick data is dense and noisy. `resample.py` converts ticks into bars such as `1m`, `5m`, and `1H`, which makes later processing manageable.
+Tick data is dense and noisy. [pipeline/resample.py](../../pipeline/resample.py) converts ticks into bars such as `1m`, `5m`, and `1H`, which makes later processing manageable.
 
 ### 3.2 OHLCV -> Features
 
-`features.py` adds context to each bar, for example:
+[pipeline/features.py](../../pipeline/features.py) adds context to each bar, for example:
 - session state from `ICT Killzone`
 - `Support/Resistance` levels
 - `Pivot Points`
@@ -51,24 +51,24 @@ Without features, the model only sees raw price values and has much less structu
 
 ### 3.3 Features -> Labels
 
-`labels.py` creates labels such as `label_5`, `label_10`, and `label_20`. Each label describes the future direction after a given look-ahead horizon.
+[pipeline/labels.py](../../pipeline/labels.py) creates labels such as `label_5`, `label_10`, and `label_20`. Each label describes the future direction after a given look-ahead horizon.
 
 This is what turns the problem into supervised learning.
 
 ### 3.4 Labels -> Train
 
 Files under `models/` read labeled data and train the selected backend. The repository currently includes several backends:
-- `ml_models.py`
-- `lstm.py`
-- `transformer.py`
-- `cnn_lstm.py`
-- `online_sgd.py`
-- `stats_baseline.py`
-- `neural_forecast.py`
+- [models/ml_models.py](../../models/ml_models.py)
+- [models/lstm.py](../../models/lstm.py)
+- [models/transformer.py](../../models/transformer.py)
+- [models/cnn_lstm.py](../../models/cnn_lstm.py)
+- [models/online_sgd.py](../../models/online_sgd.py)
+- [models/stats_baseline.py](../../models/stats_baseline.py)
+- [models/neural_forecast.py](../../models/neural_forecast.py)
 
 ### 3.5 Train -> Backtest
 
-`eval/run_eval.py` and `eval/backtest.py` simulate trades from a signal column, while `viz/charts.py` writes:
+[eval/run_eval.py](../../eval/run_eval.py) and [eval/backtest.py](../../eval/backtest.py) simulate trades from a signal column, while [viz/charts.py](../../viz/charts.py) writes:
 - candlestick HTML
 - equity curve PNG
 - heatmap PNG
@@ -88,18 +88,18 @@ Inside the TUI, follow this order:
 3. `Train Model`
 4. `Backtest`
 
-If you prefer CLI commands, open `USAGE_GUIDE.md`.
+If you prefer CLI commands, open [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## 5. Things to remember
 
-- if training fails because files are missing, you usually skipped `features.py` or `labels.py`
+- if training fails because files are missing, you usually skipped [pipeline/features.py](../../pipeline/features.py) or [pipeline/labels.py](../../pipeline/labels.py)
 - `outputs/models/` stores model artifacts and metrics
 - `outputs/reports/` stores backtest reports
 - `agent/` is not yet a complete end-user feature
 
 ## 6. What to read next
 
-- `USAGE_GUIDE.md`: command-by-command usage
-- `EVALUATION_GUIDE.md`: how to read backtest outputs
-- `TROUBLESHOOTING.md`: environment and data issues
-- `GLOSSARY.md`: common terms
+- [USAGE_GUIDE.md](USAGE_GUIDE.md): command-by-command usage
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md): how to read backtest outputs
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md): environment and data issues
+- [GLOSSARY.md](GLOSSARY.md): common terms

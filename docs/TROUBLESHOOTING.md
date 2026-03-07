@@ -9,7 +9,7 @@ Nguyên nhân thường gặp:
 - đã cài nhưng terminal chưa được mở lại
 
 Cách xử lý:
-1. cài Pixi theo `USAGE_GUIDE.md`
+1. cài Pixi theo [USAGE_GUIDE.md](USAGE_GUIDE.md)
 2. đóng terminal hoặc IDE rồi mở lại
 3. chạy lại:
 
@@ -68,7 +68,7 @@ Cách xử lý:
 
 ## 5. Download bị dừng giữa chừng
 
-`pipeline/download_data.py` có cơ chế resume dựa trên `completed_months.json`.
+[pipeline/download_data.py](../pipeline/download_data.py) có cơ chế resume dựa trên `completed_months.json`.
 
 Thường chỉ cần chạy lại:
 

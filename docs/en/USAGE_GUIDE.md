@@ -3,10 +3,10 @@
 This guide explains how to run the project through the TUI and CLI based on the current codebase.
 
 Related docs:
-- `README.md`
-- `NOOB_GUIDE.md`
-- `EVALUATION_GUIDE.md`
-- `TROUBLESHOOTING.md`
+- [README.md](README.md)
+- [NOOB_GUIDE.md](NOOB_GUIDE.md)
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md)
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## 1. Environment Setup
 
@@ -18,7 +18,7 @@ pixi install
 ```
 
 Notes:
-- `pyproject.toml` declares `requires-python >= 3.11`
+- [pyproject.toml](../../pyproject.toml) declares `requires-python >= 3.11`
 - the Pixi environment is currently pinned to Python `3.13`
 - the safest way to run commands is through `pixi run`
 
@@ -38,7 +38,7 @@ Shortcuts:
 - `q`: quit
 - `d`: toggle dark/light mode
 
-`main.py` reads `config.toml` on startup and pre-fills the form values.
+[main.py](../../main.py) reads [config.toml](../../config.toml) on startup and pre-fills the form values.
 
 ## 3. `config.toml`
 
@@ -283,11 +283,11 @@ Default outputs:
 - `outputs/reports/{prefix}_equity.png`
 - `outputs/reports/{prefix}_heatmap.png`
 
-Metric interpretation and chart reading are covered in `EVALUATION_GUIDE.md`.
+Metric interpretation and chart reading are covered in [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md).
 
 ## 8. Operational Notes
 
 - Run the pipeline in order: raw -> ohlcv -> features -> labels -> train -> backtest
 - If training fails on missing files, inspect `data/features/` and `data/labels/`
-- If a download is interrupted, rerun `download_data.py`; progress is resumed via `completed_months.json`
-- If you need a clean reset of generated data, see `TROUBLESHOOTING.md`
+- If a download is interrupted, rerun [pipeline/download_data.py](../../pipeline/download_data.py); progress is resumed via `completed_months.json`
+- If you need a clean reset of generated data, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

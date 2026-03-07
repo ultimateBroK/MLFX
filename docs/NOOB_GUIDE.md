@@ -26,22 +26,22 @@ Tick data
 ```
 
 Mỗi bước tương ứng với một nhóm file:
-- `pipeline/download_data.py`
-- `pipeline/resample.py`
-- `pipeline/features.py`
-- `pipeline/labels.py`
-- `models/*.py`
-- `eval/run_eval.py`
+- [pipeline/download_data.py](../pipeline/download_data.py)
+- [pipeline/resample.py](../pipeline/resample.py)
+- [pipeline/features.py](../pipeline/features.py)
+- [pipeline/labels.py](../pipeline/labels.py)
+- [models/](../models/) (các file `*.py`)
+- [eval/run_eval.py](../eval/run_eval.py)
 
 ## 3. Vì sao phải đi theo đúng thứ tự
 
 ### 3.1 Tick -> OHLCV
 
-Dữ liệu tick rất dày và nhiều nhiễu. `resample.py` chuyển tick thành nến như `1m`, `5m`, `1H` để các bước sau dễ xử lý hơn.
+Dữ liệu tick rất dày và nhiều nhiễu. [pipeline/resample.py](../pipeline/resample.py) chuyển tick thành nến như `1m`, `5m`, `1H` để các bước sau dễ xử lý hơn.
 
 ### 3.2 OHLCV -> Features
 
-`features.py` gắn thêm ngữ cảnh vào mỗi cây nến, ví dụ:
+[pipeline/features.py](../pipeline/features.py) gắn thêm ngữ cảnh vào mỗi cây nến, ví dụ:
 - trạng thái session theo `ICT Killzone`
 - mức `Support/Resistance`
 - `Pivot Points`
@@ -51,24 +51,24 @@ Không có feature thì model chỉ thấy giá thô và rất khó học đư�
 
 ### 3.3 Features -> Labels
 
-`labels.py` sinh nhãn như `label_5`, `label_10`, `label_20`. Mỗi nhãn mô tả hướng giá sau một số lượng nến nhìn trước.
+[pipeline/labels.py](../pipeline/labels.py) sinh nhãn như `label_5`, `label_10`, `label_20`. Mỗi nhãn mô tả hướng giá sau một số lượng nến nhìn trước.
 
 Đây là bước tạo mục tiêu để bài toán trở thành supervised learning.
 
 ### 3.4 Labels -> Train
 
 Các file trong `models/` đọc dữ liệu đã gắn nhãn và huấn luyện backend tương ứng. Repo hiện có nhiều backend khác nhau như:
-- `ml_models.py`
-- `lstm.py`
-- `transformer.py`
-- `cnn_lstm.py`
-- `online_sgd.py`
-- `stats_baseline.py`
-- `neural_forecast.py`
+- [models/ml_models.py](../models/ml_models.py)
+- [models/lstm.py](../models/lstm.py)
+- [models/transformer.py](../models/transformer.py)
+- [models/cnn_lstm.py](../models/cnn_lstm.py)
+- [models/online_sgd.py](../models/online_sgd.py)
+- [models/stats_baseline.py](../models/stats_baseline.py)
+- [models/neural_forecast.py](../models/neural_forecast.py)
 
 ### 3.5 Train -> Backtest
 
-`eval/run_eval.py` và `eval/backtest.py` dùng cột tín hiệu để mô phỏng giao dịch, rồi `viz/charts.py` tạo báo cáo:
+[eval/run_eval.py](../eval/run_eval.py) và [eval/backtest.py](../eval/backtest.py) dùng cột tín hiệu để mô phỏng giao dịch, rồi [viz/charts.py](../viz/charts.py) tạo báo cáo:
 - candlestick HTML
 - equity curve PNG
 - heatmap PNG
@@ -88,18 +88,18 @@ Trong TUI, bạn có thể đi theo thứ tự:
 3. `Train Model`
 4. `Backtest`
 
-Nếu bạn thích CLI, xem `USAGE_GUIDE.md`.
+Nếu bạn thích CLI, xem [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## 5. Những điều nên nhớ
 
-- Nếu thiếu file ở bước train, nguyên nhân thường là chưa chạy `features.py` hoặc `labels.py`
+- Nếu thiếu file ở bước train, nguyên nhân thường là chưa chạy [pipeline/features.py](../pipeline/features.py) hoặc [pipeline/labels.py](../pipeline/labels.py)
 - `outputs/models/` là nơi lưu model và metrics
 - `outputs/reports/` là nơi lưu báo cáo backtest
 - `agent/` hiện chưa phải phần hoàn chỉnh để sử dụng như tính năng chính
 
 ## 6. Nên đọc tiếp gì
 
-- `USAGE_GUIDE.md`: cách chạy từng lệnh
-- `EVALUATION_GUIDE.md`: cách đọc kết quả backtest
-- `TROUBLESHOOTING.md`: xử lý lỗi môi trường và dữ liệu
-- `GLOSSARY.md`: thuật ngữ thường gặp
+- [USAGE_GUIDE.md](USAGE_GUIDE.md): cách chạy từng lệnh
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md): cách đọc kết quả backtest
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md): xử lý lỗi môi trường và dữ liệu
+- [GLOSSARY.md](GLOSSARY.md): thuật ngữ thường gặp

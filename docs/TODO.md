@@ -9,50 +9,50 @@ Chú giải:
 
 ## 1. Thu thập và kiểm tra dữ liệu
 
-- [x] `pipeline/download_data.py`
+- [x] [pipeline/download_data.py](../pipeline/download_data.py)
   - [x] tải dữ liệu tick từ Dukascopy
   - [x] hỗ trợ `fx` và `crypto`
   - [x] lưu state trong `completed_months.json`
   - [x] có cơ chế resume và repair
-- [x] `pipeline/qa_data.py`
+- [x] [pipeline/qa_data.py](../pipeline/qa_data.py)
   - [x] kiểm tra gap dữ liệu
   - [x] rà lỗi giá trị bất thường
   - [x] xuất báo cáo QA dạng Markdown
 
 ## 2. Pipeline dữ liệu
 
-- [x] `pipeline/resample.py`
+- [x] [pipeline/resample.py](../pipeline/resample.py)
   - [x] chuyển tick sang OHLCV
   - [x] hỗ trợ `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
-- [x] `pipeline/features.py`
+- [x] [pipeline/features.py](../pipeline/features.py)
   - [x] feature từ `ICT Killzone`
   - [x] feature từ `Support/Resistance`
   - [x] feature từ `Pivot Points`
   - [x] feature TA phổ biến
-- [x] `pipeline/labels.py`
+- [x] [pipeline/labels.py](../pipeline/labels.py)
   - [x] sinh `label_5`, `label_10`, `label_20`
   - [x] dùng ATR multiplier để giảm nhiễu
 
 ## 3. Backend huấn luyện hiện có
 
-- [x] `models/ml_models.py`
-- [x] `models/lstm.py`
-- [x] `models/transformer.py`
-- [x] `models/cnn_lstm.py`
-- [x] `models/online_sgd.py`
-- [x] `models/stats_baseline.py`
-- [x] `models/neural_forecast.py`
-- [x] `models/bilstm.py`
+- [x] [models/ml_models.py](../models/ml_models.py)
+- [x] [models/lstm.py](../models/lstm.py)
+- [x] [models/transformer.py](../models/transformer.py)
+- [x] [models/cnn_lstm.py](../models/cnn_lstm.py)
+- [x] [models/online_sgd.py](../models/online_sgd.py)
+- [x] [models/stats_baseline.py](../models/stats_baseline.py)
+- [x] [models/neural_forecast.py](../models/neural_forecast.py)
+- [x] [models/bilstm.py](../models/bilstm.py)
 
 Ghi chú:
 - TUI hiện expose các backend: `mlf`, `lstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
-- `bilstm.py` có trong repo nhưng hiện chưa nằm trong danh sách backend của TUI
+- [models/bilstm.py](../models/bilstm.py) có trong repo nhưng hiện chưa nằm trong danh sách backend của TUI
 
 ## 4. Đánh giá và báo cáo
 
-- [x] `eval/backtest.py`
-- [x] `eval/run_eval.py`
-- [x] `viz/charts.py`
+- [x] [eval/backtest.py](../eval/backtest.py)
+- [x] [eval/run_eval.py](../eval/run_eval.py)
+- [x] [viz/charts.py](../viz/charts.py)
   - [x] candlestick HTML
   - [x] equity curve PNG
   - [x] heatmap PNG
@@ -63,18 +63,18 @@ Ghi chú:
 
 ## 5. Giao diện vận hành
 
-- [x] `main.py`
+- [x] [main.py](../main.py)
   - [x] tab `Download Data`
   - [x] tab `Pipeline`
   - [x] tab `Train Model`
   - [x] tab `Backtest`
-- [x] `config.toml`
+- [x] [config.toml](../config.toml)
   - [x] điền sẵn giá trị mặc định cho TUI
 
 ## 6. Agent
 
 - `agent/` hiện là khu vực dành cho giai đoạn sau
-- `pyproject.toml` vẫn đóng gói package `agent`
+- [pyproject.toml](../pyproject.toml) vẫn đóng gói package `agent`
 - trạng thái thực tế hiện tại là:
   - [/] thư mục đã tồn tại
   - [ ] chưa có implementation vận hành hoàn chỉnh để dùng như tính năng chính
