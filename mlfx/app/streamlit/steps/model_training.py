@@ -13,7 +13,70 @@ from mlfx.app.streamlit.utils import load_config, run_with_capture
 from mlfx.training.config import TrainingConfig
 from mlfx.training.runner import run_training
 from mlfx.registry.models import get_registry
-from mlfx.evaluation.runner import run_model_backtest
+from mlfx.evaluation.runner import get_baseline_metrics, run_model_backtest
+
+
+def _render_backtest_params_form(cfg: dict) -> tuple[float, float, float, float, float]:
+    """Render backtest params form and return (tp_r, sl_r, initial_capital, risk_pct, commission)."""
+    bt_cfg = cfg.get("backtest", {})
+    with st.expander("Backtest params (TP/SL, capital)"):
+        c1, c2 = st.columns(2)
+        with c1:
+            tp_r = st.number_input(
+                "Take Profit (R)",
+                value=float(bt_cfg.get("tp_r", 1.5)),
+                min_value=0.1,
+                step=0.1,
+                key="bt_tp_r",
+            )
+            sl_r = st.number_input(
+                "Stop Loss (R)",
+                value=float(bt_cfg.get("sl_r", 1.0)),
+                min_value=0.1,
+                step=0.1,
+                key="bt_sl_r",
+            )
+        with c2:
+            initial_capital = st.number_input(
+                "Initial Capital ($)",
+                value=float(bt_cfg.get("initial_capital", 10000.0)),
+                min_value=100.0,
+                step=1000.0,
+                key="bt_capital",
+            )
+            risk_pct = st.number_input(
+                "Risk (%)",
+                value=float(bt_cfg.get("risk_pct", 1.0)),
+                min_value=0.1,
+                max_value=10.0,
+                step=0.1,
+                key="bt_risk_pct",
+            )
+            commission = st.number_input(
+                "Commission ($)",
+                value=float(bt_cfg.get("commission", 0.1)),
+                min_value=0.0,
+                step=0.05,
+                key="bt_commission",
+            )
+    return tp_r, sl_r, initial_capital, risk_pct, commission
+
+
+def _format_baseline_metrics(raw: dict[str, float] | None) -> dict[str, str]:
+    """Format raw baseline metrics for display (match run_model_backtest format)."""
+    if raw is None:
+        return {}
+    return {
+        "Total Trades": f"{int(raw.get('total_trades', 0))}",
+        "Win Rate (%)": f"{raw.get('win_rate', 0):.2f}%",
+        "Profit Factor": f"{raw.get('profit_factor', 0):.2f}",
+        "Net Profit (R)": f"{raw.get('total_r', 0):.2f}R",
+        "Net Profit ($)": f"${raw.get('net_profit_dollar', 0):.2f}",
+        "Sharpe Ratio": f"{raw.get('sharpe_ratio', 0):.2f}",
+        "Sortino Ratio": f"{raw.get('sortino_ratio', 0):.2f}",
+        "Calmar Ratio": f"{raw.get('calmar_ratio', 0):.2f}",
+        "Final Capital ($)": f"${raw.get('final_capital', 0):.2f}",
+    }
 
 
 def render_model_training_step() -> None:
@@ -95,6 +158,8 @@ def render_model_training_step() -> None:
                         key="tr_model_select",
                     )
 
+    tp_r, sl_r, initial_capital, risk_pct, commission = _render_backtest_params_form(cfg)
+
     st.space("medium")
     with st.container(horizontal=True, horizontal_alignment="center"):
         if action == "Train New Model":
@@ -115,13 +180,30 @@ def render_model_training_step() -> None:
 
                         if result:
                             status.update(label="Running backtest evaluation...", state="running")
-                            
+
                             metrics = run_model_backtest(
                                 symbol=tr_symbol,
                                 tf=tr_tf,
                                 label_col=tr_label,
+                                tp_r=tp_r,
+                                sl_r=sl_r,
+                                initial_capital=initial_capital,
+                                risk_pct=risk_pct,
+                                commission=commission,
                             )
-                            
+
+                            baseline_raw = get_baseline_metrics(
+                                symbol=tr_symbol,
+                                tf=tr_tf,
+                                label_col=tr_label,
+                                tp_r=tp_r,
+                                sl_r=sl_r,
+                                initial_capital=initial_capital,
+                                risk_pct=risk_pct,
+                                commission=commission,
+                            )
+                            baseline_metrics = _format_baseline_metrics(baseline_raw)
+
                             navigation.mark_step_completed(WorkflowStep.MODEL_TRAINING)
                             navigation.store_step_data(
                                 WorkflowStep.MODEL_TRAINING,
@@ -132,6 +214,10 @@ def render_model_training_step() -> None:
                                     "backend": backend,
                                     "result": result,
                                     "metrics": metrics,
+                                    "baseline_metrics": baseline_metrics,
+                                    "baseline_raw": baseline_raw,
+                                    "tp_r": tp_r,
+                                    "sl_r": sl_r,
                                 },
                             )
                             navigation.invalidate_subsequent_steps(WorkflowStep.MODEL_TRAINING)
@@ -145,6 +231,28 @@ def render_model_training_step() -> None:
                                 if metrics:
                                     kpi_cols[2].metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
                                     kpi_cols[3].metric("Net Profit", metrics.get("Net Profit ($)", "N/A"))
+
+                            if metrics and baseline_raw is not None:
+                                model_r_str = str(metrics.get("Net Profit (R)", "0R"))
+                                model_r_val = float(model_r_str.replace("R", "").strip() or 0)
+                                baseline_r_val = baseline_raw.get("total_r", 0)
+                                diff_r = model_r_val - baseline_r_val
+                                st.markdown("#### Model vs Labels (baseline)")
+                                col_model, col_labels = st.columns(2)
+                                with col_model:
+                                    st.markdown("**Model**")
+                                    for k, v in list(metrics.items())[:6]:
+                                        st.metric(k, v)
+                                with col_labels:
+                                    st.markdown("**Labels (baseline)**")
+                                    for k, v in list(baseline_metrics.items())[:6]:
+                                        st.metric(k, v)
+                                if diff_r > 0:
+                                    st.success(f"Model tốt hơn +{diff_r:.2f}R so với baseline")
+                                elif diff_r < 0:
+                                    st.warning(f"Model kém hơn {diff_r:.2f}R so với baseline")
+                                else:
+                                    st.info("Model và Labels có Net Profit (R) bằng nhau")
 
                             status.update(label="Model training and evaluation completed!", state="complete", expanded=False)
                             st.rerun()
@@ -166,12 +274,29 @@ def render_model_training_step() -> None:
                             symbol=tr_symbol,
                             tf=tr_tf,
                             label_col=tr_label,
+                            tp_r=tp_r,
+                            sl_r=sl_r,
+                            initial_capital=initial_capital,
+                            risk_pct=risk_pct,
+                            commission=commission,
                         )
-                        
+
                         if metrics:
+                            baseline_raw = get_baseline_metrics(
+                                symbol=tr_symbol,
+                                tf=tr_tf,
+                                label_col=tr_label,
+                                tp_r=tp_r,
+                                sl_r=sl_r,
+                                initial_capital=initial_capital,
+                                risk_pct=risk_pct,
+                                commission=commission,
+                            )
+                            baseline_metrics = _format_baseline_metrics(baseline_raw)
+
                             selected_model = models[selected_model_idx]
                             result = selected_model.get("metrics", {})
-                            
+
                             navigation.mark_step_completed(WorkflowStep.MODEL_TRAINING)
                             navigation.store_step_data(
                                 WorkflowStep.MODEL_TRAINING,
@@ -182,6 +307,10 @@ def render_model_training_step() -> None:
                                     "backend": backend,
                                     "result": result,
                                     "metrics": metrics,
+                                    "baseline_metrics": baseline_metrics,
+                                    "baseline_raw": baseline_raw,
+                                    "tp_r": tp_r,
+                                    "sl_r": sl_r,
                                 },
                             )
                             navigation.invalidate_subsequent_steps(WorkflowStep.MODEL_TRAINING)
@@ -194,6 +323,28 @@ def render_model_training_step() -> None:
                                 kpi_cols[1].metric("Train F1 (macro)", f"{result.get('f1_macro_train', 0):.4f}")
                                 kpi_cols[2].metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
                                 kpi_cols[3].metric("Net Profit", metrics.get("Net Profit ($)", "N/A"))
+
+                            if baseline_raw is not None:
+                                model_r_str = str(metrics.get("Net Profit (R)", "0R"))
+                                model_r_val = float(model_r_str.replace("R", "").strip() or 0)
+                                baseline_r_val = baseline_raw.get("total_r", 0)
+                                diff_r = model_r_val - baseline_r_val
+                                st.markdown("#### Model vs Labels (baseline)")
+                                col_model, col_labels = st.columns(2)
+                                with col_model:
+                                    st.markdown("**Model**")
+                                    for k, v in list(metrics.items())[:6]:
+                                        st.metric(k, v)
+                                with col_labels:
+                                    st.markdown("**Labels (baseline)**")
+                                    for k, v in list(baseline_metrics.items())[:6]:
+                                        st.metric(k, v)
+                                if diff_r > 0:
+                                    st.success(f"Model tốt hơn +{diff_r:.2f}R so với baseline")
+                                elif diff_r < 0:
+                                    st.warning(f"Model kém hơn {diff_r:.2f}R so với baseline")
+                                else:
+                                    st.info("Model và Labels có Net Profit (R) bằng nhau")
 
                             status.update(label="Model evaluation completed!", state="complete", expanded=False)
                             st.rerun()

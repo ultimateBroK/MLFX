@@ -79,9 +79,14 @@ backend = "mlf"
 n_splits = 5
 
 [backtest]
-symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+symbol          = "XAUUSD"
+timeframe       = "1H"
+label_col       = "label_10"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
 ```
 
 Các khóa cần nhớ:
@@ -100,11 +105,19 @@ Khởi chạy giao diện web (Glassmorphism Emerald AMOLED):
 pixi run mlfx-ui
 ```
 
-Mở trình duyệt tại `http://localhost:8501`. Giao diện gồm 4 section theo workflow:
+Mở trình duyệt tại `http://localhost:8501`. Giao diện gồm 5 section theo workflow:
 1. **Tải dữ liệu** — Download tick data từ Dukascopy
 2. **Chuẩn bị** — Resample, features, labels
-3. **Train** — Huấn luyện model
-4. **Xem kết quả** — Backtest, metrics, biểu đồ inline (candlestick, equity, heatmap)
+3. **Train** — Huấn luyện model với form backtest params (TP/SL, capital)
+4. **Visual Analysis** — Candlestick + trade markers, equity curve, heatmap PNG inline
+5. **Export & Reports** — Download OHLCV/Trades/Features, Generate Reports (backtest)
+
+Tính năng chính:
+- **Backtest params**: Expander "Backtest params" cho phép chỉnh TP (R), SL (R), Initial Capital, Risk %, Commission
+- **Model vs Labels**: So sánh 2 cột metrics (Model vs baseline Labels) và dòng "Model tốt hơn +X.XR"
+- **Candlestick + Trades**: Biểu đồ nến với marker entry LONG/SHORT inline
+- **Heatmap PNG**: Hiển thị `st.image` từ `outputs/reports/{symbol}/{tf}/`
+- **Export thực tế**: Nút Download Parquet (OHLCV, Trades, Features); nút Generate Reports gọi `run_model_backtest` hoặc `run_full_eval`
 
 Sidebar cho phép chọn symbol, timeframe, label column. Config mặc định từ `config.toml`.
 

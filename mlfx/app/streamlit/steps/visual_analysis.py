@@ -8,6 +8,8 @@ import streamlit as st
 from mlfx.app.streamlit.navigation import WorkflowStep, navigation
 from mlfx.app.streamlit.visualization import visualizer
 from mlfx.config.paths import DEFAULT_PATHS
+from mlfx.evaluation.reporting import get_candlestick_figure
+from mlfx.training.data import load_labelled_dataset
 
 
 _MAX_CHART_BARS = 800
@@ -26,6 +28,12 @@ def _load_ohlcv_data(symbol: str, tf: str) -> pl.DataFrame | None:
     return pl.concat(dfs).sort("timestamp")
 
 
+@st.cache_data(ttl=300)
+def _load_labelled_data(symbol: str, tf: str) -> pl.DataFrame | None:
+    """Load labelled dataset (OHLCV + features) for candlestick with trades. Cached 5 min."""
+    return load_labelled_dataset(symbol, tf)
+
+
 def render_visual_analysis_step() -> None:
     """Render Step 4: Visual Analysis with Plotly charts."""
     navigation.render_step_header()
@@ -35,8 +43,10 @@ def render_visual_analysis_step() -> None:
     tf = st.session_state.get("tf", "1H")
     label_col = st.session_state.get("label_col", "label_10")
 
-    # KPI cards from model training step data
+    # KPI cards and backtest params from model training step data
     step_data = navigation.get_step_data(WorkflowStep.MODEL_TRAINING)
+    tp_r = step_data.get("tp_r", 1.5)
+    r_suffix = int(tp_r * 10)
     metrics = step_data.get("metrics") or {}
     if metrics:
         with st.container(border=True):
@@ -114,16 +124,54 @@ def render_visual_analysis_step() -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
     with tab2:
+        reports_dir = DEFAULT_PATHS.reports_dir(symbol, tf)
+        st.info(f"Biểu đồ: `{reports_dir}`")
+
         with st.container(border=True, height="stretch"):
             st.markdown('<div class="chart-container">', unsafe_allow_html=True)
             st.markdown('<h3 class="chart-title">Trade Analysis</h3>', unsafe_allow_html=True)
 
             try:
-                reports_dir = DEFAULT_PATHS.reports_dir(symbol, tf)
-                trades_path = reports_dir / f"model_{label_col}_R15_trades.parquet"
+                trades_path = reports_dir / f"model_{label_col}_R{r_suffix}_trades.parquet"
+                if not trades_path.exists():
+                    trades_path = reports_dir / f"model_{label_col}_R15_trades.parquet"
 
                 if trades_path.exists():
                     trades_df = pl.read_parquet(trades_path)
+                    actual_r = int(trades_path.stem.split("_R")[-1].replace("_trades", ""))
+
+                    st.markdown('<h4 class="chart-card-title">Candlestick + Trade Markers</h4>', unsafe_allow_html=True)
+                    labelled_df = _load_labelled_data(symbol, tf)
+                    if labelled_df is not None and not labelled_df.is_empty():
+                        date_range = st.session_state.get("date_range")
+                        if date_range and isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+                            mask = (
+                                (labelled_df["timestamp"].dt.date() >= date_range[0])
+                                & (labelled_df["timestamp"].dt.date() <= date_range[1])
+                            )
+                            chart_df = labelled_df.filter(mask)
+                        else:
+                            chart_df = labelled_df
+                        if len(chart_df) > _MAX_CHART_BARS:
+                            step = max(1, len(chart_df) // _MAX_CHART_BARS)
+                            chart_df = (
+                                chart_df.with_row_index()
+                                .filter(pl.col("index") % step == 0)
+                                .drop("index")
+                            )
+                        candlestick_fig = get_candlestick_figure(
+                            chart_df,
+                            title=f"{symbol} {tf} - Trades ({label_col}, R{actual_r})",
+                            trades_df=trades_df,
+                        )
+                        st.plotly_chart(candlestick_fig, use_container_width=True)
+                    else:
+                        st.warning("⚠️ Labelled data not found for candlestick. Using Equity Curve only.")
+
+                    heatmap_png = reports_dir / f"model_{label_col}_R{actual_r}_heatmap.png"
+                    if heatmap_png.exists():
+                        st.markdown('<h4 class="chart-card-title">Session Heatmap (PNG)</h4>', unsafe_allow_html=True)
+                        st.image(str(heatmap_png), use_column_width=True)
 
                     st.markdown('<h4 class="chart-card-title">Equity Curve</h4>', unsafe_allow_html=True)
                     equity_fig = visualizer.create_equity_curve_chart(
@@ -175,7 +223,9 @@ def render_visual_analysis_step() -> None:
             st.markdown('<div class="chart-container">', unsafe_allow_html=True)
             st.markdown('<h3 class="chart-title">Risk Analysis</h3>', unsafe_allow_html=True)
             reports_dir = DEFAULT_PATHS.reports_dir(symbol, tf)
-            trades_path = reports_dir / f"model_{label_col}_R15_trades.parquet"
+            trades_path = reports_dir / f"model_{label_col}_R{r_suffix}_trades.parquet"
+            if not trades_path.exists():
+                trades_path = reports_dir / f"model_{label_col}_R15_trades.parquet"
             if trades_path.exists():
                 try:
                     risk_trades_df = pl.read_parquet(trades_path)

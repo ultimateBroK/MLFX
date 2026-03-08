@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-import time
+import io
 
+import polars as pl
 import streamlit as st
 
 from mlfx.app.streamlit.navigation import WorkflowStep, navigation
+from mlfx.app.streamlit.utils import load_config
 from mlfx.config.paths import DEFAULT_PATHS
+from mlfx.evaluation.runner import run_full_eval, run_model_backtest
+from mlfx.training.data import load_labelled_dataset
 
 
 def render_export_reports_step() -> None:
@@ -19,6 +23,9 @@ def render_export_reports_step() -> None:
     tf = st.session_state.get("tf", "1H")
     label_col = st.session_state.get("label_col", "label_10")
     reports_dir = DEFAULT_PATHS.reports_dir(symbol, tf)
+    step_data = navigation.get_step_data(WorkflowStep.MODEL_TRAINING)
+    tp_r = step_data.get("tp_r", 1.5)
+    sl_r = step_data.get("sl_r", 1.0)
 
     with st.container(border=True):
         st.markdown("#### Export Options")
@@ -28,65 +35,122 @@ def render_export_reports_step() -> None:
 
         with col1:
             st.subheader("📊 Data Export")
-            export_data = st.checkbox("Export OHLCV Data", value=True)
-            export_trades = st.checkbox("Export Trade Data", value=True)
-            export_features = st.checkbox("Export Feature Data", value=False)
+            ohlcv_dir = DEFAULT_PATHS.ohlcv_dir(symbol, tf)
+            labels_dir = DEFAULT_PATHS.labels_dir(symbol, tf)
 
-            if st.button("📥 Export Data", key="btn_export_data", width='stretch'):
-                try:
-                    export_options = []
-                    if export_data:
-                        export_options.append("OHLCV")
-                    if export_trades:
-                        export_options.append("Trades")
-                    if export_features:
-                        export_options.append("Features")
+            ohlcv_files = sorted(ohlcv_dir.glob("*.parquet")) if ohlcv_dir.exists() else []
+            label_files = sorted(labels_dir.glob("*.parquet")) if labels_dir.exists() else []
+            trades_path = reports_dir / f"model_{label_col}_R{int(tp_r * 10)}_trades.parquet"
+            if not trades_path.exists():
+                trades_path = reports_dir / f"model_{label_col}_R15_trades.parquet"
 
-                    if export_options:
-                        progress_text = "Preparing data exports... Please wait."
-                        my_bar = st.progress(0, text=progress_text)
-                        for percent_complete in range(100):
-                            time.sleep(0.01)
-                            my_bar.progress(percent_complete + 1, text=progress_text)
-                        my_bar.empty()
+            if ohlcv_files:
+                combined_ohlcv = pl.concat(pl.read_parquet(f) for f in ohlcv_files).sort("timestamp")
+                buf = io.BytesIO()
+                combined_ohlcv.write_parquet(buf)
+                ohlcv_bytes = buf.getvalue()
+                st.download_button(
+                    "📥 Download OHLCV (Parquet)",
+                    data=ohlcv_bytes,
+                    file_name=f"{symbol}_{tf}_ohlcv.parquet",
+                    mime="application/octet-stream",
+                    key="btn_dl_ohlcv",
+                )
+            else:
+                st.caption("OHLCV data not found. Complete data preparation first.")
 
-                    st.success(f"✅ Exported to: `{reports_dir}`")
-                    st.caption(f"Exported: {', '.join(export_options)}")
-                except Exception as e:
-                    st.error(f"❌ Export failed: {str(e)}")
+            if trades_path.exists():
+                trades_df = pl.read_parquet(trades_path)
+                buf = io.BytesIO()
+                trades_df.write_parquet(buf)
+                trades_bytes = buf.getvalue()
+                st.download_button(
+                    "📥 Download Trades (Parquet)",
+                    data=trades_bytes,
+                    file_name=f"{symbol}_{tf}_{label_col}_trades.parquet",
+                    mime="application/octet-stream",
+                    key="btn_dl_trades",
+                )
+            else:
+                st.caption("Trade data not found. Run model training and backtest first.")
+
+            if label_files:
+                combined_labels = pl.concat(pl.read_parquet(f) for f in label_files).sort("timestamp")
+                buf = io.BytesIO()
+                combined_labels.write_parquet(buf)
+                labels_bytes = buf.getvalue()
+                st.download_button(
+                    "📥 Download Features/Labels (Parquet)",
+                    data=labels_bytes,
+                    file_name=f"{symbol}_{tf}_features_labels.parquet",
+                    mime="application/octet-stream",
+                    key="btn_dl_features",
+                )
+            else:
+                st.caption("Feature/label data not found. Complete data preparation first.")
 
         with col2:
-            st.subheader("📄 Report Export")
-            export_html = st.checkbox("Export HTML Report", value=True)
-            export_pdf = st.checkbox("Export PDF Report", value=False)
-            export_excel = st.checkbox("Export Excel Summary", value=True)
+            st.subheader("📄 Generate Reports")
+            st.caption("Run backtest to create or refresh HTML/PNG reports.")
 
-            if st.button("📄 Generate Reports", key="btn_export_reports", width='stretch'):
-                try:
-                    report_options = []
-                    if export_html:
-                        report_options.append("HTML")
-                    if export_pdf:
-                        report_options.append("PDF")
-                    if export_excel:
-                        report_options.append("Excel")
+            if st.button("📄 Generate Reports", key="btn_export_reports", width="stretch"):
+                df = load_labelled_dataset(symbol, tf)
+                if df is None or df.is_empty():
+                    st.warning("⚠️ No labelled data found. Complete data preparation and training first.")
+                else:
+                    with st.status("Generating reports...", expanded=True) as status:
+                        try:
+                            cfg = load_config()
+                            bt_cfg = cfg.get("backtest", {})
+                            initial_capital = float(bt_cfg.get("initial_capital", 10000.0))
+                            risk_pct = float(bt_cfg.get("risk_pct", 1.0))
+                            commission = float(bt_cfg.get("commission", 0.1))
 
-                    if report_options:
-                        progress_text = "Generating reports... Please wait."
-                        my_bar = st.progress(0, text=progress_text)
-                        for percent_complete in range(100):
-                            time.sleep(0.015)
-                            my_bar.progress(percent_complete + 1, text=progress_text)
-                        my_bar.empty()
-
-                    st.success(f"✅ Reports generated in: `{reports_dir}`")
-                    st.caption(f"Formats: {', '.join(report_options)}")
-                except Exception as e:
-                    st.error(f"❌ Report generation failed: {str(e)}")
+                            metrics = run_model_backtest(
+                                symbol=symbol,
+                                tf=tf,
+                                label_col=label_col,
+                                tp_r=tp_r,
+                                sl_r=sl_r,
+                                initial_capital=initial_capital,
+                                risk_pct=risk_pct,
+                                commission=commission,
+                            )
+                            if metrics:
+                                status.update(
+                                    label="Reports generated successfully!",
+                                    state="complete",
+                                    expanded=False,
+                                )
+                                st.success(f"✅ Reports saved to `{reports_dir}`")
+                            else:
+                                status.update(
+                                    label="No model found, generating labels baseline report...",
+                                    state="running",
+                                )
+                                run_full_eval(
+                                    symbol=symbol,
+                                    tf=tf,
+                                    label_col=label_col,
+                                    tp_r=tp_r,
+                                    sl_r=sl_r,
+                                    initial_capital=initial_capital,
+                                    risk_pct=risk_pct,
+                                    commission=commission,
+                                )
+                                status.update(
+                                    label="Labels baseline report generated.",
+                                    state="complete",
+                                    expanded=False,
+                                )
+                                st.success(f"✅ Labels baseline report saved to `{reports_dir}`")
+                        except Exception as e:
+                            status.update(label=f"Error: {str(e)}", state="error", expanded=True)
+                            st.error(f"❌ Report generation failed: {str(e)}")
 
         with st.expander("Xem trước"):
             st.caption(f"Export path: `{reports_dir}`")
-            st.caption("Select options above and click Export/Generate to run.")
+            st.caption("Use Download buttons for data. Generate Reports creates HTML/PNG backtest artifacts.")
 
     st.space("medium")
 

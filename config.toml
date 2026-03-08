@@ -22,6 +22,11 @@ backend    = "mlf"       # "mlf" | "lstm" | "transformer" | "cnn_lstm" | "sgd" |
 n_splits   = 5
 
 [backtest]
-symbol    = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+symbol          = "XAUUSD"
+timeframe       = "1H"
+label_col       = "label_10"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
