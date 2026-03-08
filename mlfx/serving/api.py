@@ -95,6 +95,7 @@ _MODEL_CACHE: LRUCache[str, Any] = LRUCache(maxsize=32)
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Liveness probe for load balancers and orchestrators."""
     return {"status": "ok"}
 
 

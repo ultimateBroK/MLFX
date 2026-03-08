@@ -24,6 +24,8 @@ BASE_URL = "https://datafeed.dukascopy.com/datafeed"
 
 @dataclass(frozen=True)
 class DownloadRuntimeConfig:
+    """Immutable runtime config for Dukascopy tick downloader."""
+
     symbol: str
     start_year: int
     start_month: int

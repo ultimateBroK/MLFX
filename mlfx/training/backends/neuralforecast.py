@@ -122,6 +122,7 @@ def train_neural_forecast(
 
 
 def save_model(nf: NeuralForecast, metrics: dict, path) -> None:
+    """Persist NeuralForecast model to .pkl artifact for serving."""
     save_pickle_artifact(nf, metrics, path)
     logger.info("✓ NeuralForecast model saved → %s", path)
 
@@ -135,7 +136,7 @@ def run_neural_forecast(
     max_steps: int = 200,
     force: bool = False,
 ) -> dict:
-    """Entry point: load labels, train NeuralForecast, and save the model."""
+    """Train NeuralForecast (N-HiTS + N-BEATS). Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(
         f"neural_forecast_{label_col}",
         symbol,
@@ -172,6 +173,7 @@ def run_neural_forecast(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone NeuralForecast training."""
     parser = argparse.ArgumentParser(description="Train NeuralForecast (N-HiTS + N-BEATS)")
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -184,6 +186,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone NeuralForecast training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_neural_forecast(

@@ -22,6 +22,7 @@ console = Console()
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, and models."""
     parser = argparse.ArgumentParser(description="ML_FX consolidated CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -95,6 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Parse CLI args and dispatch to the appropriate workflow (download, pipeline, train, qa, evaluate, serve, batch-predict, drift, models)."""
     try:
         from mlfx.monitoring.logging_config import configure_logging
 

@@ -267,6 +267,7 @@ def _build_markdown_report(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone QA audit CLI."""
     parser = argparse.ArgumentParser(description="Quality assurance audit for raw tick data")
     parser.add_argument("--symbol", type=str, default="XAUUSD")
     parser.add_argument("--asset-class", type=str, choices=["fx", "crypto"], default="fx")
@@ -274,6 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Entrypoint for standalone QA audit CLI."""
     args = build_parser().parse_args()
     result = run_quality_audit(symbol=args.symbol, asset_class=args.asset_class)
     if not result.success:

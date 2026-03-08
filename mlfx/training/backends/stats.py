@@ -96,6 +96,7 @@ def train_stats_baseline(
 
 
 def save_model(sf: StatsForecast, metrics: dict, path) -> None:
+    """Persist StatsForecast model to .pkl artifact for serving."""
     save_pickle_artifact(sf, metrics, path)
     logger.info("✓ StatsForecast baseline saved → %s", path)
 
@@ -107,6 +108,7 @@ def run_stats(
     n_splits: int = 5,
     force: bool = False,
 ) -> dict:
+    """Train StatsForecast baseline (AutoARIMA, SeasonalNaive, MSTL). Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(
         f"stats_baseline_{label_col}",
         symbol,
@@ -131,6 +133,7 @@ def run_stats(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone StatsForecast training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -141,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone StatsForecast training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_stats(

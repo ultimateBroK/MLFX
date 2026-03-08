@@ -77,6 +77,7 @@ def train_online_sgd(
 
 
 def save_model(clf: SGDClassifier, scaler: StandardScaler, metrics: dict, path) -> None:
+    """Persist SGDClassifier and StandardScaler to .pkl artifact for serving."""
     save_pickle_artifact({"clf": clf, "scaler": scaler}, metrics, path)
     logger.info("✓ Online SGD saved → %s", path)
 
@@ -87,6 +88,7 @@ def run_online_sgd(
     label_col: str = "label_10",
     force: bool = False,
 ) -> dict:
+    """Train online SGDClassifier with chunked partial_fit. Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(f"online_sgd_{label_col}", symbol, tf, suffix=".pkl")
 
     if out_path.exists() and not force:
@@ -106,6 +108,7 @@ def run_online_sgd(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone online SGD training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -115,6 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone online SGD training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_online_sgd(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)

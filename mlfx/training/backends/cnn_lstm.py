@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class FXCnnLstm(nn.Module):
+    """CNN + LSTM hybrid for 5-class direction prediction from sequence features."""
+
     def __init__(
         self,
         input_size: int,
@@ -93,6 +95,7 @@ def train_cnnlstm_once(
     batch_size: int,
     patience: int,
 ) -> tuple[FXCnnLstm, float, list[dict]]:
+    """Train CNN-LSTM for one train/val split. Returns (model, best_val_f1, history)."""
     return train_sequence_model_once(
         FXCnnLstm,
         X_tr, y_tr, X_val, y_val,
@@ -170,7 +173,7 @@ def train_cnnlstm(
     patience: int = 5,
     top_k_features: int = 20,
 ) -> tuple[FXCnnLstm, dict]:
-    
+    """Train CNN-LSTM with Optuna HPO, feature selection, and OOS evaluation. Returns (model, metrics)."""
     logger.info("Applying feature selection (top %d)", top_k_features)
     k = min(top_k_features, X.shape[1])
     selector = SelectKBest(score_func=f_classif, k=k)
@@ -255,10 +258,12 @@ def train_cnnlstm(
     return final_model, metrics
 
 def save_model(model: FXCnnLstm, metrics: dict, path: Path) -> None:
+    """Persist CNN-LSTM state_dict and metrics to .pt artifact for serving."""
     save_torch_artifact({"state_dict": model.state_dict(), "metrics": metrics}, metrics, path)
     logger.info("✓ CNN-LSTM saved → %s", path)
 
 def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXCnnLstm:
+    """Load CNN-LSTM from .pt artifact. Uses best_params from metrics for architecture."""
     payload = torch.load(path, map_location="cpu", weights_only=True)
     metrics = payload["metrics"]
     bp = metrics["best_params"]
@@ -284,6 +289,7 @@ def run_cnn_lstm(
     epochs: int = 30,
     force: bool = False,
 ) -> dict:
+    """Train PyTorch CNN-LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(f"cnn_lstm_{label_col}", symbol, tf, suffix=".pt")
 
     if out_path.exists() and not force:
@@ -307,6 +313,7 @@ def run_cnn_lstm(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone CNN-LSTM training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -318,6 +325,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone CNN-LSTM training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_cnn_lstm(
