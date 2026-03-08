@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 
 from mlfx.evaluation.runner import run_full_eval
 from mlfx.ingestion.download import run_download_job
@@ -150,10 +151,12 @@ def main() -> None:
         return
 
     if args.command == "qa":
-        run_quality_audit(
+        result = run_quality_audit(
             symbol=args.symbol,
             asset_class=args.asset_class,
         )
+        if not result.success:
+            sys.exit(1)
         return
 
     if args.command == "evaluate":

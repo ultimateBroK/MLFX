@@ -3064,7 +3064,7 @@ packages:
 - pypi: ./
   name: ml-fx
   version: 0.1.0
-  sha256: 4da396618ea13bc98430919241eb62059db5acb2592efad17aeaba608ca7b7d9
+  sha256: afaddb7c4f4a4ff8e227a3df8d12d5388337849590cc6d128d9d4f22d548d7b6
   requires_dist:
   - textual>=8.0.2,<9
   - ipykernel>=7.2.0,<8

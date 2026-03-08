@@ -13,15 +13,10 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 
-from mlfx.training.data import build_model_output_path, load_labelled_dataset
-from mlfx.training.feature_selection import select_numeric_feature_columns
+from mlfx.training.data import build_model_output_path, prepare_tabular_data
 from mlfx.training.artifacts import save_pickle_artifact
 
 logger = logging.getLogger(__name__)
-
-
-def get_feature_columns(df: pl.DataFrame) -> list[str]:
-    return select_numeric_feature_columns(df)
 
 
 def train_online_sgd(
@@ -70,9 +65,11 @@ def train_online_sgd(
     f1_macro_oos = float(f1_score(oos_labels, oos_preds, average="macro", zero_division=0))
 
     metrics = {
+        "best_cv_f1_macro": f1_macro_oos,
         "f1_macro_oos": f1_macro_oos,
         "n_samples": n_samples,
         "batch_size": batch_size,
+        "model_type": "OnlineSGD",
     }
 
     logger.info("Final Online SGD OOS F1: %.4f", f1_macro_oos)
@@ -96,17 +93,11 @@ def run_online_sgd(
         logger.info("Online SGD model exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
-    if df is None or label_col not in df.columns:
+    prepared = prepare_tabular_data(symbol, tf, label_col)
+    if prepared is None:
         return {}
 
-    feature_cols = get_feature_columns(df)
-    subset = df.select(feature_cols + [label_col]).drop_nulls()
-    X = subset.select(feature_cols).to_numpy().astype(np.float32)
-    y = (subset[label_col].to_numpy() + 2).astype(np.int64)
-
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-
+    X, y, feature_cols = prepared
     clf, scaler, metrics = train_online_sgd(X, y)
     metrics["selected_features"] = feature_cols
     save_model(clf, scaler, metrics, out_path)

@@ -7,7 +7,6 @@ from __future__ import annotations
 import logging
 
 import polars as pl
-import pyarrow.parquet as pq
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 
@@ -90,32 +89,29 @@ def run_label_pipeline(
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
     """Read feature parquet files, add labels, and persist outputs."""
+    from mlfx.pipeline._parquet_loop import process_parquet_files
+
     in_dir = paths.features_dir(symbol, tf)
     out_dir = paths.labels_dir(symbol, tf)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     atr_col = f"atr_{atr_period}"
-    stats = {"processed": 0, "skipped": 0, "total_bars": 0, "label_cols": []}
-    parquet_files = sorted(in_dir.glob("*.parquet")) if in_dir.exists() else []
-    if not parquet_files:
+    label_cols = [f"label_{n}" for n in horizons]
+
+    if not in_dir.exists():
         logger.warning("No feature files found for %s %s in %s", symbol, tf, in_dir)
-        return stats
+        return {"processed": 0, "skipped": 0, "total_bars": 0, "label_cols": label_cols}
 
-    for in_file in parquet_files:
-        out_file = out_dir / in_file.name
-        if out_file.exists() and not force:
-            stats["skipped"] += 1
-            continue
-
-        df = pl.read_parquet(in_file)
+    def transform(df: pl.DataFrame) -> pl.DataFrame:
         if df.is_empty() or atr_col not in df.columns:
-            continue
+            return pl.DataFrame()
+        return add_labels(df, horizons=horizons, atr_col=atr_col, atr_mult=atr_mult)
 
-        df = add_labels(df, horizons=horizons, atr_col=atr_col, atr_mult=atr_mult)
-        pq.write_table(df.to_arrow(), str(out_file), compression="snappy")
-
-        stats["processed"] += 1
-        stats["total_bars"] += len(df)
-        stats["label_cols"] = [f"label_{n}" for n in horizons]
-
+    stats = process_parquet_files(
+        in_dir,
+        out_dir,
+        transform,
+        force=force,
+        on_processed=lambda _: {"label_cols": label_cols},
+    )
+    if "label_cols" not in stats:
+        stats["label_cols"] = label_cols
     return stats

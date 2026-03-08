@@ -4,6 +4,7 @@ Provides a minimal compatibility layer across currently persisted artifact
 formats:
 - sklearn/nixtla objects exposing ``predict(X)``
 - dict payloads containing ``clf`` and ``scaler`` (online SGD backend)
+- PyTorch state_dict payloads (LSTM, BiLSTM, CNN-LSTM, Transformer)
 """
 
 from __future__ import annotations
@@ -46,7 +47,19 @@ def predict_labels(model: Any, X: np.ndarray) -> np.ndarray:
         X_scaled = scaler.transform(X)
         return np.asarray(clf.predict(X_scaled))
 
+    # PyTorch backends save {"state_dict": ..., "metrics": ...}.
+    if (
+        isinstance(model, dict)
+        and "state_dict" in model
+        and "metrics" in model
+    ):
+        from mlfx.serving.torch_adapters import predict_with_torch_model, rebuild_torch_model
+
+        rebuilt = rebuild_torch_model(model)
+        seq_len = model["metrics"].get("seq_len", 60)
+        return predict_with_torch_model(rebuilt, X, seq_len)
+
     raise TypeError(
         "Unsupported artifact format for serving. "
-        "Expected object with predict(X) or dict with clf/scaler."
+        "Expected object with predict(X), dict with clf/scaler, or torch state_dict payload."
     )

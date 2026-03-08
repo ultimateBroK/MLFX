@@ -155,13 +155,22 @@ def train_ml_models(
     mlf.fit(df_pd, static_features=[])
 
     df_preps = mlf.preprocess(df_pd, static_features=[])
-    X_train = df_preps.drop(columns=["unique_id", "ds", "y"]).values
-    y_train = df_preps["y"].values
+    # Keep feature matrix as a DataFrame so LightGBM preserves column names,
+    # avoiding scikit-learn's "X does not have valid feature names" warning.
+    X_train = df_preps.drop(columns=["unique_id", "ds", "y"])
+    y_train = df_preps["y"]
 
     final_lgb = mlf.models_["LGBMClassifier"]
     preds = final_lgb.predict(X_train)
 
-    train_f1 = float(f1_score(y_train, preds, average="macro", zero_division=0))
+    train_f1 = float(
+        f1_score(
+            y_train.to_numpy(),
+            preds,
+            average="macro",
+            zero_division=0,
+        )
+    )
 
     metrics = {
         "best_cv_f1_macro": study.best_value,

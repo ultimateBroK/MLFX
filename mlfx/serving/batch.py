@@ -17,12 +17,11 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
-from mlfx.serving.features import load_feature_dataset, select_numeric_feature_columns
-from mlfx.serving.inference import load_artifact, predict_labels
+from mlfx.serving.core import resolve_and_predict
+from mlfx.serving.features import load_feature_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -47,36 +46,18 @@ def run_batch_inference(
     dict
         Summary with ``rows``, ``artifact_path``, and ``output_path``.
     """
-    from mlfx.registry.models import get_registry  # noqa: PLC0415
     df = load_feature_dataset(symbol, tf, paths=paths)
     if df is None or df.is_empty():
         logger.error("No feature data found for %s %s", symbol, tf)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
-    reg = get_registry()
-    entry = reg.best_model(symbol=symbol, tf=tf, label_col=label_col)
-    if entry is None:
-        logger.error("No registered model for %s/%s/%s", symbol, tf, label_col)
+    result = resolve_and_predict(symbol, tf, label_col, df)
+    if result is None:
+        logger.error("No registered model or inference failed for %s/%s/%s", symbol, tf, label_col)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
-    artifact_path = entry.get("artifact_path", "")
-    if not artifact_path or not Path(artifact_path).exists():
-        logger.error("Artifact not found: %s", artifact_path)
-        return {"rows": 0, "artifact_path": artifact_path, "output_path": ""}
-
-    model = load_artifact(artifact_path)
-    feature_cols = entry.get("feature_columns") or select_numeric_feature_columns(df)
-    missing = [column for column in feature_cols if column not in df.columns]
-    if missing:
-        logger.error("Missing feature columns required by model: %s", missing[:10])
-        return {"rows": 0, "artifact_path": artifact_path, "output_path": ""}
-    X = df.select(feature_cols).to_numpy()
-
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-    raw_preds = predict_labels(model, X)
-    predictions = (raw_preds - 2).tolist()  # remap [0,4] → [-2,2]
-
-    result_df = df.with_columns(pl.Series("prediction", predictions, dtype=pl.Int8))
+    predictions, artifact_path, _ = result
+    result_df = df.with_columns(pl.Series("prediction", predictions.tolist(), dtype=pl.Int8))
 
     out_dir = output_path or paths.predictions_dir(symbol, tf)
     out_dir = Path(out_dir)

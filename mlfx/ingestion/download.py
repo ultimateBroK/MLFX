@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import calendar
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -12,14 +13,12 @@ from pathlib import Path
 import random
 import struct
 import time
-import urllib.error
-import urllib.request
-
 import aiohttp
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 
+logger = logging.getLogger(__name__)
 BASE_URL = "https://datafeed.dukascopy.com/datafeed"
 
 
@@ -66,7 +65,7 @@ def load_state(state_file: Path) -> dict[str, dict[str, int]]:
         if isinstance(data, list):
             migrated = {key: {"rows": -1, "missing_hours": 0} for key in data}
             save_state(state_file, migrated)
-            print(f"Migrated state file to new format ({len(migrated)} entries)")
+            logger.info("Migrated state file to new format (%d entries)", len(migrated))
             return migrated
         return data
     return {}
@@ -94,7 +93,7 @@ def migrate_old_markers(
         state.setdefault(key, {"rows": -1, "missing_hours": 0})
         marker.unlink()
     if old_markers:
-        print(f"Migrated {len(old_markers)} old markers -> {state_file}")
+        logger.info("Migrated %d old markers -> %s", len(old_markers), state_file)
     return state
 
 
@@ -129,35 +128,6 @@ def to_datetime_df(df: pl.DataFrame) -> pl.DataFrame:
     return df.with_columns(
         pl.from_epoch("timestamp_ms", time_unit="ms").alias("timestamp")
     ).select(["timestamp", "ask", "bid", "ask_volume", "bid_volume"])
-
-
-def fetch_hour(
-    config: DownloadRuntimeConfig,
-    year: int,
-    month_idx: int,
-    day: int,
-    hour: int,
-    retries: int = 4,
-    timeout: int = 30,
-) -> bytes | None | str:
-    """Synchronously fetch a single hour. Returns bytes, None, or `TIMEOUT`."""
-    url = (
-        f"{BASE_URL}/{config.symbol}/{year:04d}/{month_idx:02d}/{day:02d}/{hour:02d}h_ticks.bi5"
-    )
-    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                return lzma.decompress(response.read())
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                return None
-            if attempt < retries - 1:
-                time.sleep((2**attempt) + random.random())
-        except Exception:
-            if attempt < retries - 1:
-                time.sleep((2**attempt) + random.random())
-    return "TIMEOUT"
 
 
 async def _fetch_one(
@@ -236,7 +206,7 @@ def fetch_hours(
         return [], 0
     frames, timed_out = asyncio.run(_fetch_hours_async(config, slots, month))
     if timed_out:
-        print(f"  Warning: {timed_out} hours timed out (will retry on next run)", flush=True)
+        logger.warning("%d hours timed out (will retry on next run)", timed_out)
     return frames, timed_out
 
 
@@ -309,7 +279,7 @@ def repair_month(
     if not missing:
         return len(df), 0
 
-    print(f"  -> {len(missing)} weekday-hour slots missing, fetching...", flush=True)
+    logger.info("-> %d weekday-hour slots missing, fetching...", len(missing))
     new_frames, _ = fetch_hours(config, missing, month)
     if new_frames:
         added = sum(len(frame) for frame in new_frames)
@@ -319,7 +289,7 @@ def repair_month(
             .sort("timestamp")
         )
         df.write_parquet(file_path)
-        print(f"  -> Patched +{added:,} rows")
+        logger.info("-> Patched +%s rows", f"{added:,}")
 
     covered_after = set(
         df.with_columns(
@@ -385,28 +355,28 @@ def run_download_job(
                 and file_path.exists()
                 and not config.force
             ):
-                print(f"Skip     {key}  rows={entry['rows']:>10,}  missing=0")
+                logger.info("Skip     %s  rows=%10s  missing=0", key, f"{entry['rows']:,}")
                 continue
 
             if file_path.exists():
-                print(f"Checking {key} ...")
+                logger.info("Checking %s ...", key)
                 rows, missing = repair_month(config, year, month, file_path)
                 flag = "full" if missing == 0 else f"{missing} hrs missing"
-                print(f"   {key}  rows={rows:>10,}  {flag}")
+                logger.info("   %s  rows=%10s  %s", key, f"{rows:,}", flag)
                 if is_past:
                     state[key] = {"rows": rows, "missing_hours": missing}
                     save_state(config.state_file, state)
                 continue
 
-            print(f"Download {key} ...", end=" ", flush=True)
+            logger.info("Download %s ...", key)
             frames, timed_out = fetch_hours(config, all_slots(config, year, month), month)
             if frames:
                 df = to_datetime_df(pl.concat(frames).sort("timestamp_ms"))
                 df.write_parquet(file_path)
-                print(f"Saved {len(df):,} rows.")
+                logger.info("Saved %s rows.", f"{len(df):,}")
             else:
                 df = None
-                print("No data found.")
+                logger.info("No data found.")
 
             if is_past:
                 rows = len(df) if df is not None else 0

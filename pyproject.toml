@@ -79,3 +79,15 @@ pythonpath = ["."]
 markers = [
     "network: tests that require internet access (deselect with -m 'not network')",
 ]
+filterwarnings = [
+    # Third-party pandas/utilsforecast deprecation noise on copy keyword
+    "ignore::pandas.errors.Pandas4Warning",
+    # PyTorch Lightning internal deprecation in utilities._pytree
+    "ignore:::pytorch_lightning.utilities._pytree",
+    # PyTorch Lightning DataLoader worker-count performance suggestions from NeuralForecast
+    "ignore:The 'val_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    "ignore:The 'train_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    "ignore:The 'predict_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    # NeuralForecast/Lightning validation-check scheduling vs max_steps
+    "ignore:val_check_steps is greater than max_steps, setting val_check_steps to max_steps.:UserWarning:neuralforecast.common._base_model",
+]

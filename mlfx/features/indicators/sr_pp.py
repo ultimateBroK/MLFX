@@ -6,23 +6,7 @@ from __future__ import annotations
 
 import polars as pl
 
-
-def _ensure_utc(df: pl.DataFrame) -> pl.DataFrame:
-    """Ensure the DataFrame timestamp column has a UTC timezone."""
-    ts = df["timestamp"]
-    if ts.dtype in (
-        pl.Datetime("us", "UTC"),
-        pl.Datetime("ns", "UTC"),
-        pl.Datetime("ms", "UTC"),
-    ):
-        return df
-    if ts.dtype in (
-        pl.Datetime("us", None),
-        pl.Datetime("ns", None),
-        pl.Datetime("ms", None),
-    ):
-        return df.with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
-    return df
+from ._utils import _ensure_utc
 
 
 def detect_sr_patterns(df: pl.DataFrame) -> pl.DataFrame:

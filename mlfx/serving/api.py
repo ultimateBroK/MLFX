@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 
-from mlfx.serving.inference import load_artifact, predict_labels
+from mlfx.serving.core import resolve_and_predict
 
 logger = logging.getLogger(__name__)
 
@@ -87,15 +87,6 @@ class PredictResponse(BaseModel):
 _MODEL_CACHE: dict[str, Any] = {}
 
 
-def _load_model(artifact_path: str) -> Any:
-    """Load model artifact from *artifact_path* (cached)."""
-    if artifact_path in _MODEL_CACHE:
-        return _MODEL_CACHE[artifact_path]
-    model = load_artifact(artifact_path)
-    _MODEL_CACHE[artifact_path] = model
-    return model
-
-
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -129,46 +120,49 @@ def predict(request: PredictRequest) -> PredictResponse:
     from mlfx.registry.models import get_registry  # noqa: PLC0415
 
     reg = get_registry()
-    entry = reg.best_model(
-        symbol=request.symbol,
-        tf=request.tf,
-        label_col=request.label_col,
+    result = resolve_and_predict(
+        request.symbol,
+        request.tf,
+        request.label_col,
+        dict(request.features),
+        registry=reg,
+        model_cache=_MODEL_CACHE,
     )
-    if entry is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No registered model for {request.symbol}/{request.tf}/{request.label_col}",
+    if result is None:
+        entry = reg.best_model(
+            symbol=request.symbol,
+            tf=request.tf,
+            label_col=request.label_col,
         )
+        if entry is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No registered model for {request.symbol}/{request.tf}/{request.label_col}",
+            )
+        artifact_path = entry.get("artifact_path", "")
+        if not artifact_path:
+            raise HTTPException(status_code=500, detail="Registry entry has no artifact_path.")
+        feature_names = entry.get("feature_columns") or sorted(request.features.keys())
+        missing = [f for f in feature_names if f not in request.features]
+        if missing:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Missing required feature(s): {missing[:10]}",
+            )
+        raise HTTPException(status_code=404, detail="Artifact not found or inference failed.")
 
-    artifact_path = entry.get("artifact_path", "")
-    if not artifact_path:
-        raise HTTPException(status_code=500, detail="Registry entry has no artifact_path.")
+    predictions, artifact_path, entry = result
+    prediction = int(predictions[0])
 
-    feature_names: list[str] = entry.get("feature_columns") or sorted(request.features.keys())
-    missing_features = [feature for feature in feature_names if feature not in request.features]
-    if missing_features:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Missing required feature(s): {missing_features[:10]}",
-        )
-
-    try:
-        model = _load_model(artifact_path)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-    X = np.array([[request.features[f] for f in feature_names]], dtype=np.float32)
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-
-    try:
-        raw_pred = predict_labels(model, X)[0]
-        prediction = int(raw_pred) - 2  # remap [0,4] → [-2,2]
-        confidence = None
+    confidence = None
+    if _MODEL_CACHE.get(artifact_path) is not None:
+        model = _MODEL_CACHE[artifact_path]
         if hasattr(model, "predict_proba"):
+            feature_names = entry.get("feature_columns") or sorted(request.features.keys())
+            X = np.array([[request.features[f] for f in feature_names]], dtype=np.float32)
+            X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
             proba = model.predict_proba(X)[0]
             confidence = float(proba.max())
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Inference failed: {exc}") from exc
 
     return PredictResponse(
         symbol=request.symbol,

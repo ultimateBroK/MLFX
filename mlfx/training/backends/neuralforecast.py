@@ -31,10 +31,14 @@ _TF_FREQ: dict[str, str] = {
 }
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> pl.DataFrame:
-    """Format Polars dataframe for Nixtla NeuralForecast (unique_id, ds, y)."""
+def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+    """Format Polars dataframe for Nixtla NeuralForecast (unique_id, ds, y).
+
+    Returns (df, feature_cols). NeuralForecast uses only unique_id, ds, y;
+    feature_cols is empty for API consistency with MLForecast.
+    """
     subset = df.select(["timestamp", label_col]).drop_nulls()
-    return subset.with_columns(
+    df_nixtla = subset.with_columns(
         [
             pl.lit("XAUUSD").alias("unique_id"),
             pl.col("timestamp").alias("ds"),
@@ -42,6 +46,7 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> pl.DataFrame:
             (pl.col(label_col) + 2).cast(pl.Float64).alias("y"),
         ]
     ).select(["unique_id", "ds", "y"])
+    return df_nixtla, []
 
 
 def train_neural_forecast(
@@ -101,9 +106,12 @@ def train_neural_forecast(
 
     logger.info("NeuralForecast CV F1: %s", scores)
 
+    best_cv_f1_macro = float(max(scores.values())) if scores else 0.0
+
     nf.fit(df_pd)
     metrics = {
         "cv_f1_macro": scores,
+        "best_cv_f1_macro": best_cv_f1_macro,
         "n_samples": len(df_pd),
         "model_type": "NeuralForecast_NHiTS_NBEATS",
         "input_size": input_size,
@@ -148,7 +156,8 @@ def run_neural_forecast(
         return {}
 
     freq = _TF_FREQ.get(tf, "h")
-    df_nixtla = prepare_nixtla_df(df, label_col).tail(5000)
+    df_nixtla, _ = prepare_nixtla_df(df, label_col)
+    df_nixtla = df_nixtla.tail(5000)
 
     nf, metrics = train_neural_forecast(
         df_nixtla,
