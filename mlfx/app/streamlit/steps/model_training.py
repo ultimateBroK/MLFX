@@ -22,55 +22,83 @@ def render_model_training_step() -> None:
     tr_cfg = cfg.get("train", {})
 
     navigation.render_step_header()
+    st.space("medium")
 
     symbol = st.session_state.get("symbol", "XAUUSD")
     tf = st.session_state.get("tf", "1H")
+    selected_model_idx = None
 
     st.markdown("### Model Configuration")
     action = st.radio("Model Source", ["Train New Model", "Use Existing Model"], horizontal=True, key="model_source")
+    st.space("medium")
 
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        tr_symbol = st.text_input("Symbol", value=symbol, key="tr_symbol")
-        tr_tf = st.selectbox(
-            "Timeframe",
-            options=TF_OPTIONS,
-            index=TF_OPTIONS.index(tf),
-            key="tr_tf",
-        )
-        tr_label = st.selectbox(
-            "Label Column",
-            options=LABEL_OPTIONS,
-            index=LABEL_OPTIONS.index(tr_cfg.get("label_col", "label_10")),
-            key="tr_label",
-        )
-        _backend = tr_cfg.get("backend", "mlf")
-        backend = st.selectbox(
-            "Backend",
-            options=BACKEND_OPTIONS,
-            index=BACKEND_OPTIONS.index(_backend) if _backend in BACKEND_OPTIONS else 0,
-            key="tr_backend",
-        )
-
-    if action == "Train New Model":
-        with c2:
-            n_trials = st.number_input(
-                "Optuna Trials",
-                value=tr_cfg.get("n_trials", 30),
-                min_value=1,
-                key="tr_trials",
+    with st.container(border=True):
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            tr_symbol = st.text_input("Symbol", value=symbol, key="tr_symbol")
+            tr_tf = st.selectbox(
+                "Timeframe",
+                options=TF_OPTIONS,
+                index=TF_OPTIONS.index(tf) if tf in TF_OPTIONS else 4,
+                key="tr_tf",
             )
-            n_splits = st.number_input(
-                "CV Splits",
-                value=tr_cfg.get("n_splits", 5),
-                min_value=2,
-                key="tr_splits",
+            tr_label = st.selectbox(
+                "Label Column",
+                options=LABEL_OPTIONS,
+                index=LABEL_OPTIONS.index(tr_cfg.get("label_col", "label_10"))
+                if tr_cfg.get("label_col", "label_10") in LABEL_OPTIONS
+                else 1,
+                key="tr_label",
             )
-            force_tr = st.checkbox("Force retrain", value=False, key="tr_force")
+            _backend = tr_cfg.get("backend", "mlf")
+            backend = st.selectbox(
+                "Backend",
+                options=BACKEND_OPTIONS,
+                index=BACKEND_OPTIONS.index(_backend) if _backend in BACKEND_OPTIONS else 0,
+                key="tr_backend",
+            )
 
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("▶ Train & Evaluate Model", key="btn_train", type="primary", use_container_width=True):
+        if action == "Train New Model":
+            with c2:
+                n_trials = st.number_input(
+                    "Optuna Trials",
+                    value=tr_cfg.get("n_trials", 30),
+                    min_value=1,
+                    key="tr_trials",
+                )
+                n_splits = st.number_input(
+                    "CV Splits",
+                    value=tr_cfg.get("n_splits", 5),
+                    min_value=2,
+                    key="tr_splits",
+                )
+                with st.expander("Hyperparameter nâng cao"):
+                    force_tr = st.checkbox("Force retrain", value=False, key="tr_force")
+        else:
+            with c2:
+                registry = get_registry()
+                models = registry.list_models(symbol=tr_symbol or "XAUUSD", tf=tr_tf, backend=backend)
+                models = [m for m in models if m.get("label_col") == tr_label]
+                if not models:
+                    st.info(f"No existing models found for {tr_symbol} {tr_tf} {tr_label}")
+                    selected_model_idx = None
+                else:
+                    def format_model(m):
+                        dt = datetime.fromtimestamp(m.get("registered_at", 0)).strftime("%Y-%m-%d %H:%M")
+                        f1 = m.get("metrics", {}).get("best_cv_f1_macro", 0.0)
+                        return f"{dt} - F1: {f1:.4f} ({m.get('backend')})"
+                    model_options = [format_model(m) for m in models]
+                    selected_model_idx = st.selectbox(
+                        "Select Model",
+                        range(len(model_options)),
+                        format_func=lambda i: model_options[i],
+                        key="tr_model_select",
+                    )
+
+    st.space("medium")
+    with st.container(horizontal=True, horizontal_alignment="center"):
+        if action == "Train New Model":
+            if st.button("▶ Train & Evaluate Model", key="btn_train", type="primary"):
                 with st.status("Training model...", expanded=True) as status:
                     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
                     try:
@@ -109,18 +137,14 @@ def render_model_training_step() -> None:
                             navigation.invalidate_subsequent_steps(WorkflowStep.MODEL_TRAINING)
                             st.session_state["label_col"] = tr_label
 
-                            st.markdown("### Training Results")
-                            # Display metrics
-                            mc1, mc2 = st.columns(2)
-                            mc1.metric("Best CV F1 (macro)", f"{result.get('best_cv_f1_macro', 0):.4f}")
-                            mc2.metric("Train F1 (macro)", f"{result.get('f1_macro_train', 0):.4f}")
-
-                            if metrics:
-                                st.markdown("### Backtest Summary")
-                                bm1, bm2, bm3 = st.columns(3)
-                                bm1.metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
-                                bm2.metric("Profit Factor", metrics.get("Profit Factor", "N/A"))
-                                bm3.metric("Expected PnL", metrics.get("Net Profit ($)", "N/A"))
+                            with st.container(border=True):
+                                st.markdown("### Training Results")
+                                kpi_cols = st.columns(4)
+                                kpi_cols[0].metric("Best CV F1 (macro)", f"{result.get('best_cv_f1_macro', 0):.4f}")
+                                kpi_cols[1].metric("Train F1 (macro)", f"{result.get('f1_macro_train', 0):.4f}")
+                                if metrics:
+                                    kpi_cols[2].metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
+                                    kpi_cols[3].metric("Net Profit", metrics.get("Net Profit ($)", "N/A"))
 
                             status.update(label="Model training and evaluation completed!", state="complete", expanded=False)
                             st.rerun()
@@ -134,29 +158,8 @@ def render_model_training_step() -> None:
                     except Exception as e:
                         navigation.mark_step_error(WorkflowStep.MODEL_TRAINING, str(e))
                         status.update(label=f"Error: {str(e)}", state="error", expanded=True)
-    else:
-        # Use Existing Model
-        registry = get_registry()
-        models = registry.list_models(symbol=tr_symbol, tf=tr_tf, backend=backend)
-        # Filter by label
-        models = [m for m in models if m.get("label_col") == tr_label]
-        
-        with c2:
-            if not models:
-                st.info(f"No existing models found for {tr_symbol} {tr_tf} {tr_label}")
-                selected_model_idx = None
-            else:
-                def format_model(m):
-                    dt = datetime.fromtimestamp(m.get("registered_at", 0)).strftime("%Y-%m-%d %H:%M")
-                    f1 = m.get("metrics", {}).get("best_cv_f1_macro", 0.0)
-                    return f"{dt} - F1: {f1:.4f} ({m.get('backend')})"
-                
-                model_options = [format_model(m) for m in models]
-                selected_model_idx = st.selectbox("Select Model", range(len(model_options)), format_func=lambda i: model_options[i])
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if selected_model_idx is not None and st.button("▶ Evaluate Selected Model", key="btn_eval", type="primary", use_container_width=True):
+        elif action == "Use Existing Model" and selected_model_idx is not None:
+            if st.button("▶ Evaluate Selected Model", key="btn_eval", type="primary"):
                 with st.status("Evaluating model...", expanded=True) as status:
                     try:
                         metrics = run_model_backtest(
@@ -184,16 +187,13 @@ def render_model_training_step() -> None:
                             navigation.invalidate_subsequent_steps(WorkflowStep.MODEL_TRAINING)
                             st.session_state["label_col"] = tr_label
 
-                            st.markdown("### Training Results")
-                            mc1, mc2 = st.columns(2)
-                            mc1.metric("Best CV F1 (macro)", f"{result.get('best_cv_f1_macro', 0):.4f}")
-                            mc2.metric("Train F1 (macro)", f"{result.get('f1_macro_train', 0):.4f}")
-
-                            st.markdown("### Backtest Summary")
-                            bm1, bm2, bm3 = st.columns(3)
-                            bm1.metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
-                            bm2.metric("Profit Factor", metrics.get("Profit Factor", "N/A"))
-                            bm3.metric("Expected PnL", metrics.get("Net Profit ($)", "N/A"))
+                            with st.container(border=True):
+                                st.markdown("### Training Results")
+                                kpi_cols = st.columns(4)
+                                kpi_cols[0].metric("Best CV F1 (macro)", f"{result.get('best_cv_f1_macro', 0):.4f}")
+                                kpi_cols[1].metric("Train F1 (macro)", f"{result.get('f1_macro_train', 0):.4f}")
+                                kpi_cols[2].metric("Win Rate", metrics.get("Win Rate (%)", "N/A"))
+                                kpi_cols[3].metric("Net Profit", metrics.get("Net Profit ($)", "N/A"))
 
                             status.update(label="Model evaluation completed!", state="complete", expanded=False)
                             st.rerun()

@@ -446,6 +446,7 @@ def generate_full_report(
         title=f"Avg PnL by Session: {symbol} {tf} ({label_name})",
         out_path=out_dir / f"{prefix}_heatmap.png",
     )
+    trades.write_parquet(out_dir / f"{prefix}_trades.parquet")
     logger.info("All reports saved to %s", out_dir)
 
 

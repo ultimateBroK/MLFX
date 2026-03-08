@@ -20,6 +20,7 @@ def render_data_loading_step() -> None:
     now = datetime.now()
 
     navigation.render_step_header()
+    st.space("medium")
 
     dl_mode = st.radio(
         "Data source",
@@ -27,6 +28,7 @@ def render_data_loading_step() -> None:
         key="dl_mode",
         horizontal=True,
     )
+    st.space("medium")
 
     dl_symbol = st.text_input(
         "Symbol",
@@ -36,58 +38,60 @@ def render_data_loading_step() -> None:
     symbol = dl_symbol or "XAUUSD"
 
     if dl_mode == "Download new data":
-        asset_class = st.selectbox(
-            "Asset Class",
-            options=ASSET_CLASS_OPTIONS,
-            index=0 if dl_cfg.get("asset_class", "fx") == "fx" else 1,
-            key="dl_asset_class",
-        )
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("Date range")
-            start_year = st.number_input(
-                "Start Year",
-                value=dl_cfg.get("start_year", 2015),
-                min_value=2000,
-                key="dl_start_year",
+        with st.container(border=True):
+            asset_class = st.selectbox(
+                "Asset Class",
+                options=ASSET_CLASS_OPTIONS,
+                index=0 if dl_cfg.get("asset_class", "fx") == "fx" else 1,
+                key="dl_asset_class",
             )
-            start_month = st.number_input(
-                "Start Month",
-                value=dl_cfg.get("start_month", 1),
-                min_value=1,
-                max_value=12,
-                key="dl_start_month",
-            )
-            end_year = st.number_input(
-                "End Year",
-                value=now.year,
-                min_value=2000,
-                key="dl_end_year",
-            )
-            end_month = st.number_input(
-                "End Month",
-                value=now.month,
-                min_value=1,
-                max_value=12,
-                key="dl_end_month",
-            )
-        with c2:
-            concurrency = st.number_input(
-                "Concurrency",
-                value=dl_cfg.get("concurrency", 20),
-                min_value=1,
-                key="dl_concurrency",
-            )
-            force_dl = st.checkbox("Force re-verify", value=False, key="dl_force")
-            skip_current = st.checkbox(
-                "Skip current month (faster when up-to-date)",
-                value=False,
-                key="dl_skip_current",
-            )
+            c1, c2 = st.columns(2)
+            with c1:
+                st.subheader("Date range")
+                start_year = st.number_input(
+                    "Start Year",
+                    value=dl_cfg.get("start_year", 2015),
+                    min_value=2000,
+                    key="dl_start_year",
+                )
+                start_month = st.number_input(
+                    "Start Month",
+                    value=dl_cfg.get("start_month", 1),
+                    min_value=1,
+                    max_value=12,
+                    key="dl_start_month",
+                )
+                end_year = st.number_input(
+                    "End Year",
+                    value=now.year,
+                    min_value=2000,
+                    key="dl_end_year",
+                )
+                end_month = st.number_input(
+                    "End Month",
+                    value=now.month,
+                    min_value=1,
+                    max_value=12,
+                    key="dl_end_month",
+                )
+            with c2:
+                concurrency = st.number_input(
+                    "Concurrency",
+                    value=dl_cfg.get("concurrency", 20),
+                    min_value=1,
+                    key="dl_concurrency",
+                )
+                with st.expander("Tùy chọn nâng cao"):
+                    force_dl = st.checkbox("Force re-verify", value=False, key="dl_force")
+                    skip_current = st.checkbox(
+                        "Skip current month (faster when up-to-date)",
+                        value=False,
+                        key="dl_skip_current",
+                    )
 
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("▶ Start Data Loading", key="btn_download", type="primary", use_container_width=True):
+        st.space("medium")
+        with st.container(horizontal=True, horizontal_alignment="center"):
+            if st.button("▶ Start Data Loading", key="btn_download", type="primary"):
                 with st.status("Loading data...", expanded=True) as status:
                     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
                     try:
@@ -129,7 +133,7 @@ def render_data_loading_step() -> None:
     else:
         st.subheader("Use existing data")
         last_scanned = st.session_state.get("_last_scanned_symbol")
-        
+
         # Auto-scan immediately without requiring a button click
         if last_scanned != symbol:
             with st.status(f"Scanning available data for {symbol}...", expanded=True) as status:
@@ -144,41 +148,42 @@ def render_data_loading_step() -> None:
             max_ym = max(available)
             st.info(f"Found {len(available)} months: {min_ym[0]}-{min_ym[1]:02d} to {max_ym[0]}-{max_ym[1]:02d}")
 
-            c1, c2 = st.columns(2)
-            with c1:
-                start_year = st.number_input(
-                    "Start Year",
-                    value=min_ym[0],
-                    min_value=min_ym[0],
-                    max_value=max_ym[0],
-                    key="ex_start_year",
-                )
-                start_month = st.number_input(
-                    "Start Month",
-                    value=min_ym[1],
-                    min_value=1,
-                    max_value=12,
-                    key="ex_start_month",
-                )
-            with c2:
-                end_year = st.number_input(
-                    "End Year",
-                    value=max_ym[0],
-                    min_value=min_ym[0],
-                    max_value=max_ym[0],
-                    key="ex_end_year",
-                )
-                end_month = st.number_input(
-                    "End Month",
-                    value=max_ym[1],
-                    min_value=1,
-                    max_value=12,
-                    key="ex_end_month",
-                )
+            with st.container(border=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    start_year = st.number_input(
+                        "Start Year",
+                        value=min_ym[0],
+                        min_value=min_ym[0],
+                        max_value=max_ym[0],
+                        key="ex_start_year",
+                    )
+                    start_month = st.number_input(
+                        "Start Month",
+                        value=min_ym[1],
+                        min_value=1,
+                        max_value=12,
+                        key="ex_start_month",
+                    )
+                with c2:
+                    end_year = st.number_input(
+                        "End Year",
+                        value=max_ym[0],
+                        min_value=min_ym[0],
+                        max_value=max_ym[0],
+                        key="ex_end_year",
+                    )
+                    end_month = st.number_input(
+                        "End Month",
+                        value=max_ym[1],
+                        min_value=1,
+                        max_value=12,
+                        key="ex_end_month",
+                    )
 
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                if st.button("Confirm & proceed", key="btn_confirm_existing", type="primary", use_container_width=True):
+            st.space("medium")
+            with st.container(horizontal=True, horizontal_alignment="center"):
+                if st.button("Confirm & proceed", key="btn_confirm_existing", type="primary"):
                     store_data_range_and_complete(
                         symbol=symbol,
                         start_year=int(start_year),

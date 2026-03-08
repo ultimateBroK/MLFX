@@ -143,57 +143,46 @@ class WorkflowNavigation:
         return completed / total_steps
 
     def render_navigation(self) -> None:
-        """Render the horizontal navigation bar."""
+        """Render the horizontal navigation bar with step pills."""
         current = self.get_current_step()
         progress = self.get_step_progress()
         st.progress(progress)
-        cols = st.columns(len(WorkflowStep))
-        for i, step in enumerate(WorkflowStep):
-            step_info = self.steps[step]
-            status = StepStatus(st.session_state.workflow["step_status"][step.value])
-            is_current = step == current
-            with cols[i]:
-                if is_current:
-                    icon_display = "✅ " + step_info["icon"] if status == StepStatus.COMPLETED else step_info["icon"]
-                    st.markdown(f"""
-                    <div class="workflow-step current-step">
-                        <div class="step-icon">{icon_display}</div>
-                        <div class="step-title">{step_info["title"]}</div>
-                        <div class="step-subtitle">{step_info["subtitle"]}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                elif status == StepStatus.COMPLETED:
-                    st.markdown(f"""
-                    <div class="workflow-step completed-step">
-                        <div class="step-icon">✅ {step_info["icon"]}</div>
-                        <div class="step-title">{step_info["title"]}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+
+        with st.container(horizontal=True, horizontal_alignment="distribute"):
+            for step in WorkflowStep:
+                step_info = self.steps[step]
+                status = StepStatus(st.session_state.workflow["step_status"][step.value])
+                is_current = step == current
+                can_go = self.can_navigate_to_step(step)
+
+                if status == StepStatus.COMPLETED and not is_current:
+                    label = f"✅ {step_info['icon']} {step_info['title']}"
                 elif status == StepStatus.ERROR:
-                    st.markdown(f"""
-                    <div class="workflow-step error-step">
-                        <div class="step-icon">❌ {step_info["icon"]}</div>
-                        <div class="step-title">{step_info["title"]}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    label = f"❌ {step_info['icon']} {step_info['title']}"
+                elif status == StepStatus.NOT_STARTED and not can_go:
+                    label = f"⏸️ {step_info['icon']} {step_info['title']}"
                 else:
-                    st.markdown(f"""
-                    <div class="workflow-step disabled-step">
-                        <div class="step-icon">⏸️ {step_info["icon"]}</div>
-                        <div class="step-title">{step_info["title"]}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-        col_prev, col_next = st.columns([1, 1])
-        with col_prev:
+                    label = f"{step_info['icon']} {step_info['title']}"
+
+                if st.button(
+                    label,
+                    key=f"nav_step_{step.value}",
+                    disabled=not can_go,
+                    width='stretch',
+                    type="primary" if is_current else "secondary",
+                ):
+                    self.set_current_step(step)
+                    st.rerun()
+
+        with st.container(horizontal=True, horizontal_alignment="center"):
             prev_step = self.get_previous_step(current)
+            next_step = self.get_next_step(current)
             if prev_step and self.can_navigate_to_step(prev_step):
-                if st.button("← Previous", key="nav_prev", use_container_width=True):
+                if st.button("← Previous", key="nav_prev"):
                     self.set_current_step(prev_step)
                     st.rerun()
-        with col_next:
-            next_step = self.get_next_step(current)
             if next_step and self.can_navigate_to_step(next_step):
-                if st.button("Next →", key="nav_next", use_container_width=True):
+                if st.button("Next →", key="nav_next"):
                     self.set_current_step(next_step)
                     st.rerun()
 

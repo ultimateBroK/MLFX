@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import io
+from calendar import monthrange
 from contextlib import redirect_stderr, redirect_stdout
+from datetime import date
 
 import streamlit as st
 
@@ -41,6 +43,11 @@ def store_data_range_and_complete(
     st.session_state["data_start"] = (start_year, start_month)
     st.session_state["data_end"] = (end_year, end_month)
     st.session_state["asset_class"] = asset_class
+    _, last_day = monthrange(end_year, end_month)
+    st.session_state["date_range"] = (
+        date(start_year, start_month, 1),
+        date(end_year, end_month, last_day),
+    )
     navigation.mark_step_completed(WorkflowStep.DATA_LOADING)
     navigation.store_step_data(WorkflowStep.DATA_LOADING, {
         "symbol": symbol,
