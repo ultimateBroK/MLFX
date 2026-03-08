@@ -51,7 +51,11 @@ class TrainingConfig:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def to_runner_kwargs(self) -> dict[str, Any]:
-        """Return the kwargs dict accepted by backend ``run_*`` functions."""
+        """Return base kwargs (symbol, tf, label_col, force) plus extra.
+
+        Backend-specific params (n_trials, n_splits, n_windows) are resolved
+        by the registry via :func:`mlfx.training.registry.get_runner_kwargs`.
+        """
         base: dict[str, Any] = {
             "symbol": self.symbol,
             "tf": self.tf,
@@ -59,14 +63,6 @@ class TrainingConfig:
             "force": self.force,
         }
         base.update(self.extra)
-        # Pass tuning params only to backends that accept them.
-        if self.backend in ("mlf",):
-            base["n_trials"] = self.n_trials
-            base["n_splits"] = self.n_splits
-        elif self.backend == "stats":
-            base["n_splits"] = self.n_splits
-        elif self.backend == "neuralforecast":
-            base["n_windows"] = self.n_splits
         return base
 
 

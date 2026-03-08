@@ -22,7 +22,7 @@ import time
 from typing import Any
 
 from mlfx.training.backends.base import TrainingConfig
-from mlfx.training.registry import get_backend_runner
+from mlfx.training.registry import get_backend_runner, get_runner_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def run_training(
     t0 = time.perf_counter()
 
     runner = get_backend_runner(config.backend)
-    kwargs = config.to_runner_kwargs()
+    kwargs = get_runner_kwargs(config)
 
     run_id: str | None = None
     if enable_tracking:

@@ -29,6 +29,7 @@ FEATURE_BLACKLIST = DEFAULT_FEATURE_BLACKLIST
 
 
 def get_feature_columns(df: pl.DataFrame) -> list[str]:
+    """Return numeric feature columns excluding blacklisted (timestamp, OHLCV, labels)."""
     return select_numeric_feature_columns(df)
 
 
@@ -114,6 +115,7 @@ def train_ml_models(
     n_trials: int = 15,
     n_splits: int = 5,
 ) -> tuple[MLForecast, dict]:
+    """Train MLForecast with LightGBM and Optuna HPO. Returns (mlf, metrics)."""
     # Avoid hundreds of "Found null values in ema_200" from mlforecast (lag warmup).
     warnings.filterwarnings(
         "ignore",
@@ -155,13 +157,22 @@ def train_ml_models(
     mlf.fit(df_pd, static_features=[])
 
     df_preps = mlf.preprocess(df_pd, static_features=[])
-    X_train = df_preps.drop(columns=["unique_id", "ds", "y"]).values
-    y_train = df_preps["y"].values
+    # Keep feature matrix as a DataFrame so LightGBM preserves column names,
+    # avoiding scikit-learn's "X does not have valid feature names" warning.
+    X_train = df_preps.drop(columns=["unique_id", "ds", "y"])
+    y_train = df_preps["y"]
 
     final_lgb = mlf.models_["LGBMClassifier"]
     preds = final_lgb.predict(X_train)
 
-    train_f1 = float(f1_score(y_train, preds, average="macro", zero_division=0))
+    train_f1 = float(
+        f1_score(
+            y_train.to_numpy(),
+            preds,
+            average="macro",
+            zero_division=0,
+        )
+    )
 
     metrics = {
         "best_cv_f1_macro": study.best_value,
@@ -177,6 +188,7 @@ def train_ml_models(
 
 
 def save_model(mlf: MLForecast, metrics: dict, path) -> None:
+    """Persist MLForecast model to .pkl artifact for serving."""
     save_pickle_artifact(mlf, metrics, path)
     logger.info("✓ MLForecast model saved → %s", path)
 
@@ -189,6 +201,7 @@ def run_ml_models(
     n_splits: int = 5,
     force: bool = False,
 ) -> dict:
+    """Train MLForecast + LightGBM with Optuna HPO. Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(f"ml_models_{label_col}", symbol, tf, suffix=".pkl")
 
     if out_path.exists() and not force:
@@ -221,6 +234,7 @@ def run_ml_models(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone MLForecast training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -232,6 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone MLForecast training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_ml_models(

@@ -14,6 +14,6 @@ Usage::
     best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
 """
 
-from .models import ModelRegistry, get_registry
+from .models import ModelRegistry, get_registry, reset_registry
 
-__all__ = ["ModelRegistry", "get_registry"]
+__all__ = ["ModelRegistry", "get_registry", "reset_registry"]

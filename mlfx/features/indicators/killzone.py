@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo
 
 import polars as pl
 
+from ._utils import _ensure_utc
+
 TZ_ET = ZoneInfo("America/New_York")
 TZ_UTC = ZoneInfo("UTC")
 
@@ -18,20 +20,6 @@ KILLZONES: dict[str, tuple[int, int, int, int]] = {
     "nylunch": (12, 0, 13, 0),
     "nypm": (13, 30, 16, 0),
 }
-
-
-def _ensure_utc(df: pl.DataFrame) -> pl.DataFrame:
-    """Ensure timestamp column is UTC datetime."""
-    ts = df["timestamp"]
-    if ts.dtype == pl.Datetime("us", "UTC") or ts.dtype == pl.Datetime("ns", "UTC"):
-        return df
-    if ts.dtype in (
-        pl.Datetime("us", None),
-        pl.Datetime("ns", None),
-        pl.Datetime("ms", None),
-    ):
-        return df.with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
-    return df
 
 
 def _add_et_columns(df: pl.DataFrame) -> pl.DataFrame:

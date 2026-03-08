@@ -1,6 +1,7 @@
 [project]
 authors = [{ name = "Hieu Nguyen", email = "hieuteo03@gmail.com" }]
 dependencies = [
+    "cachetools>=5.3.0,<6",
     "textual>=8.0.2,<9",
     "ipykernel>=7.2.0,<8",
     "neuralforecast>=3.1.5,<4",
@@ -23,9 +24,9 @@ mlfx-tui = "mlfx.app.tui:main"
 
 [project.optional-dependencies]
 serving = [
-    "fastapi>=0.116.0,<0.117",
-    "pydantic>=2.11.0,<3",
-    "uvicorn>=0.37.0,<0.38",
+    "fastapi>=0.135.1,<0.136",
+    "pydantic>=2.12.5,<3",
+    "uvicorn>=0.41.0,<0.42",
 ]
 integrations = [
     "questdb[dataframe]>=4.1.0,<5",

@@ -8,38 +8,12 @@ from pathlib import Path
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
+from mlfx.training.data import load_labelled_dataset
+
 from .backtest import compute_metrics, simulate_trades
 from .reporting import generate_full_report
 
 logger = logging.getLogger(__name__)
-
-
-def load_labelled_dataset(
-    symbol: str,
-    tf: str,
-    *,
-    paths: ProjectPaths = DEFAULT_PATHS,
-) -> pl.DataFrame | None:
-    """Load and sort all labeled parquet files for a symbol/timeframe."""
-    data_dir = paths.labels_dir(symbol, tf)
-    if not data_dir.exists():
-        return None
-
-    parquet_files = sorted(data_dir.glob("*.parquet"))
-    if not parquet_files:
-        return None
-
-    frames: list[pl.DataFrame] = []
-    for parquet_file in parquet_files:
-        try:
-            frames.append(pl.read_parquet(parquet_file))
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to load %s: %s", parquet_file, exc)
-
-    if not frames:
-        return None
-
-    return pl.concat(frames).sort("timestamp")
 
 
 def run_full_eval(

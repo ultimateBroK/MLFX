@@ -2,6 +2,9 @@
 Package-native PyTorch CNN-LSTM backend for XAUUSD direction prediction.
 """
 
+from __future__ import annotations
+
+import argparse
 import logging
 from pathlib import Path
 from typing import Any
@@ -14,37 +17,16 @@ import torch.nn as nn
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.metrics import f1_score
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.utils.class_weight import compute_sample_weight
-from torch.utils.data import DataLoader, TensorDataset
-from mlfx.training.data import build_model_output_path, load_labelled_dataset
-from mlfx.training.feature_selection import select_numeric_feature_columns
 from mlfx.training.artifacts import save_torch_artifact
+from mlfx.training.backends._sequence_utils import create_sequences, train_sequence_model_once
+from mlfx.training.data import build_model_output_path, prepare_tabular_data
 
 logger = logging.getLogger(__name__)
 
-def get_feature_columns(df: pl.DataFrame) -> list[str]:
-    return select_numeric_feature_columns(df)
-
-def create_sequences(
-    X: np.ndarray,
-    y: np.ndarray,
-    seq_len: int = 100,
-) -> tuple[np.ndarray, np.ndarray]:
-    n = len(X)
-    if n <= seq_len:
-        raise ValueError(f"Need n > seq_len ({n} <= {seq_len})")
-
-    n_seqs = n - seq_len
-    X_seq = np.lib.stride_tricks.as_strided(
-        X,
-        shape=(n_seqs, seq_len, X.shape[1]),
-        strides=(X.strides[0], X.strides[0], X.strides[1]),
-        writeable=False,
-    ).copy()
-    y_seq = y[seq_len:]
-    return X_seq.astype(np.float32), y_seq.astype(np.int64)
 
 class FXCnnLstm(nn.Module):
+    """CNN + LSTM hybrid for 5-class direction prediction from sequence features."""
+
     def __init__(
         self,
         input_size: int,
@@ -113,87 +95,25 @@ def train_cnnlstm_once(
     batch_size: int,
     patience: int,
 ) -> tuple[FXCnnLstm, float, list[dict]]:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    X_seq_tr, y_seq_tr = create_sequences(X_tr, y_tr, seq_len=seq_len)
-    X_seq_va, y_seq_va = create_sequences(X_val, y_val, seq_len=seq_len)
-
-    tr_ds = TensorDataset(torch.tensor(X_seq_tr), torch.tensor(y_seq_tr))
-    val_ds = TensorDataset(torch.tensor(X_seq_va), torch.tensor(y_seq_va))
-    tr_dl = DataLoader(tr_ds, batch_size=batch_size, shuffle=False)
-    val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
-
-    model = FXCnnLstm(
-        input_size=X_tr.shape[1],
-        cnn_channels=cnn_channels,
-        cnn_kernel=cnn_kernel,
-        cnn_pool=cnn_pool,
-        lstm_hidden=lstm_hidden,
-        num_layers=num_layers,
-        dropout=dropout,
-        num_classes=5,
-    ).to(device)
-
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    best_val_loss = float("inf")
-    best_f1_macro = 0.0
-    patience_counter = 0
-    best_state: dict = {}
-    history: list[dict] = []
-
-    for epoch in range(1, epochs + 1):
-        model.train()
-        train_loss = 0.0
-        for xb, yb in tr_dl:
-            xb, yb = xb.to(device), yb.to(device)
-            optimizer.zero_grad()
-            loss = criterion(model(xb), yb)
-            loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            train_loss += loss.item() * len(xb)
-        train_loss /= len(tr_ds)
-
-        model.eval()
-        val_loss = 0.0
-        preds_list = []
-        labels_list = []
-        with torch.no_grad():
-            for xb, yb in val_dl:
-                xb, yb = xb.to(device), yb.to(device)
-                logits = model(xb)
-                val_loss += criterion(logits, yb).item() * len(xb)
-                preds_list.append(logits.argmax(1).cpu().numpy())
-                labels_list.append(yb.cpu().numpy())
-                
-        val_loss /= len(val_ds)
-        preds_all = np.concatenate(preds_list)
-        labels_all = np.concatenate(labels_list)
-        val_f1 = f1_score(labels_all, preds_all, average="macro", zero_division=0)
-        
-        history.append({
-            "epoch": epoch,
-            "train_loss": train_loss,
-            "val_loss": val_loss,
-            "val_f1": float(val_f1),
-        })
-
-        if val_loss < best_val_loss - 1e-4:
-            best_val_loss = val_loss
-            best_f1_macro = val_f1
-            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
-            patience_counter = 0
-        else:
-            patience_counter += 1
-            if patience_counter >= patience:
-                break
-
-    if best_state:
-        model.load_state_dict(best_state)
-    model.to("cpu")
-    
-    return model, float(best_f1_macro), history
+    """Train CNN-LSTM for one train/val split. Returns (model, best_val_f1, history)."""
+    return train_sequence_model_once(
+        FXCnnLstm,
+        X_tr, y_tr, X_val, y_val,
+        seq_len=seq_len,
+        model_kwargs={
+            "cnn_channels": cnn_channels,
+            "cnn_kernel": cnn_kernel,
+            "cnn_pool": cnn_pool,
+            "lstm_hidden": lstm_hidden,
+            "num_layers": num_layers,
+            "dropout": dropout,
+            "num_classes": 5,
+        },
+        lr=lr,
+        epochs=epochs,
+        batch_size=batch_size,
+        patience=patience,
+    )
 
 def _objective(
     trial: optuna.Trial,
@@ -253,7 +173,7 @@ def train_cnnlstm(
     patience: int = 5,
     top_k_features: int = 20,
 ) -> tuple[FXCnnLstm, dict]:
-    
+    """Train CNN-LSTM with Optuna HPO, feature selection, and OOS evaluation. Returns (model, metrics)."""
     logger.info("Applying feature selection (top %d)", top_k_features)
     k = min(top_k_features, X.shape[1])
     selector = SelectKBest(score_func=f_classif, k=k)
@@ -331,16 +251,19 @@ def train_cnnlstm(
         "seq_len": seq_len,
         "n_samples": len(X),
         "history": history,
+        "model_type": "CNN_LSTM",
     }
     
     logger.info("Final OOS F1: %.4f", f1_macro_oos)
     return final_model, metrics
 
 def save_model(model: FXCnnLstm, metrics: dict, path: Path) -> None:
+    """Persist CNN-LSTM state_dict and metrics to .pt artifact for serving."""
     save_torch_artifact({"state_dict": model.state_dict(), "metrics": metrics}, metrics, path)
     logger.info("✓ CNN-LSTM saved → %s", path)
 
 def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXCnnLstm:
+    """Load CNN-LSTM from .pt artifact. Uses best_params from metrics for architecture."""
     payload = torch.load(path, map_location="cpu", weights_only=True)
     metrics = payload["metrics"]
     bp = metrics["best_params"]
@@ -366,25 +289,18 @@ def run_cnn_lstm(
     epochs: int = 30,
     force: bool = False,
 ) -> dict:
+    """Train PyTorch CNN-LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(f"cnn_lstm_{label_col}", symbol, tf, suffix=".pt")
 
     if out_path.exists() and not force:
         logger.info("CNN-LSTM model exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
-    if df is None:
-        return {}
-    if label_col not in df.columns:
+    prepared = prepare_tabular_data(symbol, tf, label_col)
+    if prepared is None:
         return {}
 
-    feature_cols = get_feature_columns(df)
-    subset = df.select(feature_cols + [label_col]).drop_nulls()
-    X = subset.select(feature_cols).to_numpy().astype(np.float32)
-    y = (subset[label_col].to_numpy() + 2).astype(np.int64)
-
-    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
-
+    X, y, feature_cols = prepared
     model, metrics = train_cnnlstm(
         X, y, feature_cols,
         n_trials=10,
@@ -395,14 +311,32 @@ def run_cnn_lstm(
     metrics["artifact_path"] = str(out_path)
     return metrics
 
-if __name__ == "__main__":
-    import argparse
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone CNN-LSTM training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
     parser.add_argument("--label", default="label_10")
+    parser.add_argument("--seq-len", type=int, default=60)
+    parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--force", action="store_true")
-    args = parser.parse_args()
+    return parser
 
-    run_cnn_lstm(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)
+
+def main() -> None:
+    """CLI entrypoint for standalone CNN-LSTM training."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    args = build_parser().parse_args()
+    run_cnn_lstm(
+        symbol=args.symbol,
+        tf=args.tf,
+        label_col=args.label,
+        seq_len=args.seq_len,
+        epochs=args.epochs,
+        force=args.force,
+    )
+
+
+if __name__ == "__main__":
+    main()

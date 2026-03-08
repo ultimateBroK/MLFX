@@ -61,21 +61,21 @@ class TestStatsForecastBaseline:
         """Output must have exactly [unique_id, ds, y] columns."""
         from mlfx.training.backends.stats import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert list(out.columns) == ["unique_id", "ds", "y"]
 
     def test_prepare_nixtla_df_unique_id_constant(self, tiny_label_df):
         """unique_id should be the literal string 'XAUUSD' for every row."""
         from mlfx.training.backends.stats import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert out["unique_id"].unique().to_list() == ["XAUUSD"]
 
     def test_prepare_nixtla_df_y_range(self, tiny_label_df):
         """y values should be in [0, 4] (remapped from {-2..2})."""
         from mlfx.training.backends.stats import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         y = out["y"].drop_nulls()
         assert float(y.min()) >= 0.0
         assert float(y.max()) <= 4.0
@@ -85,7 +85,7 @@ class TestStatsForecastBaseline:
         from mlfx.training.backends.stats import prepare_nixtla_df
 
         expected = tiny_label_df.drop_nulls("label_10").shape[0]
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert len(out) == expected
 
     def test_train_stats_baseline_returns_sf_and_metrics(self, tiny_label_df):
@@ -97,7 +97,7 @@ class TestStatsForecastBaseline:
             train_stats_baseline,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         sf, metrics = train_stats_baseline(df_nixtla, n_splits=2)
 
         assert isinstance(sf, StatsForecast)
@@ -112,7 +112,7 @@ class TestStatsForecastBaseline:
             train_stats_baseline,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_stats_baseline(df_nixtla, n_splits=2)
 
         assert "AutoARIMA" in metrics["cv_f1_macro"]
@@ -125,7 +125,7 @@ class TestStatsForecastBaseline:
             train_stats_baseline,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_stats_baseline(df_nixtla, n_splits=2)
 
         for v in metrics["cv_f1_macro"].values():
@@ -219,21 +219,21 @@ class TestNeuralForecast:
         """Output must have exactly [unique_id, ds, y]."""
         from mlfx.training.backends.neuralforecast import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert list(out.columns) == ["unique_id", "ds", "y"]
 
     def test_prepare_nixtla_df_y_float64(self, tiny_label_df):
         """y must be Float64 for regression-style training."""
         from mlfx.training.backends.neuralforecast import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert out["y"].dtype == pl.Float64
 
     def test_prepare_nixtla_df_y_range(self, tiny_label_df):
         """y values must be in [0, 4] after remapping."""
         from mlfx.training.backends.neuralforecast import prepare_nixtla_df
 
-        out = prepare_nixtla_df(tiny_label_df, "label_10")
+        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         y = out["y"].drop_nulls()
         assert float(y.min()) >= 0.0
         assert float(y.max()) <= 4.0
@@ -247,7 +247,7 @@ class TestNeuralForecast:
             train_neural_forecast,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         nf, metrics = train_neural_forecast(
             df_nixtla,
             n_windows=2,
@@ -268,7 +268,7 @@ class TestNeuralForecast:
             train_neural_forecast,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_neural_forecast(
             df_nixtla, n_windows=2, freq="h", input_size=12, max_steps=5
         )
@@ -283,7 +283,7 @@ class TestNeuralForecast:
             train_neural_forecast,
         )
 
-        df_nixtla = prepare_nixtla_df(tiny_label_df, "label_10")
+        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_neural_forecast(
             df_nixtla, n_windows=2, freq="h", input_size=12, max_steps=5
         )
