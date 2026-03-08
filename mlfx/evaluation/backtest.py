@@ -9,6 +9,16 @@ import polars as pl
 
 logger = logging.getLogger(__name__)
 
+def map_ordinal_to_signal(col: pl.Expr) -> pl.Expr:
+    """Map ordinal labels -2,-1,0,1,2 to signal 1 (LONG), -1 (SHORT), 0 (skip)."""
+    return (
+        pl.when(col.is_in([1, 2]))
+        .then(1)
+        .when(col.is_in([-1, -2]))
+        .then(-1)
+        .otherwise(0)
+    )
+
 
 def simulate_trades(
     df: pl.DataFrame,
@@ -181,4 +191,4 @@ def compute_metrics(
     }
 
 
-__all__ = ["compute_metrics", "simulate_trades"]
+__all__ = ["compute_metrics", "map_ordinal_to_signal", "simulate_trades"]

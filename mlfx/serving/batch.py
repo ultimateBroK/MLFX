@@ -21,7 +21,7 @@ import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 from mlfx.serving.core import resolve_and_predict
-from mlfx.serving.features import load_feature_dataset
+from mlfx.training.data import load_labelled_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,12 @@ def run_batch_inference(
     dict
         Summary with ``rows``, ``artifact_path``, and ``output_path``.
     """
-    df = load_feature_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(symbol, tf, paths=paths)
     if df is None or df.is_empty():
-        logger.error("No feature data found for %s %s", symbol, tf)
+        logger.error("No labelled data found for %s %s", symbol, tf)
+        return {"rows": 0, "artifact_path": "", "output_path": ""}
+    if label_col not in df.columns:
+        logger.error("Label column %s not found in dataset", label_col)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
     result = resolve_and_predict(symbol, tf, label_col, df)

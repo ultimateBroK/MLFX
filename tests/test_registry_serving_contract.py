@@ -31,9 +31,9 @@ def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
 
     paths = ProjectPaths(project_root=tmp_path)
 
-    # Build a tiny feature dataset.
-    feature_dir = paths.features_dir("XAUUSD", "1H")
-    feature_dir.mkdir(parents=True, exist_ok=True)
+    # Build a tiny labelled dataset (batch inference uses labels for MLForecast compat).
+    labels_dir = paths.labels_dir("XAUUSD", "1H")
+    labels_dir.mkdir(parents=True, exist_ok=True)
     base_ts = datetime(2024, 1, 1, tzinfo=timezone.utc)
     pl.DataFrame(
         {
@@ -44,8 +44,9 @@ def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
             "close": [1.0, 1.1, 1.2],
             "feat_a": [0.2, 0.3, 0.4],
             "feat_b": [0.8, 0.7, 0.6],
+            "label_10": [0, 0, 0],
         }
-    ).write_parquet(feature_dir / "2024-01.parquet")
+    ).write_parquet(labels_dir / "2024-01.parquet")
 
     artifact_path = paths.models_dir("XAUUSD", "1H") / "dummy.pkl"
     artifact_path.parent.mkdir(parents=True, exist_ok=True)

@@ -72,7 +72,22 @@ def resolve_and_predict(
         if model_cache is not None:
             model_cache[artifact_path] = model
 
-    raw_preds = predict_labels(model, X)
+    from mlfx.serving.inference import _is_mlforecast
+
+    if (
+        isinstance(features, pl.DataFrame)
+        and _is_mlforecast(model)
+        and label_col in features.columns
+    ):
+        raw_preds = predict_labels(
+            model,
+            X,
+            df=features,
+            label_col=label_col,
+            feature_cols=feature_cols,
+        )
+    else:
+        raw_preds = predict_labels(model, X)
     predictions = (raw_preds - 2).astype(np.int32)  # remap [0,4] → [-2,2]
 
     return predictions, artifact_path, entry

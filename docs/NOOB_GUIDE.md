@@ -14,17 +14,16 @@ MLFX là một pipeline nghiên cứu cho dữ liệu giá:
 
 Nó là môi trường nghiên cứu và đánh giá, không phải bot giao dịch live hoàn chỉnh.
 
-## 2. Pipeline tổng quát
+## 2. Pipeline tổng quát (4 bước chính)
 
 ```text
-Tick data
-  -> QA
-  -> OHLCV
-  -> Features
-  -> Labels
-  -> Train
-  -> Backtest
+1. Tải dữ liệu   → download
+2. Chuẩn bị      → pipeline (OHLCV + features + labels)
+3. Train model   → train
+4. Xem kết quả   → evaluate (backtest)
 ```
+
+Sau `evaluate`, CLI in bảng metrics và đường dẫn biểu đồ. Mặc định backtest **model** nếu đã train; nếu chưa train thì backtest **labels** (baseline).
 
 Trong code, các bước này nằm trong:
 - `mlfx.ingestion`
@@ -65,12 +64,12 @@ CLI/TUI hiện hỗ trợ các backend:
 - `stats`
 - `neuralforecast`
 
-### Train -> Backtest
+### Train -> Xem kết quả (evaluate)
 
-Backtest dùng cột label làm tín hiệu để mô phỏng giao dịch và sinh:
-- candlestick HTML
-- equity curve PNG
-- heatmap PNG
+`evaluate` = backtest và sinh báo cáo. Mặc định backtest **model** đã train; nếu chưa train thì backtest **labels** (baseline). Kết quả:
+- bảng metrics in ra console
+- candlestick HTML, equity PNG, heatmap PNG trong `outputs/reports/`
+- khi backtest model: so sánh với labels (model tốt hơn / kém hơn bao nhiêu R)
 
 ## 4. Cách bắt đầu nhanh
 
@@ -81,15 +80,16 @@ pixi install
 pixi run mlfx-tui
 ```
 
-Hoặc CLI:
+Hoặc CLI (4 bước):
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
-pixi run mlfx qa --symbol XAUUSD --asset-class fx
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
+
+(Bỏ qua `qa` khi mới bắt đầu; dùng khi cần audit dữ liệu.)
 
 ## 5. Kết quả nên thấy sau mỗi bước
 

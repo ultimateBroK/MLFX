@@ -30,7 +30,7 @@ from textual.widgets import (
 
 from mlfx.config.paths import DEFAULT_PATHS
 from mlfx.config.settings import load_config as shared_load_config
-from mlfx.evaluation.runner import run_full_eval
+from mlfx.evaluation.runner import get_baseline_metrics, run_full_eval, run_model_backtest
 from mlfx.ingestion.download import run_download_job
 from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
@@ -462,17 +462,43 @@ class BacktestTab(TabPane):
         try:
             logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
             capturer = _LogCapturer(self._log, sys.stdout)
+            eval_kw = dict(
+                symbol=symbol,
+                tf=tf,
+                label_col=label_col,
+                initial_capital=capital,
+                risk_pct=risk,
+                commission=commission,
+                tp_r=tp_r,
+                sl_r=sl_r,
+            )
             with redirect_stdout(capturer), redirect_stderr(capturer):  # type: ignore[arg-type]
-                results = run_full_eval(
-                    symbol=symbol,
-                    tf=tf,
-                    label_col=label_col,
-                    initial_capital=capital,
-                    risk_pct=risk,
-                    commission=commission,
-                    tp_r=tp_r,
-                    sl_r=sl_r,
-                )
+                results = run_model_backtest(**eval_kw)
+                if results is not None:
+                    self.app.call_from_thread(self._log.write, "[dim]Backtest: Model[/]")
+                    baseline = get_baseline_metrics(**eval_kw)
+                    if baseline is not None:
+                        try:
+                            model_r = float(
+                                results["Net Profit (R)"].replace("R", "").replace(",", "").strip()
+                            )
+                            base_r = baseline["total_r"]
+                            diff = model_r - base_r
+                            if diff > 0:
+                                diff_str = f"model tốt hơn +{diff:.1f}R"
+                            elif diff < 0:
+                                diff_str = f"labels tốt hơn {-diff:.1f}R"
+                            else:
+                                diff_str = "bằng nhau"
+                            self.app.call_from_thread(
+                                self._log.write,
+                                f"  [dim]So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R → {diff_str}[/]",
+                            )
+                        except (ValueError, KeyError):
+                            pass
+                else:
+                    results = run_full_eval(**eval_kw)
+                    self.app.call_from_thread(self._log.write, "[dim]Backtest: Labels (no model)[/]")
             if results:
                 for key, value in results.items():
                     self.app.call_from_thread(self._log.write, f"  {key}: {value}")

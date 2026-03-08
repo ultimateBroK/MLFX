@@ -3,6 +3,7 @@
 Provides a minimal compatibility layer across currently persisted artifact
 formats:
 - sklearn/nixtla objects exposing ``predict(X)``
+- MLForecast (uses underlying LGBMClassifier + preprocess)
 - dict payloads containing ``clf`` and ``scaler`` (online SGD backend)
 - PyTorch state_dict payloads (LSTM, BiLSTM, CNN-LSTM, Transformer)
 
@@ -20,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import polars as pl
 
 
 def load_artifact(artifact_path: str) -> Any:
@@ -44,11 +46,81 @@ def load_artifact(artifact_path: str) -> Any:
         return pickle.load(file_handle)  # noqa: S301  # trusted paths only
 
 
-def predict_labels(model: Any, X: np.ndarray) -> np.ndarray:
+def _is_mlforecast(model: Any) -> bool:
+    """Check if model is an MLForecast instance (has models_ and preprocess)."""
+    return (
+        hasattr(model, "models_")
+        and hasattr(model, "preprocess")
+        and isinstance(getattr(model, "models_", None), dict)
+    )
+
+
+def _predict_mlforecast(
+    model: Any,
+    df: pl.DataFrame,
+    label_col: str,
+    feature_cols: list[str],
+) -> tuple[np.ndarray, pl.Series]:
+    """Run prediction for MLForecast using preprocess + underlying model.
+
+    MLForecast.predict() is for forecasting (needs horizon), not scoring.
+    We use preprocess() + the underlying LGBMClassifier instead.
+
+    Returns (predictions, ds_series) where ds_series has timestamps for each
+    prediction (preprocess may drop rows, so length matches preds).
+    """
+    from mlfx.training.backends.mlforecast import prepare_nixtla_df
+
+    subset, _ = prepare_nixtla_df(df, label_col)
+    if subset.is_empty():
+        return np.array([], dtype=np.int64), pl.Series("ds", [])
+    df_pd = subset.to_pandas()
+    df_preps = model.preprocess(df_pd, static_features=[])
+    X_prep = df_preps.drop(columns=["unique_id", "ds", "y"])
+    underlying = next(iter(model.models_.values()))
+    preds = np.asarray(underlying.predict(X_prep))
+    ds_series = pl.Series("ds", df_preps["ds"].values)
+    return preds, ds_series
+
+
+def predict_labels(
+    model: Any,
+    X: np.ndarray,
+    *,
+    df: pl.DataFrame | None = None,
+    label_col: str | None = None,
+    feature_cols: list[str] | None = None,
+) -> np.ndarray:
     """Run prediction with best-effort adaptation by artifact type.
 
     Returns class labels in backend-native encoding (typically 0..4).
+
+    For MLForecast models, pass df, label_col, and feature_cols to use
+    preprocess + underlying model (MLForecast.predict is for forecasting only).
     """
+    # MLForecast: use preprocess + underlying model, not predict(horizon).
+    if _is_mlforecast(model):
+        if df is not None and label_col and feature_cols:
+            preds, ds_series = _predict_mlforecast(model, df, label_col, feature_cols)
+            if len(preds) == 0:
+                return np.full(len(df), 2, dtype=np.int64)  # neutral for all
+            pred_lookup = pl.DataFrame({"ds": ds_series, "_pred": preds})
+            if df["timestamp"].dtype != pred_lookup["ds"].dtype:
+                pred_lookup = pred_lookup.with_columns(
+                    pl.col("ds").dt.replace_time_zone("UTC")
+                )
+            aligned = (
+                df.join(pred_lookup, left_on="timestamp", right_on="ds", how="left")
+                .select(pl.col("_pred").fill_null(2))
+                .to_numpy()
+                .flatten()
+            )
+            return aligned.astype(np.int64)
+        raise ValueError(
+            "MLForecast models require batch inference with full labelled history; "
+            "single-row API prediction is not supported. Use batch-predict instead."
+        )
+
     # Most sklearn/nixtla objects.
     if hasattr(model, "predict"):
         return np.asarray(model.predict(X))

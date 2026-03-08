@@ -2,6 +2,17 @@
 
 Tài liệu này mô tả cách vận hành dự án theo workflow chuẩn dùng `Pixi`.
 
+## Workflow 4 bước (người mới)
+
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
+
+Sau `evaluate`, CLI in bảng metrics và đường dẫn biểu đồ. Mặc định backtest **model** nếu đã train.
+
 Tài liệu liên quan:
 - [README.md](../README.md)
 - [NOOB_GUIDE.md](NOOB_GUIDE.md)
@@ -198,7 +209,7 @@ Lưu ý:
 - `n_trials` hiện có ý nghĩa nhất với backend `mlf`
 - `n_splits` được map khác nhau tùy backend trong code
 
-### 5.5 Evaluate và sinh báo cáo
+### 5.5 Evaluate (xem kết quả backtest)
 
 ```bash
 pixi run mlfx evaluate \
@@ -212,6 +223,8 @@ pixi run mlfx evaluate \
   --sl 1.0 \
   --slippage 0.0
 ```
+
+Mặc định backtest **model** nếu đã train; fallback **labels** nếu chưa. Thêm `--use-labels` để chỉ backtest labels. CLI in bảng metrics và đường dẫn biểu đồ.
 
 Tham số chính:
 - `--symbol`
@@ -229,31 +242,30 @@ Artifacts mặc định:
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
-## 6. Luồng chạy đầy đủ (MLOps)
+## 6. Luồng chạy đầy đủ
+
+**4 bước chính** (đủ để xem kết quả backtest):
 
 ```bash
-# 1) Tải dữ liệu tick
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
 
-# 2) Audit dữ liệu raw
+**Nâng cao** (qa, drift, batch-predict, serve):
+
+```bash
+# Audit dữ liệu raw (trước pipeline)
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
 
-# 3) OHLCV + features + labels
-pixi run mlfx pipeline --symbol XAUUSD --tf 1H --pivot traditional --anchor daily --atr-mult 0.5
-
-# 4) Train (tự động track + register)
-pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
-
-# 5) Evaluate
-pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
-
-# 6) Xem model registry
+# Xem model registry
 pixi run mlfx models --symbol XAUUSD --tf 1H
 
-# 7) Batch predict để kiểm tra trước khi deploy
+# Batch predict: export predictions parquet (dùng khi deploy/tích hợp)
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
 
-# 8) Serve
+# Serve API real-time
 pixi run mlfx serve --port 8000
 ```
 
@@ -283,7 +295,9 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-### 5.7 Batch inference
+### 5.7 Batch inference (Nâng cao)
+
+Dùng khi cần export predictions parquet (deploy, tích hợp hệ thống khác). **Không dùng để xem kết quả backtest** — dùng `evaluate` cho việc đó.
 
 ```bash
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10

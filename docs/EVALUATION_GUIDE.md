@@ -2,7 +2,19 @@
 
 Tài liệu này mô tả cách chạy `mlfx evaluate`, cách đọc metrics, và cách hiểu các artifact được sinh ra.
 
-## 1. Dữ liệu đầu vào
+## 1. Backtest Model vs Labels
+
+**Mặc định**: `evaluate` backtest **model** đã train. Nếu chưa train model, backtest **labels** (baseline).
+
+- **Backtest Model**: Dùng predictions của model để mô phỏng giao dịch. Đây là kết quả thực tế của chiến lược ML.
+- **Backtest Labels**: Dùng nhãn gốc (ground truth) làm tín hiệu. Dùng để so sánh baseline hoặc khi chưa có model.
+
+**So sánh baseline**: Khi backtest model, CLI tự động in dòng so sánh với labels, ví dụ:
+`So với labels: model +12.5R vs labels +8.2R → model tốt hơn +4.3R`
+
+**Chỉ backtest labels**: Thêm `--use-labels` để bỏ qua model và chỉ backtest labels.
+
+## 2. Dữ liệu đầu vào
 
 Evaluation đọc toàn bộ dữ liệu đã gắn nhãn trong:
 
@@ -21,7 +33,7 @@ Các cột tín hiệu thường dùng:
 - `label_10`
 - `label_20`
 
-## 2. Lệnh chạy backtest
+## 3. Lệnh chạy backtest
 
 ```bash
 pixi run mlfx evaluate \
@@ -46,8 +58,9 @@ pixi run mlfx evaluate \
 - `--tp`: take-profit theo đơn vị `R`
 - `--sl`: stop-loss theo đơn vị `R`
 - `--slippage`: trượt giá giả lập
+- `--use-labels`: chỉ backtest labels (bỏ qua model)
 
-## 3. Naming convention của report
+## 4. Naming convention của report
 
 Runner tạo `out_name` theo công thức:
 
@@ -67,13 +80,9 @@ Ví dụ với:
 - `label = label_10`
 - `tp = 1.5`
 
-thì prefix là:
+thì prefix labels là `XAUUSD_1H_label_10_R15`, prefix model là `model_label_10_R15`.
 
-```text
-XAUUSD_1H_label_10_R15
-```
-
-## 4. Các file được sinh ra
+## 5. Các file được sinh ra
 
 Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/{symbol}/{tf}/`:
 - `{prefix}_candlestick.html`
@@ -88,7 +97,7 @@ outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png
 outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
 ```
 
-## 5. Các metric chính
+## 6. Các metric chính
 
 Output tóm tắt thường gồm:
 - `Total Trades`
@@ -112,7 +121,7 @@ Diễn giải nhanh:
 - `Calmar Ratio`: tổng lợi nhuận so với drawdown tối đa
 - `Final Capital ($)`: vốn cuối cùng sau khi áp chi phí và kết quả giao dịch
 
-## 6. Cách đọc từng loại report
+## 7. Cách đọc từng loại report
 
 ### 6.1 Candlestick HTML
 
@@ -144,7 +153,7 @@ Hiển thị hiệu suất trung bình theo:
 Phù hợp để:
 - xác định xem nên thêm time filter hay session filter hay không
 
-## 7. Failure modes thường gặp
+## 8. Failure modes thường gặp
 
 Evaluation thường fail hoặc cho kết quả rỗng khi:
 - không có parquet trong `data/labels/{symbol}/{tf}/`
@@ -153,7 +162,7 @@ Evaluation thường fail hoặc cho kết quả rỗng khi:
 - dữ liệu quá ít khiến gần như không có trade
 - signal không có giá trị `1` hoặc `-1`
 
-## 8. Checklist xác minh sau khi evaluate
+## 9. Checklist xác minh sau khi evaluate
 
 Sau khi chạy, nên kiểm tra:
 - CLI có in ra summary metrics hay không
@@ -161,26 +170,20 @@ Sau khi chạy, nên kiểm tra:
 - tên file có đúng prefix kỳ vọng hay không
 - số trade có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
 
-## 9. Ví dụ Python tối thiểu
+## 10. Ví dụ Python tối thiểu
 
 ```python
-from pathlib import Path
+from mlfx.evaluation.runner import run_full_eval, run_model_backtest
 
-import polars as pl
-
-from mlfx.evaluation.backtest import compute_metrics, simulate_trades
-from mlfx.evaluation.reporting import generate_full_report
-
-df = pl.read_parquet("data/labels/XAUUSD/1H/2024-01.parquet")
-trades = simulate_trades(
-    df,
-    signal_col="label_10",
-    tp_r=1.5,
-    sl_r=1.0,
-    commission=0.1,
-    slippage=0.0,
+# Backtest model (nếu đã train) hoặc labels
+results = run_model_backtest(
+    symbol="XAUUSD", tf="1H", label_col="label_10",
+    tp_r=1.5, sl_r=1.0, commission=0.1, slippage=0.0,
 )
-metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
-print(metrics)
-generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports/XAUUSD/1H"))
+if results is None:
+    results = run_full_eval(
+        symbol="XAUUSD", tf="1H", label_col="label_10",
+        tp_r=1.5, sl_r=1.0, commission=0.1, slippage=0.0,
+    )
+print(results)
 ```

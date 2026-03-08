@@ -6,7 +6,7 @@ import argparse
 import logging
 import sys
 
-from mlfx.evaluation.runner import run_full_eval
+from mlfx.evaluation.runner import get_baseline_metrics, run_full_eval, run_model_backtest
 from mlfx.ingestion.download import run_download_job
 from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
@@ -59,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--n-splits", type=int, default=5)
     train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
 
-    evaluate = subparsers.add_parser("evaluate", help="Run full symbol backtest")
+    evaluate = subparsers.add_parser("evaluate", help="Run backtest (model or labels)")
     evaluate.add_argument("--symbol", default="XAUUSD")
     evaluate.add_argument("--tf", default="1H")
     evaluate.add_argument("--label", default="label_10")
@@ -69,6 +69,11 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--tp", type=float, default=1.5)
     evaluate.add_argument("--sl", type=float, default=1.0)
     evaluate.add_argument("--slippage", type=float, default=0.0)
+    evaluate.add_argument(
+        "--use-labels",
+        action="store_true",
+        help="Backtest labels only (baseline). Default: backtest model if trained, else labels.",
+    )
 
     serve = subparsers.add_parser("serve", help="Start the real-time inference API server")
     serve.add_argument("--host", default="0.0.0.0")
@@ -162,7 +167,9 @@ def main() -> None:
         return
 
     if args.command == "evaluate":
-        run_full_eval(
+        from mlfx.config.paths import DEFAULT_PATHS
+
+        eval_kw = dict(
             symbol=args.symbol,
             tf=args.tf,
             label_col=args.label,
@@ -173,6 +180,46 @@ def main() -> None:
             sl_r=args.sl,
             slippage=args.slippage,
         )
+        if args.use_labels:
+            results = run_full_eval(**eval_kw)
+            source = "Labels (baseline)"
+        else:
+            results = run_model_backtest(**eval_kw)
+            if results is not None:
+                source = "Model"
+            else:
+                results = run_full_eval(**eval_kw)
+                source = "Labels (no model, fallback)"
+        if results:
+            console.print(f"[dim]Backtest: {source}[/]")
+            if source == "Model":
+                baseline = get_baseline_metrics(**eval_kw)
+                if baseline is not None:
+                    try:
+                        model_r = float(
+                            results["Net Profit (R)"].replace("R", "").replace(",", "").strip()
+                        )
+                        base_r = baseline["total_r"]
+                        diff = model_r - base_r
+                        if diff > 0:
+                            diff_str = f"model tốt hơn +{diff:.1f}R"
+                        elif diff < 0:
+                            diff_str = f"labels tốt hơn {-diff:.1f}R"
+                        else:
+                            diff_str = "bằng nhau"
+                        console.print(
+                            f"[dim]So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R → {diff_str}[/]"
+                        )
+                    except (ValueError, KeyError):
+                        pass
+            table = Table(title="Kết quả Backtest", show_header=True, header_style="bold cyan")
+            table.add_column("Chỉ số", style="dim")
+            table.add_column("Giá trị", justify="right")
+            for k, v in results.items():
+                table.add_row(k, v)
+            console.print(table)
+            reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
+            console.print(f"\n[dim]Biểu đồ: {reports_dir}/[/]")
         return
 
     if args.command == "serve":

@@ -66,9 +66,9 @@ download  →  qa  →  pipeline  →  train  →  evaluate
 - `qa`: audit raw data để phát hiện gap hoặc dữ liệu bất thường
 - `pipeline`: resample → feature engineering → labeling
 - `train`: huấn luyện backend đã chọn (kết quả được track và register tự động)
-- `evaluate`: chạy backtest và sinh báo cáo
+- `evaluate`: backtest model (hoặc labels nếu chưa train) và sinh báo cáo; in metrics ra console
 - `serve`: khởi động FastAPI inference server
-- `batch-predict`: chạy inference theo lô và ghi kết quả ra parquet
+- `batch-predict`: export predictions parquet (dùng khi deploy; xem kết quả dùng `evaluate`)
 - `drift`: so sánh phân phối feature live vs training để phát hiện drift
 - `models`: liệt kê các model version đã đăng ký
 
@@ -84,11 +84,12 @@ Hoặc chạy hoàn toàn bằng CLI:
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
-pixi run mlfx qa --symbol XAUUSD --asset-class fx
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
+
+Sau `evaluate`, CLI in bảng metrics và đường dẫn biểu đồ. Mặc định backtest **model** nếu đã train.
 
 ## Backend huấn luyện hiện có
 
