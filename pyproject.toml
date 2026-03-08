@@ -1,6 +1,7 @@
 [project]
 authors = [{ name = "Hieu Nguyen", email = "hieuteo03@gmail.com" }]
 dependencies = [
+    "cachetools>=5.3.0,<6",
     "textual>=8.0.2,<9",
     "ipykernel>=7.2.0,<8",
     "neuralforecast>=3.1.5,<4",
@@ -23,9 +24,9 @@ mlfx-tui = "mlfx.app.tui:main"
 
 [project.optional-dependencies]
 serving = [
-    "fastapi>=0.116.0,<0.117",
-    "pydantic>=2.11.0,<3",
-    "uvicorn>=0.37.0,<0.38",
+    "fastapi>=0.135.1,<0.136",
+    "pydantic>=2.12.5,<3",
+    "uvicorn>=0.41.0,<0.42",
 ]
 integrations = [
     "questdb[dataframe]>=4.1.0,<5",
@@ -78,4 +79,16 @@ lightning = ">=2.6.1,<3"
 pythonpath = ["."]
 markers = [
     "network: tests that require internet access (deselect with -m 'not network')",
+]
+filterwarnings = [
+    # Third-party pandas/utilsforecast deprecation noise on copy keyword
+    "ignore::pandas.errors.Pandas4Warning",
+    # PyTorch Lightning internal deprecation in utilities._pytree
+    "ignore:::pytorch_lightning.utilities._pytree",
+    # PyTorch Lightning DataLoader worker-count performance suggestions from NeuralForecast
+    "ignore:The 'val_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    "ignore:The 'train_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    "ignore:The 'predict_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
+    # NeuralForecast/Lightning validation-check scheduling vs max_steps
+    "ignore:val_check_steps is greater than max_steps, setting val_check_steps to max_steps.:UserWarning:neuralforecast.common._base_model",
 ]

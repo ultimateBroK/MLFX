@@ -8,7 +8,6 @@ import logging
 
 import numpy as np
 import polars as pl
-import pyarrow.parquet as pq
 import talib
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
@@ -59,8 +58,10 @@ def add_atr(df: pl.DataFrame, period: int = 14) -> pl.DataFrame:
     )
 
 
-def add_ema(df: pl.DataFrame, periods: list[int] = [20, 50, 200]) -> pl.DataFrame:
+def add_ema(df: pl.DataFrame, periods: list[int] | None = None) -> pl.DataFrame:
     """Calculate one or more EMAs."""
+    if periods is None:
+        periods = [20, 50, 200]
     close = df["close"].to_numpy()
     for period in periods:
         df = _add_ta(df, f"ema_{period}", talib.EMA(close, timeperiod=period))
@@ -192,34 +193,29 @@ def run_feature_pipeline(
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
     """Build and persist feature parquet files for one symbol/timeframe."""
+    from mlfx.pipeline._parquet_loop import process_parquet_files
+
     in_dir = paths.ohlcv_dir(symbol, tf)
     out_dir = paths.features_dir(symbol, tf)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    stats = {"processed": 0, "skipped": 0, "total_bars": 0, "total_features": 0}
-    parquet_files = sorted(in_dir.glob("*.parquet")) if in_dir.exists() else []
-    if not parquet_files:
+    if not in_dir.exists():
         logger.warning("No OHLCV files found for %s %s in %s", symbol, tf, in_dir)
-        return stats
+        return {"processed": 0, "skipped": 0, "total_bars": 0, "total_features": 0}
 
-    for in_file in parquet_files:
-        out_file = out_dir / in_file.name
-        if out_file.exists() and not force:
-            stats["skipped"] += 1
-            continue
-
-        ohlcv = pl.read_parquet(in_file)
-        if ohlcv.is_empty():
-            continue
-
-        features = build_feature_pipeline(
+    def transform(ohlcv: pl.DataFrame) -> pl.DataFrame:
+        return build_feature_pipeline(
             ohlcv,
             pivot_type=pivot_type,
             pivot_anchor=pivot_anchor,
         )
-        pq.write_table(features.to_arrow(), str(out_file), compression="snappy")
 
-        stats["processed"] += 1
-        stats["total_bars"] += len(features)
-        stats["total_features"] = len(features.columns)
+    stats = process_parquet_files(
+        in_dir,
+        out_dir,
+        transform,
+        force=force,
+        on_processed=lambda df: {"total_features": len(df.columns)},
+    )
+    if "total_features" not in stats:
+        stats["total_features"] = 0
     return stats

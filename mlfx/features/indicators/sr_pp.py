@@ -6,23 +6,7 @@ from __future__ import annotations
 
 import polars as pl
 
-
-def _ensure_utc(df: pl.DataFrame) -> pl.DataFrame:
-    """Ensure the DataFrame timestamp column has a UTC timezone."""
-    ts = df["timestamp"]
-    if ts.dtype in (
-        pl.Datetime("us", "UTC"),
-        pl.Datetime("ns", "UTC"),
-        pl.Datetime("ms", "UTC"),
-    ):
-        return df
-    if ts.dtype in (
-        pl.Datetime("us", None),
-        pl.Datetime("ns", None),
-        pl.Datetime("ms", None),
-    ):
-        return df.with_columns(pl.col("timestamp").dt.replace_time_zone("UTC"))
-    return df
+from ._utils import _ensure_utc
 
 
 def detect_sr_patterns(df: pl.DataFrame) -> pl.DataFrame:
@@ -155,6 +139,7 @@ def _ohlc_for_period(df: pl.DataFrame, freq: str) -> pl.DataFrame:
 
 
 def _calc_traditional(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute traditional pivot levels (P, R1-R5, S1-S5) from OHLC."""
     p = (h + lo + c) / 3
     r1 = 2 * p - lo
     s1 = 2 * p - h
@@ -172,6 +157,7 @@ def _calc_traditional(o: float, h: float, lo: float, c: float) -> dict[str, floa
 
 
 def _calc_fibonacci(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute Fibonacci pivot levels (P, R1-R3, S1-S3) from OHLC."""
     p = (h + lo + c) / 3
     rng = h - lo
     r1 = p + 0.382 * rng
@@ -196,6 +182,7 @@ def _calc_fibonacci(o: float, h: float, lo: float, c: float) -> dict[str, float]
 
 
 def _calc_woodie(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute Woodie pivot levels (P, R1-R4, S1-S4) from OHLC."""
     p = (h + lo + 2 * c) / 4
     r1 = 2 * p - lo
     s1 = 2 * p - h
@@ -211,10 +198,12 @@ def _calc_woodie(o: float, h: float, lo: float, c: float) -> dict[str, float]:
 
 
 def _calc_classic(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute classic pivot levels (alias for traditional)."""
     return _calc_traditional(o, h, lo, c)
 
 
 def _calc_dm(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute DeMark pivot levels (P, R1, S1) from OHLC."""
     if c < o:
         x = h + 2 * lo + c
     elif c > o:
@@ -240,6 +229,7 @@ def _calc_dm(o: float, h: float, lo: float, c: float) -> dict[str, float]:
 
 
 def _calc_camarilla(o: float, h: float, lo: float, c: float) -> dict[str, float]:
+    """Compute Camarilla pivot levels (P, R1-R5, S1-S5) from OHLC."""
     rng = h - lo
     r1 = c + rng * 1.1 / 12
     s1 = c - rng * 1.1 / 12

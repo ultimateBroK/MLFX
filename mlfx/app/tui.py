@@ -338,7 +338,6 @@ class TrainTab(TabPane):
                 yield Label("CV Splits (TimeSeriesSplit)", classes="field-label")
                 yield Input(value=str(train_cfg["n_splits"]), id="tr-n-splits", placeholder="5")
                 yield Checkbox("Force retrain (overwrite saved model)", id="tr-force", value=False)
-                yield Checkbox("Compute SHAP values", id="tr-shap", value=True)
                 with Horizontal(classes="btn-row"):
                     yield Button("▶ Train", id="btn-train", variant="primary")
             yield self._log
@@ -353,8 +352,7 @@ class TrainTab(TabPane):
         n_trials = int(self.query_one("#tr-n-trials", Input).value or "30")
         n_splits = int(self.query_one("#tr-n-splits", Input).value or "5")
         force = self.query_one("#tr-force", Checkbox).value
-        plot_shap = self.query_one("#tr-shap", Checkbox).value
-        self._run_train(symbol, tf, label_col, backend, n_trials, n_splits, force, plot_shap)
+        self._run_train(symbol, tf, label_col, backend, n_trials, n_splits, force)
 
     @work(thread=True)
     def _run_train(
@@ -366,7 +364,6 @@ class TrainTab(TabPane):
         n_trials: int,
         n_splits: int,
         force: bool,
-        plot_shap: bool,
     ) -> None:
         button = self.query_one("#btn-train", Button)
         self.app.call_from_thread(setattr, button, "disabled", True)

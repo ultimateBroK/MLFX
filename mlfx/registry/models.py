@@ -159,9 +159,22 @@ class ModelRegistry:
 _registry: ModelRegistry | None = None
 
 
-def get_registry(registry_path: Path | None = None) -> ModelRegistry:
-    """Return the process-level registry singleton."""
+def get_registry(registry_path: Path | str | None = None) -> ModelRegistry:
+    """Return the process-level registry singleton.
+
+    When registry_path is provided, the singleton is replaced and will use
+    that path for all subsequent calls until reset_registry() or
+    get_registry(different_path). In tests, call reset_registry() before
+    get_registry(tmp_path) to avoid reusing the default registry.
+    """
     global _registry
-    if _registry is None or registry_path is not None:
-        _registry = ModelRegistry(registry_path)
+    path = Path(registry_path) if isinstance(registry_path, str) else registry_path
+    if _registry is None or path is not None:
+        _registry = ModelRegistry(path)
     return _registry
+
+
+def reset_registry() -> None:
+    """Clear the singleton. Use in tests to isolate registry state."""
+    global _registry
+    _registry = None

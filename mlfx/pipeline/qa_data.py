@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 import sys
 from datetime import datetime, timedelta
@@ -11,6 +13,17 @@ from datetime import datetime, timedelta
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AuditResult:
+    """Result of run_quality_audit. success=True with report_path, or success=False with error."""
+
+    success: bool
+    report_path: Path | None = None
+    error: str | None = None
 
 
 def find_significant_gaps(lazy_frame: pl.LazyFrame, asset_class: str) -> list[dict[str, object]]:
@@ -54,27 +67,34 @@ def run_quality_audit(
     asset_class: str = "fx",
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
-) -> Path:
-    """Scan raw monthly parquet files and write a Markdown QA report."""
+) -> AuditResult:
+    """Scan raw monthly parquet files and write a Markdown QA report.
+
+    Returns AuditResult(success=True, report_path=...) on success, or
+    AuditResult(success=False, error=...) on failure.
+    """
     data_dir = paths.raw_data_dir(symbol)
     state_file = paths.state_file(symbol)
 
-    print(f"--- Running QA Audit for {symbol} ---")
+    logger.info("--- Running QA Audit for %s ---", symbol)
     if not state_file.exists():
-        print(f"[!] Error: State file not found at {state_file}. Did you download the data yet?")
-        raise SystemExit(1)
+        msg = f"State file not found at {state_file}. Did you download the data yet?"
+        logger.error("%s", msg)
+        return AuditResult(success=False, error=msg)
 
     completed_months = json.loads(state_file.read_text())
     if not completed_months:
-        print("[!] No completed months found in state file.")
-        raise SystemExit(1)
+        msg = "No completed months found in state file."
+        logger.error("%s", msg)
+        return AuditResult(success=False, error=msg)
 
     months = sorted(completed_months.keys())
     total_missing_hours = sum(entry.get("missing_hours", 0) for entry in completed_months.values())
     parquet_files = sorted(data_dir.glob("*.parquet"))
     if not parquet_files:
-        print("[!] No .parquet files found.")
-        raise SystemExit(1)
+        msg = "No .parquet files found."
+        logger.error("%s", msg)
+        return AuditResult(success=False, error=msg)
 
     total_rows_actual = 0
     total_nulls = 0
@@ -84,7 +104,7 @@ def run_quality_audit(
     month_stats: list[dict[str, object]] = []
     all_unexpected_gaps: list[dict[str, object]] = []
 
-    print("Scanning Parquet files using Polars engine...")
+    logger.info("Scanning Parquet files using Polars engine...")
     for parquet_file in parquet_files:
         month_name = parquet_file.stem
         lazy_frame = pl.scan_parquet(parquet_file)
@@ -144,7 +164,7 @@ def run_quality_audit(
             if missing_hours > 0:
                 all_unexpected_gaps.extend(find_significant_gaps(lazy_frame, asset_class))
 
-        print(f"  ✓ {month_name}: {actual_count:,} rows")
+        logger.info("  ✓ %s: %s rows", month_name, f"{actual_count:,}")
 
     report_path = data_dir / f"{symbol}_Data_Quality_Report.md"
     report_path.write_text(
@@ -165,8 +185,8 @@ def run_quality_audit(
         ),
         encoding="utf-8",
     )
-    print(f"\n[+] Successfully exported report to: {report_path}")
-    return report_path
+    logger.info("Successfully exported report to: %s", report_path)
+    return AuditResult(success=True, report_path=report_path)
 
 
 def _build_markdown_report(
@@ -247,6 +267,7 @@ def _build_markdown_report(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone QA audit CLI."""
     parser = argparse.ArgumentParser(description="Quality assurance audit for raw tick data")
     parser.add_argument("--symbol", type=str, default="XAUUSD")
     parser.add_argument("--asset-class", type=str, choices=["fx", "crypto"], default="fx")
@@ -254,11 +275,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Entrypoint for standalone QA audit CLI."""
     args = build_parser().parse_args()
-    try:
-        run_quality_audit(symbol=args.symbol, asset_class=args.asset_class)
-    except SystemExit as exc:
-        sys.exit(exc.code)
+    result = run_quality_audit(symbol=args.symbol, asset_class=args.asset_class)
+    if not result.success:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

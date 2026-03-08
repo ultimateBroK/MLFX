@@ -19,8 +19,12 @@ from mlfx.training.artifacts import save_pickle_artifact
 logger = logging.getLogger(__name__)
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> pl.DataFrame:
-    """Format dataframe for Nixtla StatsForecast (unique_id, ds, y)."""
+def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+    """Format dataframe for Nixtla StatsForecast (unique_id, ds, y).
+
+    Returns (df, feature_cols). StatsForecast uses only unique_id, ds, y;
+    feature_cols is empty for API consistency with MLForecast.
+    """
     subset = df.select(["timestamp", label_col]).drop_nulls()
     unique_id_col = pl.lit("XAUUSD").alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
@@ -29,7 +33,7 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> pl.DataFrame:
     y_col = (pl.col(label_col) + 2).cast(pl.Float64).alias("y")
 
     subset = subset.with_columns([unique_id_col, ds_col, y_col])
-    return subset.select(["unique_id", "ds", "y"])
+    return subset.select(["unique_id", "ds", "y"]), []
 
 
 def train_stats_baseline(
@@ -78,11 +82,13 @@ def train_stats_baseline(
         )
 
     avg_scores = {key: float(np.mean(value)) for key, value in scores.items()}
+    best_cv_f1_macro = float(max(avg_scores.values())) if avg_scores else 0.0
     logger.info("Baseline Cross-Validation F1: %s", avg_scores)
 
     sf.fit(df_pd)
     metrics = {
         "cv_f1_macro": avg_scores,
+        "best_cv_f1_macro": best_cv_f1_macro,
         "n_samples": len(df_pd),
         "model_type": "StatsForecast_Baseline",
     }
@@ -90,6 +96,7 @@ def train_stats_baseline(
 
 
 def save_model(sf: StatsForecast, metrics: dict, path) -> None:
+    """Persist StatsForecast model to .pkl artifact for serving."""
     save_pickle_artifact(sf, metrics, path)
     logger.info("✓ StatsForecast baseline saved → %s", path)
 
@@ -101,6 +108,7 @@ def run_stats(
     n_splits: int = 5,
     force: bool = False,
 ) -> dict:
+    """Train StatsForecast baseline (AutoARIMA, SeasonalNaive, MSTL). Returns metrics dict or {} if skipped."""
     out_path = build_model_output_path(
         f"stats_baseline_{label_col}",
         symbol,
@@ -116,7 +124,8 @@ def run_stats(
     if df is None or label_col not in df.columns:
         return {}
 
-    df_nixtla = prepare_nixtla_df(df, label_col).tail(5000)
+    df_nixtla, _ = prepare_nixtla_df(df, label_col)
+    df_nixtla = df_nixtla.tail(5000)
     sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits)
     save_model(sf, metrics, out_path)
     metrics["artifact_path"] = str(out_path)
@@ -124,6 +133,7 @@ def run_stats(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build argparse for standalone StatsForecast training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="XAUUSD")
     parser.add_argument("--tf", default="1H")
@@ -134,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for standalone StatsForecast training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
     run_stats(

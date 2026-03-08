@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 
 from mlfx.evaluation.runner import run_full_eval
 from mlfx.ingestion.download import run_download_job
@@ -21,6 +22,7 @@ console = Console()
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, and models."""
     parser = argparse.ArgumentParser(description="ML_FX consolidated CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -94,6 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Parse CLI args and dispatch to the appropriate workflow (download, pipeline, train, qa, evaluate, serve, batch-predict, drift, models)."""
     try:
         from mlfx.monitoring.logging_config import configure_logging
 
@@ -150,10 +153,12 @@ def main() -> None:
         return
 
     if args.command == "qa":
-        run_quality_audit(
+        result = run_quality_audit(
             symbol=args.symbol,
             asset_class=args.asset_class,
         )
+        if not result.success:
+            sys.exit(1)
         return
 
     if args.command == "evaluate":
