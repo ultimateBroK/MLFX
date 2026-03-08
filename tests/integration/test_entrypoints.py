@@ -28,7 +28,7 @@ def _run_python(code: str) -> subprocess.CompletedProcess[str]:
 def test_mlfx_help_smoke() -> None:
     result = _run_entrypoint("mlfx", "--help")
     assert result.returncode == 0, result.stderr
-    assert "ML_FX consolidated CLI" in result.stdout
+    assert "MLFX consolidated CLI" in result.stdout
 
 
 def test_mlfx_pipeline_help_smoke() -> None:

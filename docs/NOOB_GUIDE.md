@@ -1,10 +1,10 @@
-# ML_FX - Hướng dẫn cho người mới
+# MLFX - Hướng dẫn cho người mới
 
 Nếu bạn mới vào repo, hãy đọc tài liệu này trước. Mục tiêu là hiểu dữ liệu đi đâu, vì sao phải chạy đúng thứ tự, và cách bắt đầu an toàn bằng `Pixi`.
 
 ## 1. Dự án này làm gì
 
-ML_FX là một pipeline nghiên cứu cho dữ liệu giá:
+MLFX là một pipeline nghiên cứu cho dữ liệu giá:
 - tải tick data lịch sử
 - gom thành OHLCV
 - tạo feature kỹ thuật và feature theo bối cảnh ICT

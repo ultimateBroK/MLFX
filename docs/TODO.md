@@ -1,4 +1,4 @@
-# ML_FX - Trạng thái hiện tại và hướng tiếp theo
+# MLFX - Trạng thái hiện tại và hướng tiếp theo
 
 Tài liệu này tóm tắt những capability chính hiện có và các hạng mục nên làm tiếp theo.
 

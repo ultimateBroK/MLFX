@@ -1,6 +1,6 @@
-# ML_FX
+# MLFX
 
-`ML_FX` is an MLOps-style research pipeline for market data. Its main stages are:
+`MLFX` is an MLOps-style research pipeline for market data. Its main stages are:
 - downloading historical tick data from Dukascopy
 - converting ticks into OHLCV bars across multiple timeframes
 - generating technical and ICT-oriented features
@@ -103,7 +103,7 @@ For full parameter references and operational examples, see [USAGE_GUIDE.md](USA
 ## Project Layout
 
 ```text
-ML_FX/
+MLFX/
 ├── mlfx/
 │   ├── app/           # CLI and TUI
 │   ├── config/        # path policy and config loading

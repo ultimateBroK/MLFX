@@ -1,4 +1,4 @@
-# ML_FX - Hướng dẫn đánh giá
+# MLFX - Hướng dẫn đánh giá
 
 Tài liệu này mô tả cách chạy `mlfx evaluate`, cách đọc metrics, và cách hiểu các artifact được sinh ra.
 

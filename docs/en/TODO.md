@@ -1,4 +1,4 @@
-# ML_FX - Current Status and Next Work
+# MLFX - Current Status and Next Work
 
 This document summarizes the main capabilities already available and the most sensible next steps.
 

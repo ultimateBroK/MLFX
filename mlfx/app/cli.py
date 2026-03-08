@@ -1,4 +1,4 @@
-"""Consolidated CLI entrypoint for core ML_FX workflows."""
+"""Consolidated CLI entrypoint for core MLFX workflows."""
 
 from __future__ import annotations
 
@@ -21,7 +21,8 @@ console = Console()
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="ML_FX consolidated CLI")
+    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, and models."""
+    parser = argparse.ArgumentParser(description="MLFX consolidated CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     download = subparsers.add_parser("download", help="Download raw tick data")

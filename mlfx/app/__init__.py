@@ -1,1 +1,1 @@
-"""Application entrypoints for ML_FX."""
+"""Application entrypoints for MLFX."""

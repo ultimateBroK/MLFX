@@ -1,4 +1,4 @@
-# ML_FX - Configuration and Usage Guide
+# MLFX - Configuration and Usage Guide
 
 This guide describes the supported `Pixi-first` workflow for operating the project.
 

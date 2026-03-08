@@ -1,4 +1,4 @@
-# ML_FX - Troubleshooting
+# MLFX - Troubleshooting
 
 This guide covers common environment and operational issues for the `mlfx` workflow.
 

@@ -52,7 +52,7 @@ from fastapi import FastAPI, HTTPException  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 app = FastAPI(
-    title="ML_FX Inference API",
+    title="MLFX Inference API",
     description="Real-time direction prediction for FX / commodities.",
     version="1.0.0",
 )

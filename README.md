@@ -1,6 +1,6 @@
-# ML_FX
+# MLFX
 
-`ML_FX` là một pipeline MLOps nghiên cứu dữ liệu thị trường, tập trung vào 5 giai đoạn chính:
+`MLFX` là một pipeline MLOps nghiên cứu dữ liệu thị trường, tập trung vào 5 giai đoạn chính:
 - tải tick data lịch sử từ Dukascopy
 - chuẩn hóa thành OHLCV theo nhiều timeframe
 - sinh feature kỹ thuật và feature theo ngữ cảnh ICT
@@ -108,7 +108,7 @@ Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md]
 ## Cấu trúc dự án (MLOps)
 
 ```text
-ML_FX/
+MLFX/
 ├── mlfx/
 │   ├── app/            # CLI và TUI
 │   ├── config/         # path policy và config loader

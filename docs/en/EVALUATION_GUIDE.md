@@ -1,4 +1,4 @@
-# ML_FX - Evaluation Guide
+# MLFX - Evaluation Guide
 
 This guide explains how to run `mlfx evaluate`, interpret its metrics, and understand the artifacts it generates.
 

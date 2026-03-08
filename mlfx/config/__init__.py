@@ -1,4 +1,4 @@
-"""Configuration helpers for ML_FX."""
+"""Configuration helpers for MLFX."""
 
 from .paths import DEFAULT_PATHS, ProjectPaths
 from .settings import DEFAULT_CONFIG, load_config

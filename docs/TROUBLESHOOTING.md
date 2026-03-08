@@ -1,4 +1,4 @@
-# ML_FX - Khắc phục sự cố
+# MLFX - Khắc phục sự cố
 
 Tài liệu này gom các lỗi thường gặp khi cài môi trường hoặc chạy workflow `mlfx`.
 

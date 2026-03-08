@@ -1,5 +1,5 @@
 """
-ML_FX Textual TUI implemented in the `mlfx.app` package.
+MLFX Textual TUI implemented in the `mlfx.app` package.
 """
 
 from __future__ import annotations
@@ -487,9 +487,9 @@ class BacktestTab(TabPane):
 
 
 class MLFXApp(App):
-    """ML_FX — ICT-Based Price Prediction System. Interactive TUI."""
+    """MLFX — ICT-Based Price Prediction System. Interactive TUI."""
 
-    TITLE = "ML_FX — ICT Price Prediction"
+    TITLE = "MLFX — ICT Price Prediction"
     CSS_PATH = str(DEFAULT_PATHS.project_root / "main.tcss")
     BINDINGS = [
         Binding("q", "quit", "Quit"),
@@ -515,7 +515,7 @@ class MLFXApp(App):
 
     def on_mount(self) -> None:
         self._dl_log.write(
-            "[bold]Welcome to [cyan]ML_FX[/] TUI[/]\n"
+            "[bold]Welcome to [cyan]MLFX[/] TUI[/]\n"
             "Config loaded from [italic]config.toml[/] — forms pre-filled.\n"
             "Select a tab above to get started.\n"
         )

@@ -1,7 +1,7 @@
 """
 tests/conftest.py
 =================
-Shared pytest fixtures for ML_FX test suite.
+Shared pytest fixtures for MLFX test suite.
 
 Skill: @skill:pytest-ml-fx
   resources: pytest-playbook.md → Polars fixtures, network marker

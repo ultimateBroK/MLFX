@@ -1,4 +1,4 @@
-"""Centralized path policy for ML_FX runtime artifacts."""
+"""Centralized path policy for MLFX runtime artifacts."""
 
 from __future__ import annotations
 

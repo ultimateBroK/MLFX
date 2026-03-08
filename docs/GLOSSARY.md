@@ -1,4 +1,4 @@
-# ML_FX - Thuật ngữ
+# MLFX - Thuật ngữ
 
 Tài liệu này gom các thuật ngữ thường gặp trong repo.
 

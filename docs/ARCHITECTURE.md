@@ -1,6 +1,6 @@
-# ML_FX Architecture
+# MLFX Architecture
 
-Tài liệu này mô tả kiến trúc MLOps tổng thể của dự án ML_FX, bao gồm các module, luồng dữ liệu, và quyết định thiết kế.
+Tài liệu này mô tả kiến trúc MLOps tổng thể của dự án MLFX, bao gồm các module, luồng dữ liệu, và quyết định thiết kế.
 
 ---
 
@@ -11,7 +11,7 @@ Tài liệu này mô tả kiến trúc MLOps tổng thể của dự án ML_FX, 
         │
         ▼
 ┌─────────────────────────────────┐
-│          ML_FX System           │
+│          MLFX System           │
 │   (ingestion → pipeline →       │
 │    training → evaluation →      │
 │    serving → monitoring)        │

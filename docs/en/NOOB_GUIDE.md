@@ -1,10 +1,10 @@
-# ML_FX - Beginner Guide
+# MLFX - Beginner Guide
 
 If you are new to the repository, start here. The goal is to understand where data flows, why stage order matters, and how to get started safely with `Pixi`.
 
 ## 1. What this project does
 
-ML_FX is a market-data research pipeline that:
+MLFX is a market-data research pipeline that:
 - downloads historical tick data
 - converts ticks into OHLCV bars
 - builds technical and ICT-oriented features

@@ -1,4 +1,4 @@
-# ML_FX - Hướng dẫn cấu hình và sử dụng
+# MLFX - Hướng dẫn cấu hình và sử dụng
 
 Tài liệu này mô tả cách vận hành dự án theo workflow chuẩn dùng `Pixi`.
 

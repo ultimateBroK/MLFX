@@ -1,4 +1,4 @@
-# ML_FX - Glossary
+# MLFX - Glossary
 
 This file collects the most common terms used across the repository.
 
