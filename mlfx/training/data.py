@@ -34,7 +34,8 @@ def load_labelled_dataset(
     for file_path in parquet_files:
         try:
             frames.append(pl.read_parquet(file_path))
-        except Exception as exc:  # noqa: BLE001
+        except (OSError, ValueError, RuntimeError) as exc:
+            # Broad catch: one corrupt or unreadable file must not block loading the rest.
             logger.warning("Failed to load %s: %s", file_path, exc)
 
     if not frames:

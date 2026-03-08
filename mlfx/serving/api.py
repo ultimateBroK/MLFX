@@ -23,6 +23,7 @@ import logging
 from typing import Any
 
 import numpy as np
+from cachetools import LRUCache
 
 from mlfx.serving.core import resolve_and_predict
 
@@ -81,10 +82,10 @@ class PredictResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Model cache
+# Model cache (LRU, max 32 models to bound memory in long-running processes)
 # ---------------------------------------------------------------------------
 
-_MODEL_CACHE: dict[str, Any] = {}
+_MODEL_CACHE: LRUCache[str, Any] = LRUCache(maxsize=32)
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +129,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         registry=reg,
         model_cache=_MODEL_CACHE,
     )
+    # result is None when artifact not found or inference failed; build detailed error from registry.
     if result is None:
         entry = reg.best_model(
             symbol=request.symbol,

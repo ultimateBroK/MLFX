@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import pickle
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import pickle
 
 import numpy as np
 import polars as pl
@@ -24,7 +24,9 @@ class _OrderSensitiveModel:
 
 def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
     from mlfx.config.paths import ProjectPaths
-    from mlfx.registry.models import get_registry
+    from mlfx.registry.models import get_registry, reset_registry
+
+    reset_registry()
     from mlfx.serving.batch import run_batch_inference
 
     paths = ProjectPaths(project_root=tmp_path)

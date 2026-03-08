@@ -8,7 +8,6 @@ import logging
 
 import numpy as np
 import polars as pl
-import pyarrow.parquet as pq
 import talib
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
