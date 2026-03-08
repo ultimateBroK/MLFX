@@ -31,8 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
     download.add_argument("--asset-class", choices=["fx", "crypto"], default="fx")
     download.add_argument("--start-year", type=int, default=2015)
     download.add_argument("--start-month", type=int, default=1)
+    download.add_argument("--end-year", type=int, default=None, help="End year (default: current year)")
+    download.add_argument("--end-month", type=int, default=None, help="End month (default: current month)")
     download.add_argument("--concurrency", type=int, default=20)
     download.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
+    download.add_argument("--skip-current-month", action="store_true", help="Skip checking/repairing current month")
 
     pipeline = subparsers.add_parser("pipeline", help="Run ETL pipeline stages")
     pipeline.add_argument("--symbol", default="XAUUSD")
@@ -120,6 +123,9 @@ def main() -> None:
             start_month=args.start_month,
             concurrency=args.concurrency,
             force=args.force,
+            end_year=args.end_year,
+            end_month=args.end_month,
+            skip_current_month=args.skip_current_month,
         )
         return
 
@@ -278,30 +284,28 @@ def main() -> None:
                 tf=args.tf,
                 backend=args.backend,
             )
-        
+
         if not entries:
             console.print("[yellow]No models found in the registry.[/yellow]")
             return
-            
+
         table = Table(title="Registered Model Versions", show_header=True, header_style="bold magenta")
-        
-        # Determine all available keys for columns
+
         keys = []
         for e in entries:
             for k in e.keys():
                 if k not in keys:
                     keys.append(k)
-        
-        # Standard columns first
+
         std_columns = ["symbol", "tf", "backend", "run_id", "accuracy"]
         ordered_keys = [k for k in std_columns if k in keys] + [k for k in keys if k not in std_columns]
-        
+
         for k in ordered_keys:
             table.add_column(str(k))
-            
+
         for e in entries:
             row = [str(e.get(k, "")) for k in ordered_keys]
             table.add_row(*row)
-            
+
         console.print(table)
         return

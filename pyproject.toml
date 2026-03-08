@@ -22,8 +22,8 @@ requires-python = ">= 3.11"
 version = "0.1.0"
 
 [project.scripts]
-mlfx = "mlfx.app.cli:main"
-mlfx-tui = "mlfx.app.tui:main"
+mlfx = "mlfx.app.cli.main:main"
+mlfx-tui = "mlfx.app.tui.main:main"
 
 [project.optional-dependencies]
 serving = [
@@ -55,7 +55,7 @@ MLFX = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 test = "pytest"
-mlfx-ui = "streamlit run mlfx/app/streamlit_app.py --server.headless true"
+mlfx-ui = "streamlit run mlfx/app/streamlit/app.py --server.headless true"
 verify = "pytest tests/test_project_contract.py tests/test_training_contract.py tests/test_training_runner_registry_contract.py tests/test_registry_serving_contract.py tests/test_serving_api_contract.py tests/test_tracking_monitoring_contract.py tests/test_evaluation_contract.py tests/test_mlfx_pipeline.py tests/integration/test_entrypoints.py"
 clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs && mkdir -p outputs/models outputs/reports logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
 

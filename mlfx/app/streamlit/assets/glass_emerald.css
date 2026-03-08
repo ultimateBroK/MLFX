@@ -1,0 +1,168 @@
+/* MLFX - Glassmorphism Emerald AMOLED Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-amoled: #000000;
+  --bg-surface: #0a0e17; /* Slight dark blue/black tint */
+  --glass-bg: rgba(10, 26, 22, 0.45);
+  --glass-bg-hover: rgba(15, 35, 30, 0.6);
+  --glass-border: rgba(16, 185, 129, 0.2);
+  --glass-border-highlight: rgba(16, 185, 129, 0.5);
+  --emerald-500: #10B981;
+  --emerald-400: #34D399;
+  --emerald-600: #059669;
+  --text-primary: #F4F4F5;
+  --text-muted: #A1A1AA;
+  --blur: 16px;
+}
+
+/* Global Typography */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Main app background */
+[data-testid="stAppViewContainer"] {
+  background: radial-gradient(circle at top right, var(--bg-surface), var(--bg-amoled) 80%) !important;
+}
+
+/* Sidebar glass panel */
+[data-testid="stSidebar"] {
+  background: rgba(5, 12, 10, 0.7) !important;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-right: 1px solid var(--glass-border) !important;
+}
+
+/* Expander sections as glass cards */
+[data-testid="stExpander"] {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+[data-testid="stExpander"]:hover {
+  background: var(--glass-bg-hover) !important;
+  border-color: var(--glass-border-highlight) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+}
+
+/* Metric cards */
+[data-testid="stMetricValue"] {
+  color: var(--emerald-400) !important;
+  font-weight: 700 !important;
+}
+
+[data-testid="stMetricDelta"] svg {
+    fill: var(--emerald-400) !important;
+}
+
+[data-testid="stMetricLabel"] {
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+}
+
+/* Buttons - emerald primary */
+[data-testid="stButton"] button,
+.stButton > button {
+  background: var(--glass-bg) !important;
+  color: var(--emerald-400) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 600 !important;
+}
+
+[data-testid="stButton"] button[kind="primary"],
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, var(--emerald-600), var(--emerald-500)) !important;
+  color: #000 !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-testid="stButton"] button:hover,
+.stButton > button:hover {
+  background: var(--glass-bg-hover) !important;
+  border-color: var(--emerald-500) !important;
+  transform: translateY(-2px) !important;
+}
+
+[data-testid="stButton"] button[kind="primary"]:hover,
+.stButton > button[kind="primary"]:hover {
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-400)) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Input fields */
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+.stSelectbox > div > div {
+  background: rgba(10, 26, 22, 0.5) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+[data-testid="stTextInput"] input:focus,
+[data-testid="stNumberInput"] input:focus,
+.stSelectbox > div > div:focus-within {
+  border-color: var(--emerald-500) !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Focus outline for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--emerald-500) !important;
+  outline-offset: 2px;
+}
+
+/* Headings */
+h1, h2, h3 {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+}
+
+/* Info/success/error boxes */
+[data-testid="stAlert"] {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+[data-testid="stAlert"] [data-testid="stMarkdownContainer"] {
+    color: var(--text-primary) !important;
+}
+
+/* DataFrames styling */
+[data-testid="stDataFrame"] {
+  background: var(--glass-bg) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--glass-border) !important;
+}
+
+/* Code blocks */
+code, pre {
+  background: rgba(10, 26, 22, 0.6) !important;
+  color: var(--emerald-400) !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  border-radius: 6px !important;
+}
+
+/* Checkboxes and Radios */
+.stCheckbox > label, .stRadio > div > label {
+  color: var(--text-primary) !important;
+}
+.stCheckbox > label > div[data-testid="stMarkdownContainer"] > p,
+.stRadio > div > label > div[data-testid="stMarkdownContainer"] > p {
+  color: var(--text-primary) !important;
+}

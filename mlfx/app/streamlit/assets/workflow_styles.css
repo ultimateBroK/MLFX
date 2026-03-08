@@ -1,0 +1,324 @@
+/* Workflow Navigation Styles for MLFX Streamlit UI */
+
+/* Main workflow container */
+.workflow-container {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+}
+
+/* Progress bar styling */
+.workflow-progress {
+    margin-bottom: 1.5rem;
+}
+
+/* Step navigation container */
+.workflow-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(10, 26, 22, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+/* Individual step styling */
+.workflow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    text-align: center;
+    position: relative;
+}
+
+.workflow-step::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 2px;
+    background: rgba(16, 185, 129, 0.3);
+}
+
+.workflow-step:last-child::after {
+    display: none;
+}
+
+/* Current step */
+.current-step {
+    background: rgba(16, 185, 129, 0.2);
+    border: 2px solid rgba(16, 185, 129, 0.5);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Completed step */
+.completed-step {
+    background: rgba(0, 200, 150, 0.1);
+    border: 1px solid rgba(0, 200, 150, 0.3);
+}
+
+.completed-step.clickable {
+    cursor: pointer;
+}
+
+.completed-step.clickable:hover {
+    background: rgba(0, 200, 150, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Error step */
+.error-step {
+    background: rgba(255, 76, 76, 0.1);
+    border: 1px solid rgba(255, 76, 76, 0.3);
+}
+
+/* Disabled step */
+.disabled-step {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Step icon */
+.step-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.current-step .step-icon {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.completed-step .step-icon {
+    background: rgba(0, 200, 150, 0.1);
+    border-color: rgba(0, 200, 150, 0.4);
+}
+
+.error-step .step-icon {
+    background: rgba(255, 76, 76, 0.1);
+    border-color: rgba(255, 76, 76, 0.4);
+}
+
+/* Step title */
+.step-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #10B981;
+    margin-bottom: 0.25rem;
+}
+
+.current-step .step-title {
+    color: #34D399;
+    font-size: 1rem;
+}
+
+.completed-step .step-title {
+    color: #00C896;
+}
+
+.error-step .step-title {
+    color: #FF4C4C;
+}
+
+.disabled-step .step-title {
+    color: #888888;
+}
+
+/* Step subtitle */
+.step-subtitle {
+    font-size: 0.75rem;
+    color: #888888;
+    margin-top: 0.25rem;
+}
+
+.current-step .step-subtitle {
+    color: #34D399;
+}
+
+/* Step header */
+.step-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: rgba(10, 26, 22, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+.step-header h1 {
+    color: #10B981;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.step-subtitle {
+    color: #34D399;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.step-description {
+    color: #888888;
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Navigation buttons */
+.workflow-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    gap: 1rem;
+}
+
+.workflow-button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.workflow-button:hover {
+    background: rgba(16, 185, 129, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.workflow-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.workflow-button.primary {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.workflow-button.primary:hover {
+    background: rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .workflow-nav {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .workflow-step {
+        min-width: 100%;
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 0.75rem;
+    }
+    
+    .workflow-step::after {
+        display: none;
+    }
+    
+    .step-icon {
+        margin-right: 1rem;
+        margin-bottom: 0;
+    }
+    
+    .workflow-buttons {
+        flex-direction: column;
+    }
+    
+    .workflow-button {
+        width: 100%;
+    }
+}
+
+/* Animation for step transitions */
+@keyframes stepGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+    }
+}
+
+.current-step {
+    animation: stepGlow 2s ease-in-out infinite;
+}
+
+/* Loading spinner for steps */
+.step-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    border-radius: 50%;
+    border-top-color: #10B981;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success checkmark animation */
+@keyframes checkmark {
+    0% {
+        transform: scale(0) rotate(45deg);
+    }
+    50% {
+        transform: scale(1.2) rotate(45deg);
+    }
+    100% {
+        transform: scale(1) rotate(45deg);
+    }
+}
+
+.completed-step .step-icon::after {
+    content: '✓';
+    position: absolute;
+    color: #00C896;
+    font-weight: bold;
+    animation: checkmark 0.3s ease-in-out;
+}
+
+/* Error indicator */
+.error-step .step-icon::after {
+    content: '✗';
+    position: absolute;
+    color: #FF4C4C;
+    font-weight: bold;
+}

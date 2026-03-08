@@ -122,14 +122,34 @@ def _load_month_ticks(parquet_file: Path) -> pl.DataFrame | None:
     return df.sort("timestamp")
 
 
+def _parse_ym_from_stem(stem: str) -> tuple[int, int] | None:
+    """Parse YYYY-MM from file stem. Returns (year, month) or None."""
+    if len(stem) == 7 and stem[4] == "-":
+        try:
+            y, m = int(stem[:4]), int(stem[5:7])
+            if 1 <= m <= 12:
+                return (y, m)
+        except ValueError:
+            pass
+    return None
+
+
 def resample_symbol_tf(
     symbol: str = "XAUUSD",
     tf: str = "1H",
     force: bool = False,
     *,
+    start_year: int | None = None,
+    start_month: int | None = None,
+    end_year: int | None = None,
+    end_month: int | None = None,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict:
-    """Resample all raw monthly tick files for one symbol/timeframe."""
+    """Resample raw monthly tick files for one symbol/timeframe.
+
+    Optional start_year/start_month/end_year/end_month filter which raw files
+    to process. If not provided, all files are processed.
+    """
     if tf not in TIMEFRAMES:
         raise ValueError(f"Unknown timeframe '{tf}'. Choose from: {list(TIMEFRAMES)}")
 
@@ -142,9 +162,27 @@ def resample_symbol_tf(
         logger.warning("Raw directory not found: %s", raw_root)
         return {"processed": 0, "skipped": 0, "total_bars": 0}
 
-    raw_files = sorted(raw_root.glob("????-??.parquet"))
+    all_raw = sorted(raw_root.glob("????-??.parquet"))
+    raw_files: list[Path] = []
+    for raw_file in all_raw:
+        parsed = _parse_ym_from_stem(raw_file.stem)
+        if parsed is None:
+            continue
+        y, m = parsed
+        if start_year is not None:
+            if y < start_year:
+                continue
+            if y == start_year and start_month is not None and m < start_month:
+                continue
+        if end_year is not None:
+            if y > end_year:
+                continue
+            if y == end_year and end_month is not None and m > end_month:
+                continue
+        raw_files.append(raw_file)
+
     if not raw_files:
-        logger.warning("No raw Parquet files found in %s", raw_root)
+        logger.warning("No raw Parquet files found in %s (after date filter)", raw_root)
         return {"processed": 0, "skipped": 0, "total_bars": 0}
 
     stats = {"processed": 0, "skipped": 0, "total_bars": 0}
@@ -182,11 +220,24 @@ def resample_all_timeframes(
     timeframes: list[str] | None = None,
     force: bool = False,
     *,
+    start_year: int | None = None,
+    start_month: int | None = None,
+    end_year: int | None = None,
+    end_month: int | None = None,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, dict]:
     """Resample one symbol into all requested timeframes."""
     targets = timeframes or list(TIMEFRAMES)
     results: dict[str, dict] = {}
     for tf in targets:
-        results[tf] = resample_symbol_tf(symbol=symbol, tf=tf, force=force, paths=paths)
+        results[tf] = resample_symbol_tf(
+            symbol=symbol,
+            tf=tf,
+            force=force,
+            start_year=start_year,
+            start_month=start_month,
+            end_year=end_year,
+            end_month=end_month,
+            paths=paths,
+        )
     return results

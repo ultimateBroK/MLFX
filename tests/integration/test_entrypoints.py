@@ -54,5 +54,5 @@ def test_mlfx_tui_console_script_registration_smoke() -> None:
         "print(callable(target))"
     )
     assert result.returncode == 0, result.stderr
-    assert "mlfx.app.tui:main" in result.stdout
+    assert "mlfx.app.tui.main:main" in result.stdout
     assert "True" in result.stdout
