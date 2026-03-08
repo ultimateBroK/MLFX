@@ -44,6 +44,7 @@ pixi install
 
 - `pixi run mlfx` cho CLI hợp nhất
 - `pixi run mlfx-tui` cho Textual TUI
+- `pixi run mlfx-ui` cho Streamlit UI (Glassmorphism Emerald AMOLED, khuyến nghị cho người mới)
 - `pixi run test` để chạy toàn bộ test suite
 - `pixi run verify` để chạy bộ test smoke/contract trọng tâm
 - `pixi run clean-generated` để dọn cache và generated artifacts an toàn
@@ -74,7 +75,13 @@ download  →  qa  →  pipeline  →  train  →  evaluate
 
 ## Bắt đầu nhanh
 
-Chạy TUI:
+Chạy Streamlit UI (khuyến nghị):
+
+```bash
+pixi run mlfx-ui
+```
+
+Hoặc chạy TUI:
 
 ```bash
 pixi run mlfx-tui
@@ -111,7 +118,7 @@ Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md]
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # CLI và TUI
+│   ├── app/            # CLI, TUI, Streamlit UI
 │   ├── config/         # path policy và config loader
 │   ├── ingestion/      # downloader Dukascopy
 │   ├── pipeline/       # qa, resampling, feature engineering, labeling

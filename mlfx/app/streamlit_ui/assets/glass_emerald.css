@@ -1,0 +1,86 @@
+/* MLFX - Glassmorphism Emerald AMOLED Design System */
+
+:root {
+  --bg-amoled: #000000;
+  --bg-surface: #0A0A0A;
+  --glass-bg: rgba(10, 26, 22, 0.4);
+  --glass-border: rgba(16, 185, 129, 0.15);
+  --emerald-500: #10B981;
+  --emerald-400: #34D399;
+  --emerald-600: #059669;
+  --text-primary: #F4F4F5;
+  --text-muted: #71717A;
+  --blur: 12px;
+}
+
+/* Main app background */
+[data-testid="stAppViewContainer"] {
+  background: var(--bg-amoled) !important;
+}
+
+/* Sidebar glass panel */
+[data-testid="stSidebar"] {
+  background: rgba(5, 15, 12, 0.6) !important;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-right: 1px solid var(--glass-border) !important;
+}
+
+/* Expander sections as glass cards */
+[data-testid="stExpander"] {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+/* Metric cards */
+[data-testid="stMetricValue"] {
+  color: var(--emerald-400) !important;
+}
+
+[data-testid="stMetricLabel"] {
+  color: var(--text-muted) !important;
+}
+
+/* Buttons - emerald primary */
+[data-testid="stButton"] button[kind="primary"],
+.stButton > button[kind="primary"] {
+  background: var(--emerald-500) !important;
+  color: #000 !important;
+  border: none !important;
+}
+
+[data-testid="stButton"] button[kind="primary"]:hover,
+.stButton > button[kind="primary"]:hover {
+  background: var(--emerald-400) !important;
+}
+
+
+/* Input fields */
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+.stSelectbox > div {
+  background: rgba(10, 26, 22, 0.5) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Focus outline for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--emerald-500) !important;
+  outline-offset: 2px;
+}
+
+/* Headings */
+h1, h2, h3 {
+  color: var(--text-primary) !important;
+}
+
+/* Info/success/error boxes */
+[data-testid="stAlert"] {
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}

@@ -42,7 +42,8 @@ pixi run clean-generated
 ## 2. Entrypoint chính
 
 - `pixi run mlfx`: CLI hợp nhất
-- `pixi run mlfx-tui`: TUI
+- `pixi run mlfx-tui`: TUI (Textual)
+- `pixi run mlfx-ui`: Streamlit UI (Glassmorphism Emerald AMOLED, khuyến nghị cho người mới)
 
 Xem help:
 
@@ -91,7 +92,23 @@ Các khóa cần nhớ:
 - `label_col`: `label_5`, `label_10`, `label_20`
 - `backend`: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
 
-## 4. TUI
+## 4. Streamlit UI
+
+Khởi chạy giao diện web (Glassmorphism Emerald AMOLED):
+
+```bash
+pixi run mlfx-ui
+```
+
+Mở trình duyệt tại `http://localhost:8501`. Giao diện gồm 4 section theo workflow:
+1. **Tải dữ liệu** — Download tick data từ Dukascopy
+2. **Chuẩn bị** — Resample, features, labels
+3. **Train** — Huấn luyện model
+4. **Xem kết quả** — Backtest, metrics, biểu đồ inline (candlestick, equity, heatmap)
+
+Sidebar cho phép chọn symbol, timeframe, label column. Config mặc định từ `config.toml`.
+
+## 5. TUI
 
 Khởi chạy:
 
@@ -109,7 +126,7 @@ Phím tắt:
 - `q`: thoát
 - `d`: đổi dark/light mode
 
-## 5. CLI theo từng bước
+## 6. CLI theo từng bước
 
 ### 5.1 Download dữ liệu tick
 
@@ -242,7 +259,7 @@ Artifacts mặc định:
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
-## 6. Luồng chạy đầy đủ
+## 7. Luồng chạy đầy đủ
 
 **4 bước chính** (đủ để xem kết quả backtest):
 
@@ -346,7 +363,7 @@ Khi server đang chạy, tracking tự động dùng MLflow thay cho file fallba
 
 ---
 
-## 7. Checklist xác minh nhanh
+## 8. Checklist xác minh nhanh
 
 Sau mỗi bước, nên kiểm tra:
 - sau `download`: có file parquet trong `data/raw/{symbol}/`
@@ -357,7 +374,7 @@ Sau mỗi bước, nên kiểm tra:
 - sau `batch-predict`: có parquet trong `outputs/predictions/{symbol}/{tf}/`
 - sau `drift`: không có cảnh báo drift nghiêm trọng (exit code 0)
 
-## 8. Cleanup an toàn
+## 9. Cleanup an toàn
 
 Dọn cache và generated artifacts phổ biến:
 
