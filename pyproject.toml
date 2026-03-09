@@ -94,4 +94,8 @@ filterwarnings = [
     "ignore:The 'predict_dataloader' does not have many workers which may be a bottleneck:UserWarning:pytorch_lightning.trainer.connectors.data_connector",
     # NeuralForecast/Lightning validation-check scheduling vs max_steps
     "ignore:val_check_steps is greater than max_steps, setting val_check_steps to max_steps.:UserWarning:neuralforecast.common._base_model",
+    # Joblib multiprocessing fallback in sandbox/CI (Permission denied → serial mode)
+    "ignore:.*joblib will operate in serial mode.*:UserWarning:joblib._multiprocessing_helpers",
+    # Protobuf deprecated utcfromtimestamp (third-party, cannot fix in our code)
+    "ignore::DeprecationWarning:google.protobuf.internal.well_known_types",
 ]

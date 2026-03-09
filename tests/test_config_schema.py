@@ -155,7 +155,7 @@ class TestServingSettings:
         from mlfx.config.schema import ServingSettings  # noqa: PLC0415
 
         s = ServingSettings()
-        assert s.data_root == str(tmp_path / "data")
+        assert str(s.data_root) == str(tmp_path / "data")
 
     def test_env_override_propagates_to_get_project_paths(self, monkeypatch, tmp_path):
         monkeypatch.setenv("MLFX_DATA_ROOT", str(tmp_path / "override_data"))
