@@ -40,11 +40,12 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") 
 def train_stats_baseline(
     df_nixtla: pl.DataFrame,
     n_splits: int = 5,
+    season_length: int = 24,
 ) -> tuple[StatsForecast, dict]:
     models = [
-        AutoARIMA(season_length=24),
-        SeasonalNaive(season_length=24),
-        MSTL(season_length=24),
+        AutoARIMA(season_length=season_length),
+        SeasonalNaive(season_length=season_length),
+        MSTL(season_length=season_length),
     ]
 
     sf = StatsForecast(
@@ -107,6 +108,7 @@ def run_stats(
     tf: str = "1H",
     label_col: str = "label_10",
     n_splits: int = 5,
+    season_length: int = 24,
     force: bool = False,
     seed: int = 42,
 ) -> dict:
@@ -129,7 +131,7 @@ def run_stats(
 
     df_nixtla, _ = prepare_nixtla_df(df, label_col, symbol=symbol)
     df_nixtla = df_nixtla.tail(5000)
-    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits)
+    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits, season_length=season_length)
     save_model(sf, metrics, out_path)
     metrics["artifact_path"] = str(out_path)
     return metrics

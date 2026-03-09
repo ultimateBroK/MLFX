@@ -88,6 +88,7 @@ def run_online_sgd(
     symbol: str = "XAUUSD",
     tf: str = "1H",
     label_col: str = "label_10",
+    batch_size: int = 500,
     force: bool = False,
     seed: int = 42,
 ) -> dict:
@@ -104,7 +105,7 @@ def run_online_sgd(
         return {}
 
     X, y, feature_cols = prepared
-    clf, scaler, metrics = train_online_sgd(X, y, seed=seed)
+    clf, scaler, metrics = train_online_sgd(X, y, batch_size=batch_size, seed=seed)
     metrics["selected_features"] = feature_cols
     save_model(clf, scaler, metrics, out_path)
     metrics["artifact_path"] = str(out_path)

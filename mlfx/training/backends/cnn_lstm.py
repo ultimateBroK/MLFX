@@ -289,6 +289,11 @@ def run_cnn_lstm(
     label_col: str = "label_10",
     seq_len: int = 60,
     epochs: int = 30,
+    n_trials: int = 10,
+    n_splits: int = 5,
+    batch_size: int = 128,
+    patience: int = 5,
+    top_k_features: int = 20,
     force: bool = False,
     seed: int = 42,
 ) -> dict:
@@ -307,9 +312,13 @@ def run_cnn_lstm(
     X, y, feature_cols = prepared
     model, metrics = train_cnnlstm(
         X, y, feature_cols,
-        n_trials=10,
+        n_trials=n_trials,
+        n_splits=n_splits,
         seq_len=seq_len,
         epochs=epochs,
+        batch_size=batch_size,
+        patience=patience,
+        top_k_features=top_k_features,
         seed=seed,
     )
     save_model(model, metrics, out_path)
