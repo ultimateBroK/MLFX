@@ -67,6 +67,7 @@ class TrainConfig(BaseModel):
     ] = "mlf"
     n_trials: int = Field(default=30, ge=1)
     n_splits: int = Field(default=5, ge=2)
+    random_seed: int = Field(default=42, ge=0)
 
 
 class BacktestConfig(BaseModel):

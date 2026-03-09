@@ -47,11 +47,12 @@ class TrainingConfig:
     backend: str = "mlf"
     n_trials: int = 15
     n_splits: int = 5
+    random_seed: int = 42
     force: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
     def to_runner_kwargs(self) -> dict[str, Any]:
-        """Return base kwargs (symbol, tf, label_col, force) plus extra.
+        """Return base kwargs (symbol, tf, label_col, force, seed) plus extra.
 
         Backend-specific params (n_trials, n_splits, n_windows) are resolved
         by the registry via :func:`mlfx.training.registry.get_runner_kwargs`.
@@ -61,6 +62,7 @@ class TrainingConfig:
             "tf": self.tf,
             "label_col": self.label_col,
             "force": self.force,
+            "seed": self.random_seed,
         }
         base.update(self.extra)
         return base

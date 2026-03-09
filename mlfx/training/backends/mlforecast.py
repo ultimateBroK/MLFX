@@ -21,6 +21,7 @@ from mlfx.training.feature_selection import (
     select_numeric_feature_columns,
 )
 from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def get_feature_columns(df: pl.DataFrame) -> list[str]:
 MLF_LAG_ORDER = 5
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") -> tuple[pl.DataFrame, list[str]]:
     """Format dataframe for Nixtla MLForecast (unique_id, ds, y).
 
     Drops rows with null in any feature/label, then trims the first MLF_LAG_ORDER
@@ -47,7 +48,7 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, l
     feature_cols = get_feature_columns(df)
     subset = df.select(["timestamp", label_col] + feature_cols).drop_nulls()
 
-    unique_id_col = pl.lit("XAUUSD").alias("unique_id")
+    unique_id_col = pl.lit(symbol).alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
     y_col = (pl.col(label_col) + 2).cast(pl.Int64).alias("y")
     subset = subset.with_columns([unique_id_col, ds_col, y_col])
@@ -64,6 +65,7 @@ def _lgb_objective(
     feature_cols: list[str],
     n_splits: int,
     freq: str = "1h",
+    seed: int = 42,
 ) -> float:
     del feature_cols, freq
 
@@ -79,7 +81,7 @@ def _lgb_objective(
         "objective": "multiclass",
         "num_class": 5,
         "verbose": -1,
-        "random_state": 42,
+        "random_state": seed,
     }
 
     df_pd = df_train.to_pandas()
@@ -114,6 +116,7 @@ def train_ml_models(
     feature_cols: list[str],
     n_trials: int = 15,
     n_splits: int = 5,
+    seed: int = 42,
 ) -> tuple[MLForecast, dict]:
     """Train MLForecast with LightGBM and Optuna HPO. Returns (mlf, metrics)."""
     # Avoid hundreds of "Found null values in ema_200" from mlforecast (lag warmup).
@@ -124,7 +127,7 @@ def train_ml_models(
         module="mlforecast",
     )
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
     logger.info(
         "Hyperparameter search: n_trials=%d, n_splits=%d, samples=%d",
         n_trials,
@@ -132,7 +135,7 @@ def train_ml_models(
         len(df),
     )
     study.optimize(
-        lambda trial: _lgb_objective(trial, df, feature_cols, n_splits=n_splits),
+        lambda trial: _lgb_objective(trial, df, feature_cols, n_splits=n_splits, seed=seed),
         n_trials=n_trials,
         show_progress_bar=True,
     )
@@ -141,7 +144,7 @@ def train_ml_models(
         "objective": "multiclass",
         "num_class": 5,
         "verbose": -1,
-        "random_state": 42,
+        "random_state": seed,
     }
 
     logger.info("Best LGBM params: %s | F1: %.4f", best_params, study.best_value)
@@ -200,8 +203,10 @@ def run_ml_models(
     n_trials: int = 15,
     n_splits: int = 5,
     force: bool = False,
+    seed: int = 42,
 ) -> dict:
     """Train MLForecast + LightGBM with Optuna HPO. Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(f"ml_models_{label_col}", symbol, tf, suffix=".pkl")
 
     if out_path.exists() and not force:
@@ -214,7 +219,7 @@ def run_ml_models(
         return {}
 
     n_raw = len(df)
-    df_nixtla, feature_cols = prepare_nixtla_df(df, label_col)
+    df_nixtla, feature_cols = prepare_nixtla_df(df, label_col, symbol=symbol)
     n_used = len(df_nixtla)
     logger.info(
         "Data: %d rows loaded → %d after drop_nulls + warmup trim (%d features)",
@@ -227,6 +232,7 @@ def run_ml_models(
         feature_cols,
         n_trials=n_trials,
         n_splits=n_splits,
+        seed=seed,
     )
     save_model(mlf, metrics, out_path)
     metrics["artifact_path"] = str(out_path)

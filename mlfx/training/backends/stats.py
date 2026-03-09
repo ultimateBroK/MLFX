@@ -15,18 +15,19 @@ from statsforecast.models import AutoARIMA, MSTL, SeasonalNaive
 
 from mlfx.training.data import build_model_output_path, load_labelled_dataset
 from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") -> tuple[pl.DataFrame, list[str]]:
     """Format dataframe for Nixtla StatsForecast (unique_id, ds, y).
 
     Returns (df, feature_cols). StatsForecast uses only unique_id, ds, y;
     feature_cols is empty for API consistency with MLForecast.
     """
     subset = df.select(["timestamp", label_col]).drop_nulls()
-    unique_id_col = pl.lit("XAUUSD").alias("unique_id")
+    unique_id_col = pl.lit(symbol).alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
 
     # Map labels {-2, -1, 0, 1, 2} to {0, 1, 2, 3, 4}.
@@ -107,8 +108,10 @@ def run_stats(
     label_col: str = "label_10",
     n_splits: int = 5,
     force: bool = False,
+    seed: int = 42,
 ) -> dict:
     """Train StatsForecast baseline (AutoARIMA, SeasonalNaive, MSTL). Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(
         f"stats_baseline_{label_col}",
         symbol,
@@ -124,7 +127,7 @@ def run_stats(
     if df is None or label_col not in df.columns:
         return {}
 
-    df_nixtla, _ = prepare_nixtla_df(df, label_col)
+    df_nixtla, _ = prepare_nixtla_df(df, label_col, symbol=symbol)
     df_nixtla = df_nixtla.tail(5000)
     sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits)
     save_model(sf, metrics, out_path)

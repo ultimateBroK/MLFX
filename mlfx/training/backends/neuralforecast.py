@@ -15,6 +15,7 @@ from sklearn.metrics import f1_score
 
 from mlfx.training.data import build_model_output_path, load_labelled_dataset
 from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ _TF_FREQ: dict[str, str] = {
 }
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") -> tuple[pl.DataFrame, list[str]]:
     """Format Polars dataframe for Nixtla NeuralForecast (unique_id, ds, y).
 
     Returns (df, feature_cols). NeuralForecast uses only unique_id, ds, y;
@@ -40,7 +41,7 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, l
     subset = df.select(["timestamp", label_col]).drop_nulls()
     df_nixtla = subset.with_columns(
         [
-            pl.lit("XAUUSD").alias("unique_id"),
+            pl.lit(symbol).alias("unique_id"),
             pl.col("timestamp").alias("ds"),
             # Map {-2,-1,0,1,2} -> {0,1,2,3,4} as a float regression target.
             (pl.col(label_col) + 2).cast(pl.Float64).alias("y"),
@@ -135,8 +136,10 @@ def run_neural_forecast(
     input_size: int = 48,
     max_steps: int = 200,
     force: bool = False,
+    seed: int = 42,
 ) -> dict:
     """Train NeuralForecast (N-HiTS + N-BEATS). Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(
         f"neural_forecast_{label_col}",
         symbol,
@@ -157,7 +160,7 @@ def run_neural_forecast(
         return {}
 
     freq = _TF_FREQ.get(tf, "h")
-    df_nixtla, _ = prepare_nixtla_df(df, label_col)
+    df_nixtla, _ = prepare_nixtla_df(df, label_col, symbol=symbol)
     df_nixtla = df_nixtla.tail(5000)
 
     nf, metrics = train_neural_forecast(

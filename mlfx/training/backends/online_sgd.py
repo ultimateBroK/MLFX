@@ -15,6 +15,7 @@ from sklearn.preprocessing import StandardScaler
 
 from mlfx.training.data import build_model_output_path, prepare_tabular_data
 from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ def train_online_sgd(
     X: np.ndarray,
     y: np.ndarray,
     batch_size: int = 500,
+    seed: int = 42,
 ) -> tuple[SGDClassifier, StandardScaler, dict]:
     """
     Simulate online learning by chunking the dataset and partially fitting
@@ -35,7 +37,7 @@ def train_online_sgd(
         alpha=1e-4,
         max_iter=1,
         tol=None,
-        random_state=42,
+        random_state=seed,
     )
     classes = np.array([0, 1, 2, 3, 4])
 
@@ -87,8 +89,10 @@ def run_online_sgd(
     tf: str = "1H",
     label_col: str = "label_10",
     force: bool = False,
+    seed: int = 42,
 ) -> dict:
     """Train online SGDClassifier with chunked partial_fit. Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(f"online_sgd_{label_col}", symbol, tf, suffix=".pkl")
 
     if out_path.exists() and not force:
@@ -100,7 +104,7 @@ def run_online_sgd(
         return {}
 
     X, y, feature_cols = prepared
-    clf, scaler, metrics = train_online_sgd(X, y)
+    clf, scaler, metrics = train_online_sgd(X, y, seed=seed)
     metrics["selected_features"] = feature_cols
     save_model(clf, scaler, metrics, out_path)
     metrics["artifact_path"] = str(out_path)

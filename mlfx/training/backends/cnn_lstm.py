@@ -20,6 +20,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from mlfx.training.artifacts import save_torch_artifact
 from mlfx.training.backends._sequence_utils import create_sequences, train_sequence_model_once
 from mlfx.training.data import build_model_output_path, prepare_tabular_data
+from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,7 @@ def train_cnnlstm(
     batch_size: int = 128,
     patience: int = 5,
     top_k_features: int = 20,
+    seed: int = 42,
 ) -> tuple[FXCnnLstm, dict]:
     """Train CNN-LSTM with Optuna HPO, feature selection, and OOS evaluation. Returns (model, metrics)."""
     logger.info("Applying feature selection (top %d)", top_k_features)
@@ -182,7 +184,7 @@ def train_cnnlstm(
     selected_features = [f for i, f in enumerate(feature_cols) if selected_mask[i]]
 
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
     study.optimize(
         lambda t: _objective(t, X_selected, y, seq_len, epochs, batch_size, patience, n_splits),
         n_trials=n_trials,
@@ -288,8 +290,10 @@ def run_cnn_lstm(
     seq_len: int = 60,
     epochs: int = 30,
     force: bool = False,
+    seed: int = 42,
 ) -> dict:
     """Train PyTorch CNN-LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(f"cnn_lstm_{label_col}", symbol, tf, suffix=".pt")
 
     if out_path.exists() and not force:
@@ -306,6 +310,7 @@ def run_cnn_lstm(
         n_trials=10,
         seq_len=seq_len,
         epochs=epochs,
+        seed=seed,
     )
     save_model(model, metrics, out_path)
     metrics["artifact_path"] = str(out_path)
