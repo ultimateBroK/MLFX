@@ -119,3 +119,38 @@ class ProjectPaths:
 
 
 DEFAULT_PATHS = ProjectPaths(project_root=Path(__file__).resolve().parents[2])
+
+
+def get_project_paths(settings: "ServingSettings | None" = None) -> ProjectPaths:
+    """Build a :class:`ProjectPaths` instance, honoring env-var overrides.
+
+    When ``MLFX_DATA_ROOT`` or ``MLFX_OUTPUTS_ROOT`` are set the returned
+    paths reflect those overrides; otherwise ``DEFAULT_PATHS`` is returned
+    unchanged (zero extra cost for the common case).
+    """
+    # Lazy import to avoid a circular dependency at module load time.
+    from .schema import ServingSettings as _ServingSettings  # noqa: PLC0415
+
+    cfg = settings or _ServingSettings()
+    if cfg.data_root is None and cfg.outputs_root is None:
+        return DEFAULT_PATHS
+
+    # Neither field accepts a relative path, so resolve unconditionally.
+    data_root = Path(cfg.data_root).resolve() if cfg.data_root else None
+    outputs_root = Path(cfg.outputs_root).resolve() if cfg.outputs_root else None
+
+    base = DEFAULT_PATHS
+    # Build a fresh instance with the same project_root so every *other*
+    # property keeps working, then wrap with a subclass that overrides only
+    # the two roots that actually changed.
+
+    class _Overridden(ProjectPaths):  # type: ignore[misc]
+        @property
+        def data_root(self) -> Path:  # type: ignore[override]
+            return data_root or super().data_root
+
+        @property
+        def outputs_root(self) -> Path:  # type: ignore[override]
+            return outputs_root or super().outputs_root
+
+    return _Overridden(project_root=base.project_root)

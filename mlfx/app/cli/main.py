@@ -39,7 +39,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     pipeline = subparsers.add_parser("pipeline", help="Run ETL pipeline stages")
     pipeline.add_argument("--symbol", default="XAUUSD")
-    pipeline.add_argument("--tf", default="1H")
+    pipeline.add_argument(
+        "--tf",
+        nargs="+",
+        default=["1H"],
+        metavar="TF",
+        help="Timeframe(s) to process (default: 1H). E.g. --tf 1H 4H 1D",
+    )
     pipeline.add_argument("--pivot", default="traditional")
     pipeline.add_argument("--anchor", default="daily")
     pipeline.add_argument("--atr-period", type=int, default=14)
@@ -130,24 +136,25 @@ def main() -> None:
         return
 
     if args.command == "pipeline":
-        if not args.skip_resample:
-            resample_symbol_tf(symbol=args.symbol, tf=args.tf, force=args.force)
-        if not args.skip_features:
-            run_feature_pipeline(
-                symbol=args.symbol,
-                tf=args.tf,
-                pivot_type=args.pivot,
-                pivot_anchor=args.anchor,
-                force=args.force,
-            )
-        if not args.skip_labels:
-            run_label_pipeline(
-                symbol=args.symbol,
-                tf=args.tf,
-                atr_period=args.atr_period,
-                atr_mult=args.atr_mult,
-                force=args.force,
-            )
+        for tf in args.tf:
+            if not args.skip_resample:
+                resample_symbol_tf(symbol=args.symbol, tf=tf, force=args.force)
+            if not args.skip_features:
+                run_feature_pipeline(
+                    symbol=args.symbol,
+                    tf=tf,
+                    pivot_type=args.pivot,
+                    pivot_anchor=args.anchor,
+                    force=args.force,
+                )
+            if not args.skip_labels:
+                run_label_pipeline(
+                    symbol=args.symbol,
+                    tf=tf,
+                    atr_period=args.atr_period,
+                    atr_mult=args.atr_mult,
+                    force=args.force,
+                )
         return
 
     if args.command == "train":

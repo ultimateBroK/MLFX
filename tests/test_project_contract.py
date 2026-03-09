@@ -78,10 +78,10 @@ n_splits = 3
 
         config = load_config(config_file)
 
-        assert config["download"]["symbol"] == "BTCUSD"
-        assert config["train"]["backend"] == "stats"
-        assert config["train"]["n_splits"] == 3
-        assert config["pipeline"]["timeframe"] == DEFAULT_CONFIG["pipeline"]["timeframe"]
+        assert config.download.symbol == "BTCUSD"
+        assert config.train.backend == "stats"
+        assert config.train.n_splits == 3
+        assert config.pipeline.timeframe == DEFAULT_CONFIG["pipeline"]["timeframe"]
 
 
 class TestBackendRegistry:

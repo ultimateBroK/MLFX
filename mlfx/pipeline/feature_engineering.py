@@ -5,6 +5,7 @@ Core feature engineering pipeline moved from the legacy `pipeline/features.py`.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
 import polars as pl
@@ -13,6 +14,9 @@ import talib
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
 from mlfx.features.indicators.killzone import add_killzone_features
 from mlfx.features.indicators.sr_pp import add_sr_pp_features
+
+if TYPE_CHECKING:
+    from mlfx.config.schema import FeatureConfig
 
 logger = logging.getLogger(__name__)
 
@@ -162,8 +166,17 @@ def build_feature_pipeline(
     pivot_anchor: str = "daily",
     ema_periods: list[int] | None = None,
     avg_range_n: int = 5,
+    rsi_period: int = 14,
+    atr_period: int = 14,
+    macd_fast: int = 12,
+    macd_slow: int = 26,
+    macd_signal: int = 9,
 ) -> pl.DataFrame:
-    """Apply the complete feature engineering pipeline."""
+    """Apply the complete feature engineering pipeline.
+
+    All indicator hyper-parameters default to the canonical values.  Pass
+    explicit values (or unpack a ``FeatureConfig`` instance) to override them.
+    """
     if ema_periods is None:
         ema_periods = [20, 50, 200]
     if ohlcv.is_empty():
@@ -174,13 +187,13 @@ def build_feature_pipeline(
     ohlcv = ohlcv.sort("timestamp")
     ohlcv = add_killzone_features(ohlcv, avg_range_n=avg_range_n)
     ohlcv = add_sr_pp_features(ohlcv, pivot_type=pivot_type, anchor=pivot_anchor)
-    ohlcv = add_rsi(ohlcv, period=14)
-    ohlcv = add_macd(ohlcv)
-    ohlcv = add_atr(ohlcv, period=14)
+    ohlcv = add_rsi(ohlcv, period=rsi_period)
+    ohlcv = add_macd(ohlcv, fast=macd_fast, slow=macd_slow, signal=macd_signal)
+    ohlcv = add_atr(ohlcv, period=atr_period)
     ohlcv = add_ema(ohlcv, periods=ema_periods)
     ohlcv = add_order_blocks(ohlcv)
     ohlcv = add_fair_value_gaps(ohlcv)
-    return add_normalized_distances(ohlcv)
+    return add_normalized_distances(ohlcv, atr_col=f"atr_{atr_period}")
 
 
 def run_feature_pipeline(
@@ -191,9 +204,24 @@ def run_feature_pipeline(
     force: bool = False,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
+    feature_cfg: FeatureConfig | None = None,
 ) -> dict:
-    """Build and persist feature parquet files for one symbol/timeframe."""
+    """Build and persist feature parquet files for one symbol/timeframe.
+
+    Args:
+        symbol: Instrument symbol.
+        tf: Timeframe string.
+        pivot_type: Pivot-point calculation method.
+        pivot_anchor: Period used for pivot-point anchoring.
+        force: Reprocess existing output files when ``True``.
+        paths: ``ProjectPaths`` instance.
+        feature_cfg: Optional ``FeatureConfig`` with indicator hyper-parameters.
+            Defaults to ``FeatureConfig()`` (canonical values) when ``None``.
+    """
+    from mlfx.config.schema import FeatureConfig as _FeatureConfig  # lazy — avoids import at module load
     from mlfx.pipeline._parquet_loop import process_parquet_files
+
+    cfg = feature_cfg if feature_cfg is not None else _FeatureConfig()
 
     in_dir = paths.ohlcv_dir(symbol, tf)
     out_dir = paths.features_dir(symbol, tf)
@@ -207,6 +235,13 @@ def run_feature_pipeline(
             ohlcv,
             pivot_type=pivot_type,
             pivot_anchor=pivot_anchor,
+            rsi_period=cfg.rsi_period,
+            atr_period=cfg.atr_period,
+            macd_fast=cfg.macd_fast,
+            macd_slow=cfg.macd_slow,
+            macd_signal=cfg.macd_signal,
+            ema_periods=list(cfg.ema_periods),
+            avg_range_n=cfg.avg_range_n,
         )
 
     stats = process_parquet_files(

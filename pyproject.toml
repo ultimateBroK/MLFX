@@ -14,11 +14,12 @@ dependencies = [
     "streamlit>=1.55.0,<2",
     "altair>=6.0.0,<7",
     "puremagic>=2.0.0,<3",
+    "pydantic-settings>=2.0.0,<3",
 ]
 description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "MLFX"
 readme = "README.md"
-requires-python = ">= 3.11"
+requires-python = ">= 3.13"
 version = "0.1.0"
 
 [project.scripts]

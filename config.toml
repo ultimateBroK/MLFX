@@ -18,8 +18,19 @@ pivot_anchor = "daily"
 [train]
 symbol     = "XAUUSD"
 timeframe  = "1H"
+label_col  = "label_10"
 backend    = "mlf"       # "mlf" | "lstm" | "transformer" | "cnn_lstm" | "sgd" | "stats" | "neuralforecast"
+n_trials   = 30
 n_splits   = 5
+
+[features]
+rsi_period  = 14
+atr_period  = 14
+ema_periods = [20, 50, 200]
+macd_fast   = 12
+macd_slow   = 26
+macd_signal = 9
+avg_range_n = 5
 
 [backtest]
 symbol          = "XAUUSD"
