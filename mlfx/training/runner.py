@@ -87,7 +87,13 @@ def run_training(
     metrics["elapsed_seconds"] = round(elapsed, 2)
 
     if run_id:
-        _end_tracking_run(run_id, status="FINISHED", metrics=metrics, config=config)
+        # Filter metrics for tracking: only numeric types, exclude n_samples
+        filtered_metrics = {
+            k: v
+            for k, v in metrics.items()
+            if isinstance(v, (int, float)) and k not in ("n_samples",)
+        }
+        _end_tracking_run(run_id, status="FINISHED", metrics=filtered_metrics, config=config)
 
     if enable_registry and metrics:
         _register_artifact(config, metrics)
@@ -141,17 +147,25 @@ def _end_tracking_run(
     metrics: dict[str, Any],
     config: TrainingConfig,
 ) -> None:
+    """End a tracking run with pre-filtered metrics.
+    
+    Parameters
+    ----------
+    run_id:
+        The run ID returned by start_run.
+    status:
+        Run status: "FINISHED" or "FAILED".
+    metrics:
+        Pre-filtered metrics dict (already contains only loggable types).
+    config:
+        Training configuration for run context.
+    """
     try:
         from mlfx.tracking.tracker import get_tracker
         from mlfx.config.paths import DEFAULT_PATHS
 
         tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
-        loggable = {
-            k: v
-            for k, v in metrics.items()
-            if isinstance(v, (int, float)) and k not in ("n_samples",)
-        }
-        tracker.log_metrics(run_id, loggable)
+        tracker.log_metrics(run_id, metrics)
         tracker.end_run(run_id, status=status)
     except Exception as exc:
         logger.debug("Tracking end-run failed: %s", exc)
