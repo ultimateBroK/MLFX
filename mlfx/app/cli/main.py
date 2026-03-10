@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import datetime
+import json
 import logging
 import sys
+import time
 
 from mlfx.evaluation.runner import get_baseline_metrics, run_full_eval, run_model_backtest
 from mlfx.ingestion.download import run_download_job
@@ -12,7 +15,8 @@ from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
 from mlfx.pipeline.qa_data import run_quality_audit
 from mlfx.pipeline.resampling import resample_symbol_tf
-from mlfx.training.config import TrainingConfig
+from mlfx.training.backends.base import TrainingConfig
+from mlfx.training.registry import BACKEND_REGISTRY
 from mlfx.training.runner import run_training
 
 from rich.console import Console
@@ -20,91 +24,163 @@ from rich.table import Table
 
 console = Console()
 
+_ALL_BACKENDS = sorted(BACKEND_REGISTRY)
+
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, and models."""
-    parser = argparse.ArgumentParser(description="MLFX consolidated CLI")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, models, and benchmark."""
+    parser = argparse.ArgumentParser(
+        description="MLFX — Machine Learning for Forex. Terminal-first workflow.",
+        epilog="Examples:\n"
+               "  mlfx download --symbol XAUUSD --start-year 2020\n"
+               "  mlfx pipeline --tf 1H\n"
+               "  mlfx train --backend bilstm --n-trials 20\n"
+               "  mlfx benchmark --backends mlf bilstm lstm --n-trials 10\n"
+               "  mlfx evaluate --tp 2.0 --sl 1.0\n",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
-    download = subparsers.add_parser("download", help="Download raw tick data")
-    download.add_argument("--symbol", default="XAUUSD")
-    download.add_argument("--asset-class", choices=["fx", "crypto"], default="fx")
-    download.add_argument("--start-year", type=int, default=2015)
-    download.add_argument("--start-month", type=int, default=1)
+    download = subparsers.add_parser(
+        "download",
+        help="Download raw tick data from Dukascopy",
+        description="Download historical tick data for a symbol.",
+    )
+    download.add_argument("--symbol", default="XAUUSD", help="Symbol to download (default: XAUUSD)")
+    download.add_argument("--asset-class", choices=["fx", "crypto"], default="fx", help="Asset class (default: fx)")
+    download.add_argument("--start-year", type=int, default=2015, help="Start year (default: 2015)")
+    download.add_argument("--start-month", type=int, default=1, help="Start month 1-12 (default: 1)")
     download.add_argument("--end-year", type=int, default=None, help="End year (default: current year)")
     download.add_argument("--end-month", type=int, default=None, help="End month (default: current month)")
-    download.add_argument("--concurrency", type=int, default=20)
-    download.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
+    download.add_argument("--concurrency", type=int, default=20, help="Parallel downloads (default: 20)")
+    download.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Force re-verify existing months")
     download.add_argument("--skip-current-month", action="store_true", help="Skip checking/repairing current month")
 
-    pipeline = subparsers.add_parser("pipeline", help="Run ETL pipeline stages")
-    pipeline.add_argument("--symbol", default="XAUUSD")
+    pipeline = subparsers.add_parser(
+        "pipeline",
+        help="Run ETL pipeline: resample → features → labels",
+        description="Execute the full data pipeline for one or more timeframes.",
+    )
+    pipeline.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
     pipeline.add_argument(
         "--tf",
         nargs="+",
         default=["1H"],
         metavar="TF",
-        help="Timeframe(s) to process (default: 1H). E.g. --tf 1H 4H 1D",
+        help="Timeframe(s) to process: 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D (default: 1H)",
     )
-    pipeline.add_argument("--pivot", default="traditional")
-    pipeline.add_argument("--anchor", default="daily")
-    pipeline.add_argument("--atr-period", type=int, default=14)
-    pipeline.add_argument("--atr-mult", type=float, default=0.5)
-    pipeline.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
-    pipeline.add_argument("--skip-resample", action="store_true")
-    pipeline.add_argument("--skip-features", action="store_true")
-    pipeline.add_argument("--skip-labels", action="store_true")
+    pipeline.add_argument("--pivot", default="traditional", help="Pivot type: traditional, fibonacci, woodie, classic, demark, camarilla (default: traditional)")
+    pipeline.add_argument("--anchor", default="daily", help="Pivot anchor: daily, weekly, monthly (default: daily)")
+    pipeline.add_argument("--atr-period", type=int, default=14, help="ATR period for label generation (default: 14)")
+    pipeline.add_argument("--atr-mult", type=float, default=0.5, help="ATR multiplier for label thresholds (default: 0.5)")
+    pipeline.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Overwrite existing files")
+    pipeline.add_argument("--skip-resample", action="store_true", help="Skip tick → OHLCV resampling")
+    pipeline.add_argument("--skip-features", action="store_true", help="Skip feature engineering")
+    pipeline.add_argument("--skip-labels", action="store_true", help="Skip label generation")
 
-    qa = subparsers.add_parser("qa", help="Audit raw downloaded tick data")
-    qa.add_argument("--symbol", default="XAUUSD")
-    qa.add_argument("--asset-class", choices=["fx", "crypto"], default="fx")
+    qa = subparsers.add_parser(
+        "qa",
+        help="Audit raw downloaded tick data",
+        description="Run quality checks on downloaded raw tick data.",
+    )
+    qa.add_argument("--symbol", default="XAUUSD", help="Symbol to audit (default: XAUUSD)")
+    qa.add_argument("--asset-class", choices=["fx", "crypto"], default="fx", help="Asset class (default: fx)")
 
-    train = subparsers.add_parser("train", help="Train one model backend")
-    train.add_argument("--symbol", default="XAUUSD")
-    train.add_argument("--tf", default="1H")
-    train.add_argument("--label", default="label_10")
-    train.add_argument("--backend", default="mlf")
-    train.add_argument("--n-trials", type=int, default=15)
-    train.add_argument("--n-splits", type=int, default=5)
-    train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True)
+    train = subparsers.add_parser(
+        "train",
+        help="Train a single model backend",
+        description="Train one backend with Optuna HPO and CV.",
+    )
+    train.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    train.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    train.add_argument("--label", default="label_10", help="Label column: label_5, label_10, label_20 (default: label_10)")
+    train.add_argument(
+        "--backend",
+        default="mlf",
+        choices=_ALL_BACKENDS,
+        metavar="BACKEND",
+        help=f"Model backend. Options: {', '.join(_ALL_BACKENDS)} (default: mlf)",
+    )
+    train.add_argument("--n-trials", type=int, default=15, help="Optuna trials for HPO (default: 15)")
+    train.add_argument("--n-splits", type=int, default=5, help="TimeSeriesSplit folds (default: 5)")
+    train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Force retrain (overwrite saved model)")
 
-    evaluate = subparsers.add_parser("evaluate", help="Run backtest (model or labels)")
-    evaluate.add_argument("--symbol", default="XAUUSD")
-    evaluate.add_argument("--tf", default="1H")
-    evaluate.add_argument("--label", default="label_10")
-    evaluate.add_argument("--capital", type=float, default=10000.0)
-    evaluate.add_argument("--risk", type=float, default=1.0)
-    evaluate.add_argument("--commission", type=float, default=0.1)
-    evaluate.add_argument("--tp", type=float, default=1.5)
-    evaluate.add_argument("--sl", type=float, default=1.0)
-    evaluate.add_argument("--slippage", type=float, default=0.0)
+    evaluate = subparsers.add_parser(
+        "evaluate",
+        help="Run walk-forward backtest",
+        description="Backtest a trained model or baseline labels.",
+    )
+    evaluate.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    evaluate.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    evaluate.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    evaluate.add_argument("--capital", type=float, default=10000.0, help="Initial capital in USD (default: 10000)")
+    evaluate.add_argument("--risk", type=float, default=1.0, help="Risk per trade %% (default: 1.0)")
+    evaluate.add_argument("--commission", type=float, default=0.1, help="Commission in pips (default: 0.1)")
+    evaluate.add_argument("--tp", type=float, default=1.5, help="Take-profit in R multiples (default: 1.5)")
+    evaluate.add_argument("--sl", type=float, default=1.0, help="Stop-loss in R multiples (default: 1.0)")
+    evaluate.add_argument("--slippage", type=float, default=0.0, help="Slippage in pips (default: 0.0)")
     evaluate.add_argument(
         "--use-labels",
         action="store_true",
         help="Backtest labels only (baseline). Default: backtest model if trained, else labels.",
     )
 
-    serve = subparsers.add_parser("serve", help="Start the real-time inference API server")
-    serve.add_argument("--host", default="0.0.0.0")
-    serve.add_argument("--port", type=int, default=8000)
-    serve.add_argument("--reload", action="store_true")
+    serve = subparsers.add_parser(
+        "serve",
+        help="Start FastAPI inference server",
+        description="Launch the real-time prediction API.",
+    )
+    serve.add_argument("--host", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
+    serve.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
+    serve.add_argument("--reload", action="store_true", help="Enable auto-reload (dev mode)")
 
-    batch = subparsers.add_parser("batch-predict", help="Run batch inference and write predictions")
-    batch.add_argument("--symbol", default="XAUUSD")
-    batch.add_argument("--tf", default="1H")
-    batch.add_argument("--label", default="label_10")
+    batch = subparsers.add_parser(
+        "batch-predict",
+        help="Run batch inference",
+        description="Generate predictions for all bars and save to disk.",
+    )
+    batch.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    batch.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    batch.add_argument("--label", default="label_10", help="Label column (default: label_10)")
 
-    drift = subparsers.add_parser("drift", help="Detect feature drift vs training reference")
-    drift.add_argument("--symbol", default="XAUUSD")
-    drift.add_argument("--tf", default="1H")
-    drift.add_argument("--label", default="label_10")
-    drift.add_argument("--threshold-ks", type=float, default=0.1)
-    drift.add_argument("--threshold-psi", type=float, default=0.2)
+    drift = subparsers.add_parser(
+        "drift",
+        help="Detect feature drift",
+        description="Compare current features against training reference using KS/PSI tests.",
+    )
+    drift.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    drift.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    drift.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    drift.add_argument("--threshold-ks", type=float, default=0.1, help="Kolmogorov-Smirnov threshold (default: 0.1)")
+    drift.add_argument("--threshold-psi", type=float, default=0.2, help="Population Stability Index threshold (default: 0.2)")
 
-    models = subparsers.add_parser("models", help="List registered model versions")
-    models.add_argument("--symbol", default=None)
-    models.add_argument("--tf", default=None)
-    models.add_argument("--backend", default=None)
+    models = subparsers.add_parser(
+        "models",
+        help="List registered model versions",
+        description="Show all models in the registry with optional filtering.",
+    )
+    models.add_argument("--symbol", default=None, help="Filter by symbol")
+    models.add_argument("--tf", default=None, help="Filter by timeframe")
+    models.add_argument("--backend", default=None, help="Filter by backend")
+
+    benchmark = subparsers.add_parser(
+        "benchmark",
+        help="Compare multiple backends on same data",
+        description="Run multiple backends sequentially and compare metrics in a table.",
+    )
+    benchmark.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    benchmark.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    benchmark.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    benchmark.add_argument(
+        "--backends",
+        nargs="+",
+        default=["mlf", "sgd", "stats"],
+        metavar="BACKEND",
+        help=f"Backends to run. Default: mlf sgd stats. Available: {', '.join(_ALL_BACKENDS)}",
+    )
+    benchmark.add_argument("--n-trials", type=int, default=5, help="Optuna trials per backend (default: 5)")
+    benchmark.add_argument("--n-splits", type=int, default=3, help="CV folds (default: 3)")
+    benchmark.add_argument("--force", action=argparse.BooleanOptionalAction, default=False, help="Force retrain all backends")
 
     return parser
 
@@ -316,3 +392,103 @@ def main() -> None:
 
         console.print(table)
         return
+
+    if args.command == "benchmark":
+        _run_benchmark(args)
+        return
+
+
+def _run_benchmark(args: argparse.Namespace) -> None:
+    """Run multiple backends on the same dataset and print a comparison table."""
+    from mlfx.config.paths import DEFAULT_PATHS  # noqa: PLC0415
+
+    backends: list[str] = args.backends
+    invalid = [b for b in backends if b not in BACKEND_REGISTRY]
+    if invalid:
+        console.print(f"[red]Unknown backends: {invalid}. Available: {_ALL_BACKENDS}[/red]")
+        return
+
+    console.rule(f"[bold cyan]MLFX Benchmark — {args.symbol} {args.tf} {args.label}[/]")
+    console.print(f"Backends: {', '.join(backends)}  |  n_trials={args.n_trials}  n_splits={args.n_splits}\n")
+
+    results: list[dict] = []
+
+    for backend in backends:
+        console.print(f"[yellow]Running:[/] {backend} ...", end="  ")
+        t0 = time.perf_counter()
+        try:
+            cfg = TrainingConfig(
+                symbol=args.symbol,
+                tf=args.tf,
+                label_col=args.label,
+                backend=backend,
+                n_trials=args.n_trials,
+                n_splits=args.n_splits,
+                force=args.force,
+            )
+            metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
+            elapsed = time.perf_counter() - t0
+            row = {
+                "backend": backend,
+                "cv_f1_macro": f"{metrics.get('best_cv_f1_macro', metrics.get('cv_f1_macro', 0.0)):.4f}",
+                "train_f1": f"{metrics.get('f1_macro_train', 0.0):.4f}",
+                "accuracy": f"{metrics.get('accuracy', 0.0):.4f}",
+                "elapsed_s": f"{elapsed:.1f}",
+                "status": "OK",
+            }
+            console.print(f"[green]OK[/] ({elapsed:.1f}s)")
+        except Exception as exc:  # noqa: BLE001
+            elapsed = time.perf_counter() - t0
+            row = {
+                "backend": backend,
+                "cv_f1_macro": "-",
+                "train_f1": "-",
+                "accuracy": "-",
+                "elapsed_s": f"{elapsed:.1f}",
+                "status": f"ERROR: {exc}",
+            }
+            console.print(f"[red]ERROR[/] — {exc}")
+        results.append(row)
+
+    # Print comparison table
+    console.print()
+    table = Table(
+        title=f"Benchmark Results — {args.symbol} {args.tf} {args.label}",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("Backend", style="bold")
+    table.add_column("CV F1 (macro)", justify="right")
+    table.add_column("Train F1", justify="right")
+    table.add_column("Accuracy", justify="right")
+    table.add_column("Time (s)", justify="right")
+    table.add_column("Status")
+
+    for row in results:
+        status_style = "green" if row["status"] == "OK" else "red"
+        table.add_row(
+            row["backend"],
+            row["cv_f1_macro"],
+            row["train_f1"],
+            row["accuracy"],
+            row["elapsed_s"],
+            f"[{status_style}]{row['status']}[/]",
+        )
+    console.print(table)
+
+    # Save JSON report
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    report_path = reports_dir / f"benchmark_{ts}.json"
+    payload = {
+        "symbol": args.symbol,
+        "tf": args.tf,
+        "label": args.label,
+        "n_trials": args.n_trials,
+        "n_splits": args.n_splits,
+        "timestamp": ts,
+        "results": results,
+    }
+    report_path.write_text(json.dumps(payload, indent=2))
+    console.print(f"\n[dim]Report saved → {report_path}[/]")

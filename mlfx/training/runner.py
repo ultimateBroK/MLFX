@@ -17,8 +17,11 @@ The runner:
 
 from __future__ import annotations
 
+import datetime
+import json
 import logging
 import time
+from pathlib import Path
 from typing import Any
 
 from mlfx.training.backends.base import TrainingConfig
@@ -110,6 +113,7 @@ def run_training(
         elapsed,
         summary,
     )
+    _append_metrics_log(config, summary)
     return metrics
 
 
@@ -192,3 +196,25 @@ def _register_artifact(config: TrainingConfig, metrics: dict[str, Any]) -> None:
         )
     except Exception as exc:
         logger.debug("Model registry update failed: %s", exc)
+
+
+def _append_metrics_log(config: TrainingConfig, summary: dict[str, Any]) -> None:
+    """Append a one-line JSON entry to outputs/runs/{symbol}/{tf}/metrics_log.jsonl.
+
+    The file is append-only so historical runs are preserved.
+    Failures are silently swallowed to avoid interrupting the training workflow.
+    """
+    try:
+        from mlfx.config.paths import DEFAULT_PATHS  # noqa: PLC0415
+
+        log_path: Path = DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / "metrics_log.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "backend": config.backend,
+            **summary,
+        }
+        with log_path.open("a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("metrics_log append failed: %s", exc)

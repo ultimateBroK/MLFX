@@ -85,10 +85,10 @@ n_splits = 3
 
 
 class TestBackendRegistry:
-    def test_registry_contains_current_tui_backends(self):
+    def test_registry_contains_all_backends(self):
         from mlfx.training.registry import BACKEND_REGISTRY
 
-        expected = {"mlf", "lstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"}
+        expected = {"mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"}
         assert expected.issubset(BACKEND_REGISTRY.keys())
 
     def test_unknown_backend_raises_clear_error(self):

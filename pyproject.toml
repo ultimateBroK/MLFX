@@ -2,17 +2,14 @@
 authors = [{ name = "Hieu Nguyen", email = "hieuteo03@gmail.com" }]
 dependencies = [
     "cachetools>=5.3.0,<6",
-    "textual>=8.0.2,<9",
     "ipykernel>=7.2.0,<8",
     "neuralforecast>=3.1.5,<4",
     "statsforecast>=2.0.3,<3",
     "mlforecast>=1.0.2,<2",
-    "fastapi>=0.135.1,<0.136", 
-    "scipy>=1.7.3,<1.16.0", 
-    "pydantic>=2.12.5,<3", 
+    "fastapi>=0.135.1,<0.136",
+    "scipy>=1.7.3,<1.16.0",
+    "pydantic>=2.12.5,<3",
     "uvicorn>=0.41.0,<0.42",
-    "streamlit>=1.55.0,<2",
-    "altair>=6.0.0,<7",
     "puremagic>=2.0.0,<3",
     "pydantic-settings>=2.0.0,<3",
 ]
@@ -24,7 +21,6 @@ version = "0.1.0"
 
 [project.scripts]
 mlfx = "mlfx.app.cli.main:main"
-mlfx-tui = "mlfx.app.tui.main:main"
 
 [project.optional-dependencies]
 serving = [
@@ -56,7 +52,6 @@ MLFX = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 test = "pytest"
-mlfx-ui = "streamlit run mlfx/app/streamlit/app.py --server.headless true"
 verify = "pytest tests/test_project_contract.py tests/test_training_contract.py tests/test_training_runner_registry_contract.py tests/test_registry_serving_contract.py tests/test_serving_api_contract.py tests/test_tracking_monitoring_contract.py tests/test_evaluation_contract.py tests/test_mlfx_pipeline.py tests/integration/test_entrypoints.py"
 clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs && mkdir -p outputs/models outputs/reports logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
 
