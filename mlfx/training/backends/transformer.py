@@ -14,11 +14,9 @@ import numpy as np
 import optuna
 import torch
 import torch.nn as nn
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.metrics import f1_score
-from sklearn.model_selection import TimeSeriesSplit
 from mlfx.training.artifacts import save_torch_artifact
-from mlfx.training.backends._sequence_utils import create_sequences, train_sequence_model_once
+from mlfx.training.backends._pytorch_common import run_pytorch_hpo
+from mlfx.training.backends._sequence_utils import train_sequence_model_once
 from mlfx.training.data import build_model_output_path, prepare_tabular_data
 from mlfx.training._utils import set_seed
 
@@ -123,52 +121,19 @@ def train_transformer_once(
         patience=patience,
     )
 
-def _objective(
-    trial: optuna.Trial,
-    X: np.ndarray,
-    y: np.ndarray,
-    seq_len: int,
-    epochs: int,
-    batch_size: int,
-    patience: int,
-    n_splits: int,
-) -> float:
+def _suggest_params(trial: optuna.Trial) -> dict[str, Any] | None:
     d_model = trial.suggest_categorical("d_model", [32, 64, 128])
     nhead = trial.suggest_categorical("nhead", [2, 4, 8])
     if d_model % nhead != 0:
-        return 0.0 # prune invalid combos quickly
-
-    num_layers = trial.suggest_int("num_layers", 1, 3)
-    dim_feedforward = trial.suggest_categorical("dim_feedforward", [64, 128, 256])
-    dropout = trial.suggest_float("dropout", 0.1, 0.5)
-    lr = trial.suggest_float("lr", 1e-4, 5e-3, log=True)
-
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    f1_scores = []
-
-    for train_idx, val_idx in tscv.split(X):
-        if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
-            continue
-            
-        X_tr, y_tr = X[train_idx], y[train_idx]
-        X_val, y_val = X[val_idx], y[val_idx]
-        
-        _, val_f1, _ = train_transformer_once(
-            X_tr, y_tr, X_val, y_val,
-            seq_len=seq_len,
-            d_model=d_model,
-            nhead=nhead,
-            num_layers=num_layers,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            lr=lr,
-            epochs=epochs,
-            batch_size=batch_size,
-            patience=patience,
-        )
-        f1_scores.append(val_f1)
-
-    return float(np.mean(f1_scores)) if f1_scores else 0.0
+        return None  # run_pytorch_hpo treats None as 0.0
+    return {
+        "d_model": d_model,
+        "nhead": nhead,
+        "num_layers": trial.suggest_int("num_layers", 1, 3),
+        "dim_feedforward": trial.suggest_categorical("dim_feedforward", [64, 128, 256]),
+        "dropout": trial.suggest_float("dropout", 0.1, 0.5),
+        "lr": trial.suggest_float("lr", 1e-4, 5e-3, log=True),
+    }
 
 def train_transformer(
     X: np.ndarray,
@@ -184,88 +149,18 @@ def train_transformer(
     seed: int = 42,
 ) -> tuple[FXTransformer, dict]:
     """Train Transformer with Optuna HPO, feature selection, and OOS evaluation. Returns (model, metrics)."""
-    logger.info("Applying feature selection (top %d)", top_k_features)
-    k = min(top_k_features, X.shape[1])
-    selector = SelectKBest(score_func=f_classif, k=k)
-    X_selected = selector.fit_transform(X, y)
-    selected_mask = selector.get_support()
-    selected_features = [f for i, f in enumerate(feature_cols) if selected_mask[i]]
-
-    optuna.logging.set_verbosity(optuna.logging.WARNING)
-    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
-    
-    # We can pre-enqueue known good combos or let it figure it out
-    study.optimize(
-        lambda t: _objective(t, X_selected, y, seq_len, epochs, batch_size, patience, n_splits),
+    return run_pytorch_hpo(
+        train_transformer_once, _suggest_params, X, y, feature_cols,
+        model_type="Transformer",
         n_trials=n_trials,
-        show_progress_bar=False,
-    )
-    
-    best_params = study.best_params
-    logger.info("Best Transformer params: %s | F1: %.4f", best_params, study.best_value)
-
-    tscv = TimeSeriesSplit(n_splits=n_splits)
-    oos_preds = np.full(len(y), -1, dtype=y.dtype)
-    oos_labels = np.full(len(y), -1, dtype=y.dtype)
-    
-    for train_idx, val_idx in tscv.split(X_selected):
-        if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
-            continue
-            
-        model_cv, _, _ = train_transformer_once(
-            X_selected[train_idx], y[train_idx], 
-            X_selected[val_idx], y[val_idx],
-            seq_len=seq_len,
-            d_model=best_params["d_model"],
-            nhead=best_params["nhead"],
-            num_layers=best_params["num_layers"],
-            dim_feedforward=best_params["dim_feedforward"],
-            dropout=best_params["dropout"],
-            lr=best_params["lr"],
-            epochs=epochs,
-            batch_size=batch_size,
-            patience=patience,
-        )
-        model_cv.eval()
-        X_val_seq, y_val_seq = create_sequences(X_selected[val_idx], y[val_idx], seq_len=seq_len)
-        with torch.no_grad():
-            preds = model_cv(torch.tensor(X_val_seq)).argmax(1).cpu().numpy()
-        val_seq_idx = val_idx[seq_len:]
-        oos_preds[val_seq_idx] = preds
-        oos_labels[val_seq_idx] = y_val_seq
-
-    valid_mask = oos_preds != -1
-    f1_macro_oos = float(f1_score(oos_labels[valid_mask], oos_preds[valid_mask], average="macro", zero_division=0))
-
-    cut = int(len(X_selected) * 0.9)
-    final_model, final_f1, history = train_transformer_once(
-        X_selected[:cut], y[:cut],
-        X_selected[cut:], y[cut:],
+        n_splits=n_splits,
         seq_len=seq_len,
-        d_model=best_params["d_model"],
-        nhead=best_params["nhead"],
-        num_layers=best_params["num_layers"],
-        dim_feedforward=best_params["dim_feedforward"],
-        dropout=best_params["dropout"],
-        lr=best_params["lr"],
         epochs=epochs,
         batch_size=batch_size,
         patience=patience,
+        top_k_features=top_k_features,
+        seed=seed,
     )
-    
-    metrics = {
-        "best_cv_f1_macro": study.best_value,
-        "f1_macro_oos": f1_macro_oos,
-        "best_params": best_params,
-        "selected_features": selected_features,
-        "seq_len": seq_len,
-        "n_samples": len(X),
-        "history": history,
-        "model_type": "Transformer",
-    }
-    
-    logger.info("Final OOS F1: %.4f", f1_macro_oos)
-    return final_model, metrics
 
 def save_model(model: FXTransformer, metrics: dict, path: Path) -> None:
     """Persist Transformer state_dict and metrics to .pt artifact for serving."""
@@ -304,6 +199,9 @@ def run_transformer(
     top_k_features: int = 20,
     force: bool = False,
     seed: int = 42,
+    X: np.ndarray | None = None,
+    y: np.ndarray | None = None,
+    feature_cols: list[str] | None = None,
 ) -> dict:
     """Train PyTorch Transformer with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -313,11 +211,11 @@ def run_transformer(
         logger.info("Transformer model exists at %s", out_path)
         return {}
 
-    prepared = prepare_tabular_data(symbol, tf, label_col)
-    if prepared is None:
-        return {}
-
-    X, y, feature_cols = prepared
+    if X is None or y is None or feature_cols is None:
+        prepared = prepare_tabular_data(symbol, tf, label_col)
+        if prepared is None:
+            return {}
+        X, y, feature_cols = prepared
     model, metrics = train_transformer(
         X, y, feature_cols,
         n_trials=n_trials,

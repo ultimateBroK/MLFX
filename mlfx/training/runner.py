@@ -63,6 +63,14 @@ def run_training(
     runner = get_backend_runner(config.backend)
     kwargs = get_runner_kwargs(config)
 
+    _DL_BACKENDS = frozenset({"lstm", "bilstm", "transformer", "cnn_lstm"})
+    if config.backend in _DL_BACKENDS:
+        from mlfx.training.data import prepare_tabular_data
+        prepared = prepare_tabular_data(config.symbol, config.tf, config.label_col)
+        if prepared is not None:
+            X, y, feature_cols = prepared
+            kwargs.update({"X": X, "y": y, "feature_cols": feature_cols})
+
     run_id: str | None = None
     if enable_tracking:
         run_id = _start_tracking_run(config)
