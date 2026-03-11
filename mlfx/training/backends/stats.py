@@ -19,6 +19,18 @@ from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
+# Timeframe -> Pandas frequency string.
+_TF_FREQ: dict[str, str] = {
+    "1m": "1min",
+    "5m": "5min",
+    "15m": "15min",
+    "30m": "30min",
+    "1H": "h",
+    "2H": "2h",
+    "4H": "4h",
+    "1D": "D",
+}
+
 
 def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") -> tuple[pl.DataFrame, list[str]]:
     """Format dataframe for Nixtla StatsForecast (unique_id, ds, y).
@@ -41,6 +53,7 @@ def train_stats_baseline(
     df_nixtla: pl.DataFrame,
     n_splits: int = 5,
     season_length: int = 24,
+    freq: str = "h",
 ) -> tuple[StatsForecast, dict]:
     models = [
         AutoARIMA(season_length=season_length),
@@ -50,7 +63,7 @@ def train_stats_baseline(
 
     sf = StatsForecast(
         models=models,
-        freq="1h",
+        freq=freq,
         n_jobs=-1,
     )
 
@@ -131,7 +144,8 @@ def run_stats(
 
     df_nixtla, _ = prepare_nixtla_df(df, label_col, symbol=symbol)
     df_nixtla = df_nixtla.tail(5000)
-    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits, season_length=season_length)
+    freq = _TF_FREQ.get(tf, "h")
+    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits, season_length=season_length, freq=freq)
     save_model(sf, metrics, out_path)
     metrics["artifact_path"] = str(out_path)
     return metrics

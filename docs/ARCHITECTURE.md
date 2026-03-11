@@ -110,6 +110,9 @@ runner.run_training()
 ```
 mlfx/training/
 ├── backends/               ← implementations (canonical location)
+│   ├── __init__.py
+│   ├── _pytorch_common.py  ← shared PyTorch utilities for DL backends
+│   ├── _sequence_utils.py  ← sequence preparation helpers for DL backends
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
 │   ├── mlforecast.py       ← LightGBM via MLForecast  (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
@@ -119,14 +122,15 @@ mlfx/training/
 │   ├── online_sgd.py       ← sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← StatsForecast baseline    (key: "stats")
 │   └── neuralforecast.py   ← NeuralForecast            (key: "neuralforecast")
-├── backend_*.py            ← backward-compat shims (re-export from backends/)
-├── data.py                 ← dataset loading helpers (canonical)
-├── feature_selection.py    ← feature selection helpers (canonical)
-├── artifacts.py            ← model persistence helpers (canonical)
 ├── __init__.py             ← public re-exports from data/feature_selection/artifacts
+├── _utils.py               ← internal utilities
+├── artifacts.py            ← model persistence helpers (canonical)
+├── config.py               ← public TrainingConfig / TrainResult aliases
+├── data.py                 ← dataset loading helpers (canonical)
+├── evaluation.py           ← model evaluation helpers
+├── feature_selection.py    ← feature selection helpers (canonical)
 ├── registry.py             ← BACKEND_REGISTRY: key → (module, function)
-├── runner.py               ← high-level orchestrator
-└── config.py               ← public TrainingConfig / TrainResult aliases
+└── runner.py               ← high-level orchestrator
 ```
 
 ### Backend Interface
@@ -155,7 +159,7 @@ cfg = TrainingConfig(
     symbol="XAUUSD",
     tf="1H",
     backend="mlf",
-    n_trials=30,
+    n_trials=15,
     n_splits=5,
 )
 ```
@@ -230,6 +234,19 @@ pixi run mlfx serve --port 8000
 docker-compose up api
 ```
 
+Serving module layout:
+
+```
+mlfx/serving/
+├── __init__.py
+├── api.py           ← FastAPI app (GET /health, GET /models, POST /predict)
+├── batch.py         ← batch inference runner
+├── core.py          ← shared serving utilities
+├── features.py      ← feature preparation for inference
+├── inference.py     ← model loading and prediction
+└── torch_adapters.py ← PyTorch model adapters for serving
+```
+
 ### Batch
 
 ```bash
@@ -248,6 +265,8 @@ pixi run mlfx batch-predict --symbol XAUUSD --tf 1H
 
 ```bash
 pixi run mlfx drift --symbol XAUUSD --tf 1H
+# Tùy chỉnh ngưỡng:
+pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
 ### Structured Logging

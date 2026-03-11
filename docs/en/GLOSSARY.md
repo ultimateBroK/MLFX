@@ -57,7 +57,7 @@ This file collects the most common terms used across the repository.
 - `sgd`: online SGD baseline
 - `stats`: statistical baseline
 - `neuralforecast`: NeuralForecast backend
-- `bilstm`: backend present in the codebase but not currently exposed in the CLI/TUI
+- `bilstm`: Bidirectional LSTM (PyTorch)
 
 ## 7. Repository outputs
 

@@ -16,6 +16,7 @@ logs/*
 /download.log
 /lightning_logs/
 /outputs
+/docs/storings
 
 # Tooling and test caches
 .pytest_cache/

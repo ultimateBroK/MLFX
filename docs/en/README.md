@@ -16,6 +16,7 @@ The repository is operated in a `Pixi-first` way. Day-to-day commands should be 
   - [NOOB_GUIDE.md](NOOB_GUIDE.md)
   - [USAGE_GUIDE.md](USAGE_GUIDE.md)
   - [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md)
+  - [FEATURE_REFERENCE.md](FEATURE_REFERENCE.md)
   - [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
   - [GLOSSARY.md](GLOSSARY.md)
   - [TODO.md](TODO.md)
@@ -43,7 +44,6 @@ pixi install
 ## Official Entrypoints
 
 - `pixi run mlfx` for the unified CLI
-- `pixi run mlfx-tui` for the Textual TUI
 - `pixi run test` to run the full test suite
 - `pixi run verify` to run the focused smoke/contract checks
 - `pixi run clean-generated` to clear common caches and generated artifacts
@@ -72,14 +72,6 @@ What each stage does:
 
 ## Quickstart
 
-Launch the TUI:
-
-```bash
-pixi run mlfx-tui
-```
-
-Or run the CLI end to end:
-
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
@@ -92,6 +84,7 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -105,7 +98,7 @@ For full parameter references and operational examples, see [USAGE_GUIDE.md](USA
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/           # CLI and TUI
+│   ├── app/           # CLI
 │   ├── config/        # path policy and config loading
 │   ├── ingestion/     # Dukascopy downloader
 │   ├── pipeline/      # qa, resampling, feature engineering, labeling

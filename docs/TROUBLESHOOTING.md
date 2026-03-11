@@ -85,6 +85,7 @@ pixi run mlfx qa --symbol XAUUSD --asset-class fx
 CLI hiện hỗ trợ:
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -166,3 +167,33 @@ Lệnh này phù hợp khi bạn vừa:
 - đổi cấu hình Pixi
 - chỉnh docs/entrypoints
 - dọn cache/output và muốn chắc workflow chính vẫn ổn
+
+## 12. Drift liên tục báo cảnh báo nhưng không muốn thay đổi model
+
+Nếu drift normally xuất hiện ở mức thấp và không đủ nguy hiểm, có thể nới lỏng ngưỡng:
+
+```bash
+pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.2 --threshold-psi 0.3
+```
+
+Ngưỡng mặc định: `--threshold-ks 0.1` và `--threshold-psi 0.2`.
+
+## 13. Muốn chạy nhiều timeframe cùng lúc
+
+Lệnh `pipeline` hỗ trợ nhiều `--tf` trong một lần chạy:
+
+```bash
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H 4H 1D
+```
+
+Các timeframe được xử lý lần lượt trong cùng một lời gọi.
+
+## 14. Benchmark lưu báo cáo ở đâu
+
+Sau khi chạy `benchmark`, kết quả JSON được lưu tự động vào:
+
+```text
+outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json
+```
+
+Ví dụ: `outputs/reports/XAUUSD/1H/benchmark_20260101_120000.json`

@@ -19,7 +19,7 @@ pivot_anchor = "daily"
 symbol     = "XAUUSD"
 timeframe  = "1H"
 label_col  = "label_10"
-backend    = "mlf"       # "mlf" | "lstm" | "transformer" | "cnn_lstm" | "sgd" | "stats" | "neuralforecast"
+backend    = "mlf"       # "mlf" | "lstm" | "bilstm" | "transformer" | "cnn_lstm" | "sgd" | "stats" | "neuralforecast"
 n_trials   = 30
 n_splits   = 5
 

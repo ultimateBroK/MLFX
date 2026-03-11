@@ -57,7 +57,7 @@ Tài liệu này gom các thuật ngữ thường gặp trong repo.
 - `sgd`: online SGD baseline
 - `stats`: baseline thống kê
 - `neuralforecast`: backend NeuralForecast
-- `bilstm`: backend có trong codebase nhưng chưa nằm trong CLI/TUI
+- `bilstm`: Bidirectional LSTM (PyTorch)
 
 ## 7. Đầu ra của repo
 

@@ -56,9 +56,10 @@ Labels such as `label_5`, `label_10`, and `label_20` define the supervised targe
 
 ### Labels -> Train
 
-The CLI/TUI currently exposes these backends:
+The CLI currently exposes these backends:
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -74,16 +75,8 @@ Backtesting consumes a label column as a signal source and generates:
 
 ## 4. Fastest way to start
 
-If you just want to try the project:
-
 ```bash
 pixi install
-pixi run mlfx-tui
-```
-
-Or use the CLI:
-
-```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H

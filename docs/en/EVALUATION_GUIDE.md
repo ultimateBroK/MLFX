@@ -36,6 +36,29 @@ pixi run mlfx evaluate \
   --slippage 0.0
 ```
 
+### 2.1 Trade Execution Rules
+
+For each bar where a signal is present, the simulator:
+1. Opens a position at the **next bar's open** price
+2. Checks subsequent bars for TP or SL breach
+3. If neither TP nor SL is hit within **10 bars** (`horizon_limit`), the trade is force-exited at the 10th bar
+
+The TP and SL are expressed in **R** (multiples of the initial risk distance, derived from `atr_14`).
+
+### 2.2 Label → Signal Mapping
+
+Ordinal label values map to trading signals as follows:
+
+| Label | Signal | Meaning |
+|---|---|---|
+| `2` | LONG | Strong bullish |
+| `1` | LONG | Bullish |
+| `0` | Skip | No trade |
+| `-1` | SHORT | Bearish |
+| `-2` | SHORT | Strong bearish |
+
+> **Note**: Labels `1` and `2` both produce the same LONG trade; confidence level (`±2` vs `±1`) does not affect position sizing in the current implementation.
+
 Argument summary:
 - `--symbol`: instrument identifier
 - `--tf`: timeframe being evaluated
@@ -109,7 +132,7 @@ Quick interpretation:
 - `Net Profit ($)`: dollar-equivalent result after capital and risk assumptions
 - `Sharpe Ratio`: mean return relative to overall volatility
 - `Sortino Ratio`: similar to Sharpe, but penalizes downside volatility only
-- `Calmar Ratio`: total return relative to maximum drawdown
+- `Calmar Ratio`: total net profit (in **R**) divided by maximum drawdown (in **R**); values above `1` are positive. *Note: both numerator and denominator are in R-units, not dollar amounts.*
 - `Final Capital ($)`: ending capital after simulated trading costs and outcomes
 
 ## 6. Reading Each Report
@@ -183,3 +206,34 @@ metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
 print(metrics)
 generate_full_report("XAUUSD", "1H", df, trades, "label_10_R15", Path("outputs/reports/XAUUSD/1H"))
 ```
+
+## 10. Model Backtest Mode
+
+By default, `mlfx evaluate` uses the best registered model to generate predictions, then backtests those predictions. To backtest the raw labels (no model), use `--use-labels`:
+
+```bash
+# Backtest raw labels (baseline)
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
+
+# Backtest best registered model predictions (default)
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
+
+The model backtest loads `outputs/models/registry.json`, selects the entry with the highest `best_cv_f1_macro`, and runs inference over the full dataset.
+
+## 11. Baseline vs Model Comparison Workflow
+
+A recommended approach to assess model value:
+
+```bash
+# Step 1: Baseline — backtest the raw labels
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
+
+# Step 2: Train a model
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+
+# Step 3: Model backtest — use the trained model's predictions
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
+
+Compare the equity curves and metrics from both runs. The model adds value if it has a higher Profit Factor and Sharpe Ratio than the baseline.

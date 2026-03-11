@@ -85,6 +85,7 @@ pixi run mlfx qa --symbol XAUUSD --asset-class fx
 The CLI currently supports:
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -166,3 +167,33 @@ This is useful after:
 - changing Pixi configuration
 - updating docs or entrypoints
 - cleaning caches and outputs, then checking the main workflow still behaves correctly
+
+## 12. Drift keeps alerting but you do not want to retrain
+
+If drift appears at consistently low levels that do not warrant retraining, relax the thresholds:
+
+```bash
+pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.2 --threshold-psi 0.3
+```
+
+Defaults: `--threshold-ks 0.1` and `--threshold-psi 0.2`.
+
+## 13. Running multiple timeframes in one command
+
+The `pipeline` subcommand accepts multiple `--tf` values in a single call:
+
+```bash
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H 4H 1D
+```
+
+Timeframes are processed sequentially within the same invocation.
+
+## 14. Where does `benchmark` save its report?
+
+After completion, a JSON summary is saved automatically to:
+
+```text
+outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json
+```
+
+Example: `outputs/reports/XAUUSD/1H/benchmark_20260101_120000.json`

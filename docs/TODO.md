@@ -9,7 +9,6 @@ Chú giải:
 ## 1. Năng lực hiện tại
 
 - [x] CLI hợp nhất `mlfx`
-- [x] TUI `mlfx-tui`
 - [x] downloader dữ liệu trong `mlfx.ingestion`
 - [x] QA, resample, feature engineering, labeling trong `mlfx.pipeline`
 - [x] train backend trong `mlfx.training`
@@ -21,22 +20,23 @@ Chú giải:
 
 - [x] `mlf`
 - [x] `lstm`
+- [x] `bilstm`
 - [x] `transformer`
 - [x] `cnn_lstm`
 - [x] `sgd`
 - [x] `stats`
 - [x] `neuralforecast`
-- [x] `bilstm` implementation có trong codebase nhưng chưa expose ở CLI/TUI
 
 ## 3. Hướng ưu tiên hợp lý tiếp theo
 
-- [ ] quyết định có expose `bilstm` trong CLI/TUI hay không
-- [ ] bổ sung benchmark thống nhất để so sánh backend trên cùng dataset
-- [ ] mở rộng test end-to-end cho train và evaluate trên fixture dataset nhỏ hơn nữa
-- [ ] cân nhắc thêm workflow export metrics hoặc report summary phục vụ monitoring
+- [x] expose `bilstm` trong CLI (đã có qua `--backend bilstm`)
+- [x] bổ sung benchmark thống nhất để so sánh backend trên cùng dataset (đã có `mlfx benchmark`)
+- [x] mở rộng test end-to-end cho train và evaluate trên fixture dataset nhỏ (đã có `test_training_e2e.py`)
+- [x] thêm workflow export metrics phục vụ monitoring (đã có `metrics_log.jsonl`)
 
 ## 4. Gợi ý khi chọn việc tiếp theo
 
-- nếu mục tiêu là so sánh mô hình: ưu tiên benchmark thống nhất
-- nếu mục tiêu là ổn định vận hành: ưu tiên test end-to-end và export summary metrics
-- nếu mục tiêu là mở rộng khả năng thử nghiệm: cân nhắc expose `bilstm`
+- nếu mục tiêu là so sánh mô hình: dùng `mlfx benchmark --backends mlf bilstm lstm`; cân nhắc chuẩn hóa metrics cross-backend
+- nếu mục tiêu là ổn định vận hành: mở rộng test coverage, thêm fixture dataset nhỏ hơn
+- nếu mục tiêu là mở rộng thử nghiệm: thêm backend mới (e.g., attention-based), thêm live data adapter
+- nếu mục tiêu là production: refactor serving layer, thêm retry logic và circuit breaker

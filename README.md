@@ -16,6 +16,7 @@ Repo được vận hành theo hướng `Pixi-first`. Mọi lệnh thường ng�
   - [NOOB_GUIDE.md](docs/NOOB_GUIDE.md)
   - [USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
   - [EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md)
+  - [FEATURE_REFERENCE.md](docs/FEATURE_REFERENCE.md)
   - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
   - [GLOSSARY.md](docs/GLOSSARY.md)
   - [TODO.md](docs/TODO.md)
@@ -43,8 +44,6 @@ pixi install
 ## Entrypoint chính
 
 - `pixi run mlfx` cho CLI hợp nhất
-- `pixi run mlfx-tui` cho Textual TUI
-- `pixi run mlfx-ui` cho Streamlit UI (Glassmorphism Emerald AMOLED, khuyến nghị cho người mới)
 - `pixi run test` để chạy toàn bộ test suite
 - `pixi run verify` để chạy bộ test smoke/contract trọng tâm
 - `pixi run clean-generated` để dọn cache và generated artifacts an toàn
@@ -75,20 +74,6 @@ download  →  qa  →  pipeline  →  train  →  evaluate
 
 ## Bắt đầu nhanh
 
-Chạy Streamlit UI (khuyến nghị):
-
-```bash
-pixi run mlfx-ui
-```
-
-Hoặc chạy TUI:
-
-```bash
-pixi run mlfx-tui
-```
-
-Hoặc chạy hoàn toàn bằng CLI:
-
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
@@ -118,7 +103,7 @@ Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md]
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # CLI, TUI, Streamlit UI
+│   ├── app/            # CLI
 │   ├── config/         # path policy và config loader
 │   ├── ingestion/      # downloader Dukascopy
 │   ├── pipeline/       # qa, resampling, feature engineering, labeling
@@ -148,7 +133,7 @@ MLFX/
 │   └── monitoring/     # {symbol}/{tf}/ (drift reference snapshots + alerts)
 ├── Dockerfile          # multi-stage container image
 ├── docker-compose.yml  # API server + optional MLflow server
-├── config.toml         # giá trị mặc định cho CLI/TUI
+├── config.toml         # giá trị mặc định cho CLI
 └── pyproject.toml      # package metadata, Pixi config, tasks
 ```
 

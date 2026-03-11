@@ -78,14 +78,14 @@ data/raw/                  data/ohlcv/      tracking/      reports/
 | **app** | `mlfx/app/` | CLI (argparse + Rich) — terminal-first workflow |
 | **config** | `mlfx/config/` | Path policy và config loader |
 | **ingestion** | `mlfx/ingestion/` | Downloader Dukascopy (async HTTP) |
-| **pipeline** | `mlfx/pipeline/` | QA, resampling, feature engineering, labeling |
+| **pipeline** | `mlfx/pipeline/` | QA, resampling, feature engineering, labeling; `runner.py` orchestrates all stages |
 | **features** | `mlfx/features/` | Feature modules theo domain (indicators) |
 | **training** | `mlfx/training/` | Backend implementations, runner, registry |
 | **evaluation** | `mlfx/evaluation/` | Backtest, reporting, metrics computation |
 | **tracking** | `mlfx/tracking/` | Experiment tracking (MLflow / file-based) |
 | **registry** | `mlfx/registry/` | Model registry (JSON-backed) |
-| **serving** | `mlfx/serving/` | FastAPI real-time + batch inference |
-| **monitoring** | `mlfx/monitoring/` | Drift detection + structured logging |
+| **serving** | `mlfx/serving/` | FastAPI real-time API (`api.py`, `inference.py`, `torch_adapters.py`) + batch inference |
+| **monitoring** | `mlfx/monitoring/` | Drift detection (KS + PSI) + structured logging |
 
 ### 2.3 Chi tiết Luồng Dữ liệu
 
@@ -286,7 +286,7 @@ MLFX/
 ### 5.2 Chi tiết Artifacts theo Giai đoạn
 
 | Giai đoạn | Artifact | Vị trí |
-|-----------|----------|--------|
+|-----------|----------|---------|
 | Download | tick data parquet | `data/raw/{symbol}/YYYY-MM.parquet` |
 | Download | download state | `data/raw/{symbol}/completed_months.json` |
 | QA | quality report | `data/raw/{symbol}/{symbol}_Data_Quality_Report.md` |
@@ -298,6 +298,7 @@ MLFX/
 | Evaluate | Candlestick HTML | `outputs/reports/{symbol}/{tf}/*_candlestick.html` |
 | Evaluate | Equity curve PNG | `outputs/reports/{symbol}/{tf}/*_equity.png` |
 | Evaluate | Session heatmap PNG | `outputs/reports/{symbol}/{tf}/*_heatmap.png` |
+| Benchmark | Summary JSON | `outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json` |
 | Batch-predict | Predictions | `outputs/predictions/{symbol}/{tf}/` |
 
 ---

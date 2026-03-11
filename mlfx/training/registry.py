@@ -56,7 +56,7 @@ def _extra_stats(c: "TrainingConfig") -> dict[str, Any]:
 
 
 def _extra_neuralforecast(c: "TrainingConfig") -> dict[str, Any]:
-    return {"n_windows": c.n_splits, "input_size": 48, "max_steps": 200}
+    return {"n_windows": c.n_splits, "input_size": 48, "max_steps": 200, "max_samples": 5000}
 
 
 BACKEND_EXTRA_KWARGS: dict[str, Any] = {

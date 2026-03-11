@@ -42,8 +42,6 @@ pixi run clean-generated
 ## 2. Entrypoint chính
 
 - `pixi run mlfx`: CLI hợp nhất
-- `pixi run mlfx-tui`: TUI (Textual)
-- `pixi run mlfx-ui`: Streamlit UI (Glassmorphism Emerald AMOLED, khuyến nghị cho người mới)
 
 Xem help:
 
@@ -54,7 +52,7 @@ pixi run mlfx pipeline --help
 
 ## 3. `config.toml`
 
-`config.toml` được đọc bởi CLI và TUI để nạp giá trị mặc định.
+`config.toml` được đọc bởi CLI để nạp giá trị mặc định.
 
 Ví dụ:
 
@@ -97,51 +95,9 @@ Các khóa cần nhớ:
 - `label_col`: `label_5`, `label_10`, `label_20`
 - `backend`: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
 
-## 4. Streamlit UI
+## 4. CLI theo từng bước
 
-Khởi chạy giao diện web (Glassmorphism Emerald AMOLED):
-
-```bash
-pixi run mlfx-ui
-```
-
-Mở trình duyệt tại `http://localhost:8501`. Giao diện gồm 5 section theo workflow:
-1. **Tải dữ liệu** — Download tick data từ Dukascopy
-2. **Chuẩn bị** — Resample, features, labels
-3. **Train** — Huấn luyện model với form backtest params (TP/SL, capital)
-4. **Visual Analysis** — Candlestick + trade markers, equity curve, heatmap PNG inline
-5. **Export & Reports** — Download OHLCV/Trades/Features, Generate Reports (backtest)
-
-Tính năng chính:
-- **Backtest params**: Expander "Backtest params" cho phép chỉnh TP (R), SL (R), Initial Capital, Risk %, Commission
-- **Model vs Labels**: So sánh 2 cột metrics (Model vs baseline Labels) và dòng "Model tốt hơn +X.XR"
-- **Candlestick + Trades**: Biểu đồ nến với marker entry LONG/SHORT inline
-- **Heatmap PNG**: Hiển thị `st.image` từ `outputs/reports/{symbol}/{tf}/`
-- **Export thực tế**: Nút Download Parquet (OHLCV, Trades, Features); nút Generate Reports gọi `run_model_backtest` hoặc `run_full_eval`
-
-Sidebar cho phép chọn symbol, timeframe, label column. Config mặc định từ `config.toml`.
-
-## 5. TUI
-
-Khởi chạy:
-
-```bash
-pixi run mlfx-tui
-```
-
-TUI hiện có 4 tab:
-- `Download Data`
-- `Pipeline`
-- `Train Model`
-- `Backtest`
-
-Phím tắt:
-- `q`: thoát
-- `d`: đổi dark/light mode
-
-## 6. CLI theo từng bước
-
-### 5.1 Download dữ liệu tick
+### 4.1 Download dữ liệu tick
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
@@ -156,14 +112,17 @@ Tham số chính:
 - `--asset-class`
 - `--start-year`
 - `--start-month`
+- `--end-year` *(tùy chọn, mặc định: năm hiện tại)*
+- `--end-month` *(tùy chọn, mặc định: tháng hiện tại)*
 - `--concurrency`
 - `--force`
+- `--skip-current-month` — bỏ qua kiểm tra/sửa chữa tháng hiện tại
 
 Artifacts:
 - `data/raw/{symbol}/YYYY-MM.parquet`
 - `data/raw/{symbol}/completed_months.json`
 
-### 5.2 Audit dữ liệu raw
+### 4.2 Audit dữ liệu raw
 
 ```bash
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
@@ -176,10 +135,12 @@ Mục đích:
 Artifact:
 - `data/raw/{symbol}/{symbol}_Data_Quality_Report.md`
 
-### 5.3 Chạy pipeline
+### 4.3 Chạy pipeline
 
 ```bash
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+# Nhiều timeframe cùng lúc:
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H 4H 1D
 ```
 
 Ví dụ bỏ qua từng stage:
@@ -192,7 +153,7 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 
 Tham số chính:
 - `--symbol`
-- `--tf`
+- `--tf` *(chấp nhận nhiều giá trị, vd: `1H 4H 1D`)*
 - `--pivot`
 - `--anchor`
 - `--atr-period`
@@ -207,13 +168,13 @@ Artifacts:
 - `data/features/{symbol}/{tf}/`
 - `data/labels/{symbol}/{tf}/`
 
-### 5.4 Train model
+### 4.4 Train model
 
 ```bash
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
 ```
 
-Backend hiện hỗ trợ qua CLI/TUI:
+Backend hiện hỗ trợ qua CLI:
 - `mlf`
 - `lstm`
 - `bilstm`
@@ -239,7 +200,7 @@ Lưu ý:
 - `n_trials` hiện có ý nghĩa nhất với backend `mlf`
 - `n_splits` được map khác nhau tùy backend trong code
 
-### 5.5 Evaluate (xem kết quả backtest)
+### 4.5 Evaluate (xem kết quả backtest)
 
 ```bash
 pixi run mlfx evaluate \
@@ -272,7 +233,7 @@ Artifacts mặc định:
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
-## 7. Luồng chạy đầy đủ
+## 5. Luồng chạy đầy đủ
 
 **4 bước chính** (đủ để xem kết quả backtest):
 
@@ -299,7 +260,7 @@ pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
 pixi run mlfx serve --port 8000
 ```
 
-### 5.6 Serving real-time (FastAPI)
+### 4.6 Serving real-time (FastAPI)
 
 ```bash
 # Khởi động inference server
@@ -325,7 +286,7 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-### 5.7 Batch inference (Nâng cao)
+### 4.7 Batch inference (Nâng cao)
 
 Dùng khi cần export predictions parquet (deploy, tích hợp hệ thống khác). **Không dùng để xem kết quả backtest** — dùng `evaluate` cho việc đó.
 
@@ -334,7 +295,7 @@ pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
 # → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
 ```
 
-### 5.8 Drift detection
+### 4.8 Drift detection
 
 Bước 1 – lưu reference sau khi train:
 ```bash
@@ -352,9 +313,16 @@ Bước 2 – kiểm tra drift định kỳ:
 ```bash
 pixi run mlfx drift --symbol XAUUSD --tf 1H
 # In JSON report và exit code 1 nếu phát hiện drift nghiêm trọng
+
+# Tùy chỉnh ngưỡng:
+pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
-### 5.9 Model registry
+Tham số tùy chọn:
+- `--threshold-ks` — ngưỡng KS test (mặc định: 0.1)
+- `--threshold-psi` — ngưỡng PSI (mặc định: 0.2)
+
+### 4.9 Model registry
 
 ```bash
 # Liệt kê tất cả versions
@@ -364,7 +332,7 @@ pixi run mlfx models
 pixi run mlfx models --symbol XAUUSD --tf 1H
 ```
 
-### 5.10 MLflow tracking (tùy chọn)
+### 4.10 MLflow tracking (tùy chọn)
 
 Khởi động MLflow server qua Docker:
 ```bash
@@ -376,7 +344,7 @@ Khi server đang chạy, tracking tự động dùng MLflow thay cho file fallba
 
 ---
 
-## 8. Checklist xác minh nhanh
+## 6. Checklist xác minh nhanh
 
 Sau mỗi bước, nên kiểm tra:
 - sau `download`: có file parquet trong `data/raw/{symbol}/`
@@ -387,7 +355,7 @@ Sau mỗi bước, nên kiểm tra:
 - sau `batch-predict`: có parquet trong `outputs/predictions/{symbol}/{tf}/`
 - sau `drift`: không có cảnh báo drift nghiêm trọng (exit code 0)
 
-## 9. Cleanup an toàn
+## 7. Cleanup an toàn
 
 Dọn cache và generated artifacts phổ biến:
 

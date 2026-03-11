@@ -55,9 +55,10 @@ Các cột như `label_5`, `label_10`, `label_20` biến dữ liệu thành bài
 
 ### Labels -> Train
 
-CLI/TUI hiện hỗ trợ các backend:
+CLI hiện hỗ trợ các backend:
 - `mlf`
 - `lstm`
+- `bilstm`
 - `transformer`
 - `cnn_lstm`
 - `sgd`
@@ -77,12 +78,6 @@ Nếu chỉ muốn chạy thử:
 
 ```bash
 pixi install
-pixi run mlfx-tui
-```
-
-Hoặc CLI (4 bước):
-
-```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf

@@ -135,6 +135,7 @@ def run_neural_forecast(
     n_windows: int = 5,
     input_size: int = 48,
     max_steps: int = 200,
+    max_samples: int = 5000,
     force: bool = False,
     seed: int = 42,
 ) -> dict:
@@ -161,7 +162,7 @@ def run_neural_forecast(
 
     freq = _TF_FREQ.get(tf, "h")
     df_nixtla, _ = prepare_nixtla_df(df, label_col, symbol=symbol)
-    df_nixtla = df_nixtla.tail(5000)
+    df_nixtla = df_nixtla.tail(max_samples)
 
     nf, metrics = train_neural_forecast(
         df_nixtla,
