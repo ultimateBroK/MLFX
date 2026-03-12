@@ -6,10 +6,10 @@ Contract tests for the new `mlfx` package structure.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import re
 import tomllib
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import polars as pl
 import pytest
@@ -58,6 +58,46 @@ class TestProjectPaths:
             == tmp_path / "outputs" / "monitoring" / "XAUUSD" / "1H"
         )
         assert paths.lightning_logs_dir == tmp_path / "lightning_logs"
+
+    def test_nested_artifact_layout_helpers(self, tmp_path: Path):
+        from mlfx.config.paths import ProjectPaths
+
+        paths = ProjectPaths(project_root=tmp_path)
+
+        assert (
+            paths.models_label_dir("XAUUSD", "1H", "label_10")
+            == tmp_path / "outputs" / "models" / "XAUUSD" / "1H" / "label_10"
+        )
+        assert (
+            paths.report_run_dir("XAUUSD", "1H", "label_10", "model", "R15")
+            == tmp_path
+            / "outputs"
+            / "reports"
+            / "XAUUSD"
+            / "1H"
+            / "label_10"
+            / "model"
+            / "R15"
+        )
+        assert (
+            paths.report_run_dir("XAUUSD", "1H", "label_10", "labels", "R15")
+            == tmp_path
+            / "outputs"
+            / "reports"
+            / "XAUUSD"
+            / "1H"
+            / "label_10"
+            / "labels"
+            / "R15"
+        )
+        assert (
+            paths.predictions_label_dir("XAUUSD", "1H", "label_10")
+            == tmp_path / "outputs" / "predictions" / "XAUUSD" / "1H" / "label_10"
+        )
+        assert (
+            paths.runs_label_dir("XAUUSD", "1H", "label_10")
+            == tmp_path / "outputs" / "runs" / "XAUUSD" / "1H" / "label_10"
+        )
 
 
 class TestSettingsLoader:

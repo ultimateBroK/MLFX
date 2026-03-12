@@ -124,10 +124,12 @@ def run_training(
 
 def _start_tracking_run(config: TrainingConfig) -> str | None:
     try:
-        from mlfx.tracking.tracker import get_tracker
         from mlfx.config.paths import DEFAULT_PATHS
+        from mlfx.tracking.tracker import get_tracker
 
-        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
+        tracker = get_tracker(
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label_col
+        )
         return tracker.start_run(
             run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label_col}",
             params={
@@ -152,7 +154,7 @@ def _end_tracking_run(
     config: TrainingConfig,
 ) -> None:
     """End a tracking run with pre-filtered metrics.
-    
+
     Parameters
     ----------
     run_id:
@@ -165,10 +167,12 @@ def _end_tracking_run(
         Training configuration for run context.
     """
     try:
-        from mlfx.tracking.tracker import get_tracker
         from mlfx.config.paths import DEFAULT_PATHS
+        from mlfx.tracking.tracker import get_tracker
 
-        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
+        tracker = get_tracker(
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label_col
+        )
         tracker.log_metrics(run_id, metrics)
         tracker.end_run(run_id, status=status)
     except Exception as exc:
@@ -207,7 +211,11 @@ def _append_metrics_log(config: TrainingConfig, summary: dict[str, Any]) -> None
     try:
         from mlfx.config.paths import DEFAULT_PATHS  # noqa: PLC0415
 
-        log_path: Path = DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / "metrics_log.jsonl"
+        log_path: Path = (
+            DEFAULT_PATHS.runs_dir(config.symbol, config.tf)
+            / config.label_col
+            / "metrics_log.jsonl"
+        )
         log_path.parent.mkdir(parents=True, exist_ok=True)
         entry = {
             "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),

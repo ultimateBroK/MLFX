@@ -76,9 +76,10 @@ def build_model_output_path(
     artifact_name: str,
     symbol: str,
     tf: str,
+    label_col: str,
     *,
     suffix: str,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> Path:
-    """Build a canonical model artifact path under the shared outputs directory."""
-    return paths.models_dir(symbol, tf) / f"{artifact_name}{suffix}"
+    """Build a canonical model artifact path under a label-specific outputs directory."""
+    return paths.models_dir(symbol, tf) / label_col / f"{artifact_name}{suffix}"

@@ -15,13 +15,13 @@ import polars as pl
 from mlforecast import MLForecast
 from sklearn.metrics import f1_score
 
+from mlfx.training._utils import set_seed
+from mlfx.training.artifacts import save_pickle_artifact
 from mlfx.training.data import build_model_output_path, load_labelled_dataset
 from mlfx.training.feature_selection import (
     DEFAULT_FEATURE_BLACKLIST,
     select_numeric_feature_columns,
 )
-from mlfx.training.artifacts import save_pickle_artifact
-from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -207,7 +207,13 @@ def run_ml_models(
 ) -> dict:
     """Train MLForecast + LightGBM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
-    out_path = build_model_output_path(f"ml_models_{label_col}", symbol, tf, suffix=".pkl")
+    out_path = build_model_output_path(
+        f"ml_models_{label_col}",
+        symbol,
+        tf,
+        label_col,
+        suffix=".pkl",
+    )
 
     if out_path.exists() and not force:
         logger.info("MLForecast model exists at %s", out_path)

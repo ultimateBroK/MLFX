@@ -11,11 +11,11 @@ import numpy as np
 import polars as pl
 from sklearn.metrics import f1_score
 from statsforecast import StatsForecast
-from statsforecast.models import AutoARIMA, MSTL, SeasonalNaive
+from statsforecast.models import MSTL, AutoARIMA, SeasonalNaive
 
-from mlfx.training.data import build_model_output_path, load_labelled_dataset
-from mlfx.training.artifacts import save_pickle_artifact
 from mlfx.training._utils import set_seed
+from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training.data import build_model_output_path, load_labelled_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +131,7 @@ def run_stats(
         f"stats_baseline_{label_col}",
         symbol,
         tf,
+        label_col,
         suffix=".pkl",
     )
 

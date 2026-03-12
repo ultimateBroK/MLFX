@@ -62,10 +62,10 @@ def run_batch_inference(
     predictions, artifact_path, _ = result
     result_df = df.with_columns(pl.Series("prediction", predictions.tolist(), dtype=pl.Int8))
 
-    out_dir = output_path or paths.predictions_dir(symbol, tf)
+    out_dir = output_path or (paths.predictions_dir(symbol, tf) / label_col)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"{label_col}_predictions.parquet"
+    out_file = out_dir / "predictions.parquet"
     result_df.write_parquet(out_file)
     logger.info("Batch inference complete: %d rows → %s", len(result_df), out_file)
 
@@ -74,4 +74,3 @@ def run_batch_inference(
         "artifact_path": artifact_path,
         "output_path": str(out_file),
     }
-

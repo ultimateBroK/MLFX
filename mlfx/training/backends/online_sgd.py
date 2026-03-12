@@ -13,9 +13,9 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 
-from mlfx.training.data import build_model_output_path, prepare_tabular_data
-from mlfx.training.artifacts import save_pickle_artifact
 from mlfx.training._utils import set_seed
+from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training.data import build_model_output_path, prepare_tabular_data
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,13 @@ def run_online_sgd(
 ) -> dict:
     """Train online SGDClassifier with chunked partial_fit. Returns metrics dict or {} if skipped."""
     set_seed(seed)
-    out_path = build_model_output_path(f"online_sgd_{label_col}", symbol, tf, suffix=".pkl")
+    out_path = build_model_output_path(
+        f"online_sgd_{label_col}",
+        symbol,
+        tf,
+        label_col,
+        suffix=".pkl",
+    )
 
     if out_path.exists() and not force:
         logger.info("Online SGD model exists at %s", out_path)

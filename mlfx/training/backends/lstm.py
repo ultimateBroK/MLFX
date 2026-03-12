@@ -13,11 +13,12 @@ import numpy as np
 import optuna
 import torch
 import torch.nn as nn
+
+from mlfx.training._utils import set_seed
 from mlfx.training.artifacts import save_torch_artifact
 from mlfx.training.backends._pytorch_common import run_pytorch_hpo
 from mlfx.training.backends._sequence_utils import train_sequence_model_once
 from mlfx.training.data import build_model_output_path, prepare_tabular_data
-from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ def run_lstm(
 ) -> dict:
     """Train PyTorch LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
-    out_path = build_model_output_path(f"lstm_{label_col}", symbol, tf, suffix=".pt")
+    out_path = build_model_output_path(f"lstm_{label_col}", symbol, tf, label_col, suffix=".pt")
 
     if out_path.exists() and not force:
         logger.info("LSTM model exists at %s", out_path)

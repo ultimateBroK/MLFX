@@ -13,11 +13,12 @@ import numpy as np
 import optuna
 import torch
 import torch.nn as nn
+
+from mlfx.training._utils import set_seed
 from mlfx.training.artifacts import save_torch_artifact
 from mlfx.training.backends._pytorch_common import run_pytorch_hpo
 from mlfx.training.backends._sequence_utils import train_sequence_model_once
 from mlfx.training.data import build_model_output_path, prepare_tabular_data
-from mlfx.training._utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class FXCnnLstm(nn.Module):
         num_classes: int = 5,
     ) -> None:
         super().__init__()
-        
+
         self.conv1d = nn.Conv1d(
             in_channels=input_size,
             out_channels=cnn_channels,
@@ -46,7 +47,7 @@ class FXCnnLstm(nn.Module):
         )
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool1d(kernel_size=cnn_pool)
-        
+
         self.lstm = nn.LSTM(
             input_size=cnn_channels,
             hidden_size=lstm_hidden,
@@ -60,18 +61,18 @@ class FXCnnLstm(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (batch, seq_len, features)
         x = x.permute(0, 2, 1) # (batch, features, seq_len)
-        
+
         # CNN
         x = self.conv1d(x)
         x = self.relu(x)
         x = self.maxpool(x)
-        
+
         # Back to (batch, new_seq_len, channels)
         x = x.permute(0, 2, 1)
-        
+
         # LSTM
         out, _ = self.lstm(x)
-        
+
         # Take the last valid step
         out = self.dropout(out[:, -1, :])
         return self.fc(out)
@@ -194,7 +195,13 @@ def run_cnn_lstm(
 ) -> dict:
     """Train PyTorch CNN-LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
-    out_path = build_model_output_path(f"cnn_lstm_{label_col}", symbol, tf, suffix=".pt")
+    out_path = build_model_output_path(
+        f"cnn_lstm_{label_col}",
+        symbol,
+        tf,
+        label_col,
+        suffix=".pt",
+    )
 
     if out_path.exists() and not force:
         logger.info("CNN-LSTM model exists at %s", out_path)

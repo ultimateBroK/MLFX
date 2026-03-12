@@ -9,7 +9,14 @@ import logging
 import sys
 import time
 
-from mlfx.evaluation.runner import get_baseline_metrics, run_full_eval, run_model_backtest
+from rich.console import Console
+from rich.table import Table
+
+from mlfx.evaluation.runner import (
+    get_baseline_metrics,
+    run_full_eval,
+    run_model_backtest,
+)
 from mlfx.ingestion.download import run_download_job
 from mlfx.pipeline.feature_engineering import run_feature_pipeline
 from mlfx.pipeline.labeling import run_label_pipeline
@@ -18,9 +25,6 @@ from mlfx.pipeline.resampling import resample_symbol_tf
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.registry import BACKEND_REGISTRY
 from mlfx.training.runner import run_training
-
-from rich.console import Console
-from rich.table import Table
 
 console = Console()
 
@@ -478,7 +482,7 @@ def _run_benchmark(args: argparse.Namespace) -> None:
 
     # Save JSON report
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
+    reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf) / args.label / "benchmark"
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_path = reports_dir / f"benchmark_{ts}.json"
     payload = {

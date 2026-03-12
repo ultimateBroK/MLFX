@@ -122,7 +122,12 @@ def run_dataset_eval(
         risk_pct=risk_pct,
     )
 
-    report_dir = (Path(out_dir) / symbol / tf) if out_dir is not None else paths.reports_dir(symbol, tf)
+    risk_dir = f"R{int(tp_r * 10)}"
+    report_dir = (
+        Path(out_dir) / symbol / tf / label_col / "labels" / risk_dir
+        if out_dir is not None
+        else paths.reports_dir(symbol, tf) / label_col / "labels" / risk_dir
+    )
     out_name = f"{label_col}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
 
@@ -189,7 +194,12 @@ def run_model_backtest(
         risk_pct=risk_pct,
     )
 
-    report_dir = (Path(out_dir) / symbol / tf) if out_dir else paths.reports_dir(symbol, tf)
+    risk_dir = f"R{int(tp_r * 10)}"
+    report_dir = (
+        Path(out_dir) / symbol / tf / label_col / "model" / risk_dir
+        if out_dir
+        else paths.reports_dir(symbol, tf) / label_col / "model" / risk_dir
+    )
     out_name = f"model_{label_col}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
 

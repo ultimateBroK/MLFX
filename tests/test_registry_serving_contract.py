@@ -48,7 +48,7 @@ def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
         }
     ).write_parquet(labels_dir / "2024-01.parquet")
 
-    artifact_path = paths.models_dir("XAUUSD", "1H") / "dummy.pkl"
+    artifact_path = paths.models_label_dir("XAUUSD", "1H", "label_10") / "dummy.pkl"
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     with artifact_path.open("wb") as file_handle:
         pickle.dump(_OrderSensitiveModel(), file_handle)
