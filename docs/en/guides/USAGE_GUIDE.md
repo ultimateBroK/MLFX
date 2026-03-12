@@ -1,6 +1,6 @@
 # MLFX - Configuration and Usage Guide
 
-This guide is the **operational CLI manual** for MLFX.
+This document is the **operational CLI manual** for MLFX.
 
 It focuses on:
 
@@ -9,11 +9,11 @@ It focuses on:
 - Which artifacts each stage produces
 - When to use each command in the normal workflow
 
-If you want the shortest onboarding path, start with:
+If you want the shortest fast-start path, read:
 
 - [Quickstart](../getting-started/QUICKSTART.md)
 
-If you are new to the repository and want the conceptual overview first, read:
+If you are new and want to understand **why** the workflow is structured this way, read:
 
 - [Beginner Guide](../getting-started/NOOB_GUIDE.md)
 
@@ -26,13 +26,11 @@ If you are new to the repository and want the conceptual overview first, read:
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Configuration Reference](../reference/CONFIG_REFERENCE.md)
 - [API Reference](../reference/API_REFERENCE.md)
-- [Backend Comparison](../architecture/BACKEND_COMPARISON.md)
+- [Feature Reference](../reference/FEATURE_REFERENCE.md)
 
 ---
 
 ## 1. Environment Setup
-
-Install the environment with Pixi:
 
 ```bash
 curl -fsSL https://pixi.sh/install.sh | bash
@@ -41,9 +39,9 @@ pixi install
 
 ### Operating Rules
 
-- Run commands through `pixi run`
-- Python and dependencies are managed from `pyproject.toml`
-- No separate `uv` or `venv` workflow is required for the supported setup
+- Always run commands through `pixi run`
+- Python and dependencies are managed through `pyproject.toml`
+- The supported workflow does not require a separate `uv` or `venv`
 
 ### Useful Pixi Tasks
 
@@ -55,13 +53,11 @@ pixi run clean-generated
 
 ---
 
-## 2. Official Entrypoints
+## 2. Main Entrypoint
 
-The main entrypoint is:
+- `pixi run mlfx`: unified command-line interface
 
-- `pixi run mlfx` — unified CLI
-
-Check help:
+### Check Help
 
 ```bash
 pixi run mlfx --help
@@ -70,12 +66,9 @@ pixi run mlfx pipeline --help
 
 ---
 
-## 3. Configuration Model
+## 3. `config.toml`
 
-MLFX uses a layered configuration model:
-
-1. `config.toml` provides project defaults
-2. CLI flags override those defaults per command
+The CLI reads `config.toml` to load default values.
 
 Example:
 
@@ -100,21 +93,17 @@ backend = "mlf"
 n_splits = 5
 
 [backtest]
-symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
-
-[features]
-rsi_period = 14
-atr_period = 14
-ema_periods = [20, 50, 200]
-macd_fast = 12
-macd_slow = 26
-macd_signal = 9
-avg_range_n = 5
+symbol          = "XAUUSD"
+timeframe       = "1H"
+label_col       = "label_10"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
 ```
 
-### Common Keys to Remember
+### Keys Worth Remembering
 
 - `asset_class`: `fx`, `crypto`
 - `timeframe`: `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
@@ -122,104 +111,64 @@ avg_range_n = 5
 - `pivot_anchor`: `daily`, `weekly`, `monthly`
 - `label_col`: `label_5`, `label_10`, `label_20`
 - `backend`: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
-- `rsi_period`: RSI window (default: `14`)
-- `atr_period`: ATR window (default: `14`)
-- `ema_periods`: list of EMA periods (default: `[20, 50, 200]`)
-- `macd_fast` / `macd_slow` / `macd_signal`: MACD parameters (default: `12`, `26`, `9`)
-- `avg_range_n`: rolling window for killzone average range (default: `5`)
 
-For the complete setting-by-setting reference, see:
+If you need the full mapping between `config.toml` and CLI flags, read:
 
 - [Configuration Reference](../reference/CONFIG_REFERENCE.md)
 
 ---
 
-## 4. Standard Workflow
+## 4. CLI by Stage
 
-The normal MLFX workflow is:
-
-```text
-download
-  -> qa
-  -> pipeline
-  -> train
-  -> evaluate
-  -> serve / batch-predict
-  -> drift
-```
-
-At a high level:
-
-- `download` fetches raw tick data
-- `qa` audits raw data quality
-- `pipeline` creates OHLCV, features, and labels
-- `train` fits a backend and stores artifacts
-- `evaluate` runs backtests and generates reports
-- `serve` starts the inference API
-- `batch-predict` writes offline predictions
-- `drift` compares new data distributions against reference snapshots
-
-If you only want the fastest runnable flow, use:
-
-- [Quickstart](../getting-started/QUICKSTART.md)
-
----
-
-## 5. CLI by Stage
-
-## 5.1 Download Tick Data
+### 4.1. Download Tick Data
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 ```
 
-### Purpose
+#### Purpose
 
-- Fetch raw tick data into `data/raw/`
-- Maintain download state for resume behavior
+- download tick data into `data/raw/`
+- store state so interrupted downloads can resume
 
-### Key Arguments
+#### Key Arguments
 
 - `--symbol`
 - `--asset-class`
 - `--start-year`
 - `--start-month`
-- `--end-year` *(optional, defaults to current year)*
-- `--end-month` *(optional, defaults to current month)*
+- `--end-year` *(optional, default: current year)*
+- `--end-month` *(optional, default: current month)*
 - `--concurrency`
 - `--force`
 - `--skip-current-month` — skip checking or repairing the current month
 
-### Artifacts
+#### Artifacts
 
 - `data/raw/{symbol}/YYYY-MM.parquet`
 - `data/raw/{symbol}/completed_months.json`
 
 ---
 
-## 5.2 Audit Raw Data
+### 4.2. Audit Raw Data
 
 ```bash
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
 ```
 
-### Purpose
+#### Purpose
 
-- Detect meaningful gaps
-- Write a data-quality report
+- detect meaningful data gaps
+- write a data-quality report
 
-### Artifact
+#### Artifact
 
 - `data/raw/{symbol}/{symbol}_Data_Quality_Report.md`
 
----
-
-## 5.3 Run the Pipeline
+### 4.3. Run the Pipeline
 
 ```bash
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
-
-# Multiple timeframes at once
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H 4H 1D
 ```
 
@@ -231,10 +180,10 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-features
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 ```
 
-### Key Arguments
+#### Key Arguments
 
 - `--symbol`
-- `--tf` *(accepts multiple values, e.g. `1H 4H 1D`)*
+- `--tf` *(accepts multiple values, for example `1H 4H 1D`)*
 - `--pivot`
 - `--anchor`
 - `--atr-period`
@@ -244,7 +193,7 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 - `--skip-features`
 - `--skip-labels`
 
-### Artifacts
+#### Artifacts
 
 - `data/ohlcv/{symbol}/{tf}/`
 - `data/features/{symbol}/{tf}/`
@@ -252,13 +201,13 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 
 ---
 
-## 5.4 Train a Model
+### 4.4. Train a Model
 
 ```bash
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
 ```
 
-### Backends Exposed Through the CLI
+#### Backends Currently Exposed Through the CLI
 
 - `mlf`
 - `lstm`
@@ -269,7 +218,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 - `stats`
 - `neuralforecast`
 
-### Key Arguments
+#### Key Arguments
 
 - `--symbol`
 - `--tf`
@@ -279,22 +228,20 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 - `--n-splits`
 - `--force`
 
-### Artifacts
+#### Artifacts
 
 - `outputs/models/{symbol}/{tf}/`
 
-### Notes
+#### Notes
 
-- `n_trials` is most relevant for the `mlf` backend
-- `n_splits` is mapped differently depending on the selected backend
-
-For backend trade-offs, see:
-
-- [Backend Comparison](../architecture/BACKEND_COMPARISON.md)
+- `n_trials` is currently most meaningful for the `mlf` backend
+- `n_splits` is mapped differently depending on the backend in the codebase
+- To choose the right backend, read:
+  - [Backend Comparison](../architecture/BACKEND_COMPARISON.md)
 
 ---
 
-## 5.5 Evaluate and Generate Reports
+### 4.5. Evaluate and Generate Reports
 
 ```bash
 pixi run mlfx evaluate \
@@ -309,7 +256,13 @@ pixi run mlfx evaluate \
   --slippage 0.0
 ```
 
-### Key Arguments
+#### Default Behavior
+
+- If a suitable model exists: backtest the **model**
+- If no suitable model exists: fall back to **labels**
+- If you want to backtest labels only: add `--use-labels`
+
+#### Key Arguments
 
 - `--symbol`
 - `--tf`
@@ -320,153 +273,117 @@ pixi run mlfx evaluate \
 - `--tp`
 - `--sl`
 - `--slippage`
-- `--use-labels` — backtest the raw labels directly instead of model predictions
+- `--use-labels`
 
-### Default Artifacts
+#### Default Artifacts
 
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
 - `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
 
-For a deeper explanation of reports and metrics, see:
+#### Read Next
 
 - [Evaluation Guide](EVALUATION_GUIDE.md)
 
 ---
 
-## 5.6 Start the Inference Server
+### 4.6. Serve Real-Time Inference with FastAPI
 
 ```bash
-pixi run mlfx serve
-pixi run mlfx serve --host 0.0.0.0 --port 8000
-pixi run mlfx serve --reload
+# Start the inference server
+pixi run mlfx serve --port 8000
+
+# Or via Docker
+docker-compose up api
+
+# Check status
+curl http://localhost:8000/health
+
+# List registered models
+curl http://localhost:8000/models
+
+# Predict
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "XAUUSD",
+    "tf": "1H",
+    "label_col": "label_10",
+    "features": {"rsi_14": 65.2, "atr_14": 0.003, "...": "..."}
+  }'
 ```
 
-### Purpose
-
-Launch a FastAPI server exposing real-time prediction endpoints. The server loads the best registered model on demand.
-
-### Key Arguments
-
-- `--host` — bind address (default: `0.0.0.0`)
-- `--port` — listen port (default: `8000`)
-- `--reload` — enable hot-reload for development only
-
-For endpoint details, see:
+#### Read Next
 
 - [API Reference](../reference/API_REFERENCE.md)
 
 ---
 
-## 5.7 Benchmark Multiple Backends
+### 4.7. Batch Inference
 
-```bash
-pixi run mlfx benchmark --symbol XAUUSD --tf 1H --label label_10 --backends mlf sgd stats
-```
+Use this when you need to export prediction parquet files for deployment or integration into another system.
 
-### Purpose
-
-Run multiple backends sequentially on the same dataset and print a comparison table.
-
-### Key Arguments
-
-- `--backends` — space-separated list  
-  Default: `mlf sgd stats`  
-  Full set: `mlf lstm bilstm transformer cnn_lstm sgd stats neuralforecast`
-- `--n-trials` — Optuna trials per backend (default: `5`)
-- `--n-splits` — cross-validation folds (default: `3`)
-- `--force` — retrain even if a saved model exists (default: `false`)
-
-### Artifact
-
-- `outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json`
-
----
-
-## 5.8 Batch Inference
+> **Do not use this to inspect backtest results** — use `evaluate` for that.
 
 ```bash
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
+# → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
 ```
-
-### Purpose
-
-Run the best registered model over all bars and write predictions to disk.
-
-### Key Arguments
-
-- `--symbol`
-- `--tf`
-- `--label`
-
-### Artifact
-
-- `outputs/predictions/{symbol}/{tf}/{label}_predictions.parquet`
 
 ---
 
-## 5.9 List Registered Models
+### 4.8. Detect Feature Drift
+
+#### Step 1 — Save a Reference Snapshot After Training
 
 ```bash
-pixi run mlfx models
-pixi run mlfx models --symbol XAUUSD
-pixi run mlfx models --tf 1H --backend mlf
+python -c "
+from mlfx.monitoring.drift import save_reference
+import polars as pl
+df = pl.read_parquet('data/labels/XAUUSD/1H/*.parquet')
+feature_cols = [c for c in df.columns if c not in ['datetime','label_5','label_10','label_20']]
+save_reference(df, feature_cols, 'XAUUSD', '1H')
+"
 ```
 
-### Purpose
-
-List all entries in the model registry stored in `outputs/models/registry.json`.
-
-### Key Arguments
-
-- `--symbol` — filter by symbol
-- `--tf` — filter by timeframe
-- `--backend` — filter by backend key
-
----
-
-## 5.10 Detect Drift
+#### Step 2 — Check Drift Periodically
 
 ```bash
 pixi run mlfx drift --symbol XAUUSD --tf 1H
+# Prints a JSON report and returns exit code 1 if severe drift is detected
+
+# Custom thresholds:
 pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
-### Purpose
+#### Optional Arguments
 
-Compare recent feature distributions against reference snapshots and detect drift.
-
-### Key Arguments
-
-- `--symbol`
-- `--tf`
 - `--threshold-ks` — KS test threshold (default: `0.1`)
 - `--threshold-psi` — PSI threshold (default: `0.2`)
 
 ---
 
-## 6. Artifacts and Tracking
-
-Every training run produces:
-
-- **Model artifact** — `outputs/models/{symbol}/{tf}/{run_id}.pkl` (or `.pt` for deep learning backends)
-- **Registry entry** — appended to `outputs/models/registry.json`
-- **Metrics log** — `outputs/runs/{symbol}/{tf}/metrics_log.jsonl`
-- **Run files** — `outputs/runs/{symbol}/{tf}/{run_id}.json` when MLflow is not installed
-
-### Experiment Tracking
-
-MLflow is used automatically when installed. If it is not installed, a lightweight `FileTracker` is used instead.
+### 4.9. Model Registry
 
 ```bash
-# With MLflow
-pixi run mlfx train ...
-
-# Without MLflow (FileTracker)
-pixi run mlfx train ...
+pixi run mlfx models
+pixi run mlfx models --symbol XAUUSD --tf 1H
 ```
 
-To install MLflow:
+---
+
+### 4.10. MLflow Tracking (Optional)
+
+Start the MLflow server through Docker:
+
+```bash
+docker-compose --profile tracking up mlflow
+# UI available at http://localhost:5000
+```
+
+When the server is running, the tracking layer will automatically use MLflow instead of the file-based fallback tracker.
+
+If you need to install MLflow:
 
 ```bash
 pip install mlflow
@@ -474,17 +391,73 @@ pip install mlflow
 
 ---
 
+## 5. Full Workflow Examples
+
+### 5.1. Minimal Workflow
+
+Enough to produce a backtest result:
+
+```bash
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
+```
+
+### 5.2. Advanced Workflow
+
+```bash
+# Audit raw data
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+
+# View the model registry
+pixi run mlfx models --symbol XAUUSD --tf 1H
+
+# Run batch inference
+pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
+
+# Serve a real-time API
+pixi run mlfx serve --port 8000
+
+# Check feature drift
+pixi run mlfx drift --symbol XAUUSD --tf 1H
+```
+
+---
+
+## 6. Artifacts and Tracking
+
+Each training run usually produces:
+
+- **Model artifact** — stored in `outputs/models/{symbol}/{tf}/`
+- **Registry record** — appended to `outputs/models/registry.json`
+- **Metrics record** — usually stored in `outputs/runs/{symbol}/{tf}/`
+- **Run metadata file** — detailed run output when using the file-based tracker
+
+### Experiment Tracking
+
+MLflow is used automatically if it is installed. If not, the system uses the fallback file-based tracker.
+
+Example:
+
+```bash
+pixi run mlfx train ...
+pixi run mlfx train ...
+```
+
+---
+
 ## 7. Quick Verification Checklist
 
-After each stage, check:
+After each stage, verify:
 
-- After `download`: parquet files exist under `data/raw/{symbol}/`
-- After `qa`: a quality report exists
-- After `pipeline`: parquet files exist under `data/ohlcv/`, `data/features/`, and `data/labels/`
-- After `train`: new artifacts appear under `outputs/models/{symbol}/{tf}/`
-- After `evaluate`: new HTML and PNG reports appear under `outputs/reports/{symbol}/{tf}/`
-- After `batch-predict`: prediction parquet files appear under `outputs/predictions/{symbol}/{tf}/`
-- After `drift`: thresholds are evaluated and output is produced as expected
+- After `download`: parquet files exist in `data/raw/{symbol}/`
+- After `qa`: a data-quality report exists
+- After `pipeline`: parquet files exist in `data/ohlcv/`, `data/features/`, and `data/labels/`
+- After `train`: new artifacts exist in `outputs/models/{symbol}/{tf}/`
+- After `evaluate`: new HTML or PNG files exist in `outputs/reports/{symbol}/{tf}/`
+- After `batch-predict`: parquet files exist in `outputs/predictions/{symbol}/{tf}/`
+- After `drift`: there is no severe drift alert, or you already understand the reason
 
 ---
 
@@ -496,76 +469,40 @@ Clear common caches and generated artifacts:
 pixi run clean-generated
 ```
 
-Use it when:
+### When to Use It
 
-- You want a cleaner workspace before rerunning benchmarks or smoke tests
-- Repeated training runs created many `lightning_logs`
-- Old reports and caches are making validation harder
+- Before rerunning benchmarks or smoke tests
+- After long training runs created many `lightning_logs`
+- When old outputs or reports make validation harder
 
-For incident handling and diagnostics, see:
+If you need incident handling guidance, read:
 
 - [Troubleshooting](TROUBLESHOOTING.md)
 
-If you need the fastest runnable flow, use:
+If you need the fastest runnable path, read:
 
 - [Quickstart](../getting-started/QUICKSTART.md)
 
 ---
 
-## 9. Training Backend Defaults
+## 9. Notes on the Role of This Document
 
-The CLI `--n-trials` and `--n-splits` flags apply mainly to the `mlf` backend via Optuna. Other backends use built-in defaults unless configured otherwise.
-
-| Backend | Key Defaults |
-|---|---|
-| `mlf` | `n_trials` from CLI (default `15`), `n_splits` from CLI (default `5`) |
-| `lstm` | `n_trials=10`, `seq_len=60`, `epochs=30`, `batch_size=128`, `patience=5`, `top_k_features=20` |
-| `bilstm` | same as `lstm` |
-| `transformer` | same as `lstm` |
-| `cnn_lstm` | same as `lstm` |
-| `sgd` | `batch_size=500` |
-| `stats` | `n_splits` from CLI, `season_length=24` |
-| `neuralforecast` | `input_size=48`, `max_steps=200`, `max_samples=5000` |
+- `QUICKSTART.md` is the fastest path
+- `NOOB_GUIDE.md` is for new users who need the workflow and mental model first
+- this file is the main operational manual for the CLI
+- `CONFIG_REFERENCE.md` is the canonical reference when you need exact config or CLI flag mappings
+- `API_REFERENCE.md` is the canonical reference for serving endpoints
 
 ---
 
-## 10. Practical Notes
-
-### Drift Thresholds
-
-The `drift` command supports:
-
-- `--threshold-ks` (default: `0.1`)
-- `--threshold-psi` (default: `0.2`)
-
-Use stricter thresholds when you want earlier alerts, and looser thresholds when the workflow is producing too many false positives.
-
-### Benchmark Reports
-
-After `benchmark` completes, a JSON report is saved to:
-
-- `outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json`
-
-### Serving API
-
-When `mlfx serve` is running, the following endpoints are available:
-
-- `GET /health`
-- `GET /models`
-- `POST /predict`
-
-For full schemas and examples, see:
-
-- [API Reference](../reference/API_REFERENCE.md)
-
----
-
-## 11. See Also
+## 10. See Also
 
 - [Quickstart](../getting-started/QUICKSTART.md)
 - [Beginner Guide](../getting-started/NOOB_GUIDE.md)
 - [Evaluation Guide](EVALUATION_GUIDE.md)
+- [Troubleshooting](TROUBLESHOOTING.md)
 - [Configuration Reference](../reference/CONFIG_REFERENCE.md)
 - [API Reference](../reference/API_REFERENCE.md)
+- [Feature Reference](../reference/FEATURE_REFERENCE.md)
 - [Backend Comparison](../architecture/BACKEND_COMPARISON.md)
 - [English Docs Hub](../README.md)

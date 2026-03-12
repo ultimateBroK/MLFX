@@ -1,130 +1,191 @@
 # MLFX Quickstart
 
-This is the canonical onboarding flow for getting MLFX running end to end with the default `Pixi` workflow.
+This document is the **canonical fast-start guide** for running MLFX through the shortest practical path.
 
-If you are new to the repository, start here first.
+If you want to go from **no data** to **your first backtest result**, follow this file.
 
-## What you will do
+## When to read this file
 
-In the standard flow, you will:
+Read `QUICKSTART.md` when you want to:
 
-1. Install the environment
-2. Download historical tick data
-3. Build OHLCV, features, and labels
-4. Train a model
-5. Evaluate the result with a backtest report
+- try the repository quickly
+- know the exact order of commands to run
+- see what each step produces
+- have a short onboarding path before reading the more detailed docs
 
-## Prerequisites
+If you need deeper explanations:
 
-- `Pixi` installed locally
-- Repository dependencies installed with `pixi install`
-- A supported Linux environment
+- See [NOOB_GUIDE.md](NOOB_GUIDE.md) to understand **why** each step exists
+- See [../guides/USAGE_GUIDE.md](../guides/USAGE_GUIDE.md) for full CLI parameter usage
+- See [../guides/EVALUATION_GUIDE.md](../guides/EVALUATION_GUIDE.md) to understand how to read backtest outputs
+- See [../guides/TROUBLESHOOTING.md](../guides/TROUBLESHOOTING.md) when something fails
 
-Install dependencies:
+---
+
+## Minimum requirements
+
+- `Pixi` installed
+- You are in the root directory of the `ML_FX` repository
+- Commands are run with `pixi run ...`
+
+Install the environment:
 
 ```bash
+curl -fsSL https://pixi.sh/install.sh | bash
 pixi install
 ```
 
-## Canonical 5-step flow
+---
 
-### 1. Download raw tick data
+## Standard flow in 4 steps
+
+Minimal flow:
+
+```text
+1. Download data      -> download
+2. Prepare data       -> pipeline (OHLCV + features + labels)
+3. Train a model      -> train
+4. Evaluate results   -> evaluate (backtest + reports)
+```
+
+---
+
+## Step 1 — Download data
+
+Example for `XAUUSD`:
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
 ```
 
-What this does:
-- Downloads Dukascopy tick data
-- Stores raw parquet files under `data/raw/{symbol}/`
-- Creates download state files for resume support
+### What this step does
 
-Expected output:
+- Downloads historical tick data from the data source
+- Stores raw parquet files under `data/raw/{symbol}/`
+- Stores download state so interrupted runs can resume
+
+### Expected output
+
+You should see files such as:
+
 - `data/raw/XAUUSD/YYYY-MM.parquet`
 - `data/raw/XAUUSD/completed_months.json`
 
----
+### If you want to audit raw-data quality
 
-### 2. Audit raw data quality
+You can also run the quality-check step:
 
 ```bash
 pixi run mlfx qa --symbol XAUUSD --asset-class fx
 ```
 
-What this does:
-- Checks raw data for gaps and anomalies
-- Generates a quality report before downstream processing
-
-Expected output:
-- `data/raw/XAUUSD/XAUUSD_Data_Quality_Report.md`
-
-> You can skip this step for a first trial run, but it is recommended for normal research workflows.
+This step is not required for the fastest onboarding path, but it is very useful if you suspect missing data or damaged months.
 
 ---
 
-### 3. Run the feature pipeline
+## Step 2 — Run the pipeline
+
+Once raw data exists, run the pipeline to build OHLCV, features, and labels:
 
 ```bash
 pixi run mlfx pipeline --symbol XAUUSD --tf 1H
 ```
 
-What this does:
-- Resamples tick data into OHLCV bars
-- Computes technical and ICT-oriented features
+### What this step does
+
+- Converts tick data into `OHLCV` bars
+- Computes technical and context-aware features
 - Generates labels such as `label_5`, `label_10`, and `label_20`
 
-Expected output:
+### Expected output
+
+You should see intermediate data under:
+
 - `data/ohlcv/XAUUSD/1H/`
 - `data/features/XAUUSD/1H/`
 - `data/labels/XAUUSD/1H/`
 
+### Recommendation
+
+If you are just getting started, use the `1H` timeframe because it is:
+
+- lighter than very small timeframes
+- easier to inspect
+- less resource-intensive
+
 ---
 
-### 4. Train a model
+## Step 3 — Train a model
+
+Example using the easiest default backend to start with, `mlf`:
 
 ```bash
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 ```
 
-What this does:
-- Loads labeled data
-- Trains the selected backend
-- Stores model artifacts and metadata
+### What this step does
 
-Expected output:
+- Loads the labeled dataset
+- Selects the training backend
+- Trains the model
+- Stores artifacts and metadata
+
+### Expected output
+
+You should see outputs under:
+
 - `outputs/models/XAUUSD/1H/`
 
-Common backend choices:
-- `mlf`
-- `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
-- `sgd`
-- `stats`
-- `neuralforecast`
+### Recommended first-run parameters
+
+- `--tf 1H`
+- `--label label_10`
+- `--backend mlf`
+
+This is a good parameter set for a first trial run.
 
 ---
 
-### 5. Evaluate with backtesting
+## Step 4 — Evaluate / Backtest
+
+After training finishes, run evaluation:
 
 ```bash
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-What this does:
-- Backtests the trained model if one exists
-- Falls back to labels if no trained model is found
+### What this step does
+
+- Backtests the trained model
+- If no suitable trained model is found, the workflow may fall back to using labels as a baseline
 - Generates visual reports and summary metrics
 
-Expected output:
-- `outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_candlestick.html`
-- `outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png`
-- `outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png`
+### Expected output
 
-## Minimal command set
+You should see reports under:
 
-If you want the shortest useful flow, run:
+- `outputs/reports/XAUUSD/1H/`
+
+Typical files include:
+
+- `*_candlestick.html`
+- `*_equity.png`
+- `*_heatmap.png`
+
+The CLI will also print summary values such as:
+
+- total trades
+- win rate
+- profit factor
+- net profit
+- Sharpe / Sortino / Calmar
+- ending equity
+
+---
+
+## Full quickstart command set
+
+If you want to copy the entire minimal flow at once:
 
 ```bash
 pixi install
@@ -134,46 +195,94 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-## How to know each stage worked
+If you want to be more careful with raw data:
 
-- `download`: Raw parquet files exist under `data/raw/{symbol}/`
-- `qa`: A markdown quality report exists under `data/raw/{symbol}/`
-- `pipeline`: Parquet files exist under `data/ohlcv/`, `data/features/`, and `data/labels/`
-- `train`: Model artifacts exist under `outputs/models/{symbol}/{tf}/`
-- `evaluate`: HTML and PNG reports exist under `outputs/reports/{symbol}/{tf}/`
-
-## Common first-run choices
-
-For a stable first run, use:
-
-- `symbol`: `XAUUSD`
-- `asset-class`: `fx`
-- `tf`: `1H`
-- `label`: `label_10`
-- `backend`: `mlf`
-
-These defaults are practical because they keep the workflow simple and relatively lightweight.
-
-## If something fails
-
-Check these first:
-
-1. Did you run `pixi install`?
-2. Are you running commands with `pixi run`?
-3. Does the previous stage's output exist?
-4. Are you using the correct `symbol`, `tf`, and `label` consistently?
-
-Typical stage order:
-
-```text
-download -> qa -> pipeline -> train -> evaluate
+```bash
+pixi install
+pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
+pixi run mlfx qa --symbol XAUUSD --asset-class fx
+pixi run mlfx pipeline --symbol XAUUSD --tf 1H
+pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-## Next reading
+---
 
-- `../README.md` — English docs hub
-- `NOOB_GUIDE.md` — why the workflow is structured this way
-- `../guides/USAGE_GUIDE.md` — full CLI usage and parameters
-- `../guides/EVALUATION_GUIDE.md` — how to interpret reports and metrics
-- `../guides/TROUBLESHOOTING.md` — common environment and data issues
-- `../reference/CONFIG_REFERENCE.md` — `config.toml` defaults and CLI mappings
+## What to read next after quickstart
+
+### If you are completely new
+
+Read next:
+
+- [NOOB_GUIDE.md](NOOB_GUIDE.md)
+
+### If you want command-by-command and flag-by-flag usage
+
+Read:
+
+- [../guides/USAGE_GUIDE.md](../guides/USAGE_GUIDE.md)
+
+### If you want to understand what the backtest is measuring
+
+Read:
+
+- [../guides/EVALUATION_GUIDE.md](../guides/EVALUATION_GUIDE.md)
+
+### If you want to understand the data, features, and system design
+
+Read:
+
+- [../architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md)
+- [../reference/FEATURE_REFERENCE.md](../reference/FEATURE_REFERENCE.md)
+- [../reference/GLOSSARY.md](../reference/GLOSSARY.md)
+
+---
+
+## Common issues during quickstart
+
+### `pixi: command not found`
+
+You have not installed `Pixi`, or your shell has not been reloaded yet.
+
+### Training fails because files are missing
+
+This usually means you did not run `download` or `pipeline` first.
+
+### Evaluation does not generate reports
+
+Check:
+
+- whether parquet files exist under `data/labels/{symbol}/{tf}/`
+- whether a model has been trained
+- whether `label_col` is correct
+
+### Want to clean old outputs
+
+Run:
+
+```bash
+pixi run clean-generated
+```
+
+This removes caches and generated outputs, but does not touch `data/raw/`.
+
+---
+
+## Canonical beginner flow
+
+This file is the **canonical quickstart** for the English documentation.
+
+Other documents should:
+
+- link back to this file when a fast-start workflow is needed
+- avoid repeating the full command chain here unless it is genuinely necessary
+
+---
+
+## One-line summary
+
+If you just want to run MLFX for the first time, follow this order:
+
+```text
+download -> pipeline -> train -> evaluate
+```

@@ -3,209 +3,214 @@
 > **Plan version:** 2026.02.08-v2
 >
 > Internal planning document.  
-> Reference: [TODO.md](TODO.md) (detailed sprint task list), [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) (system architecture).
+> Reference: [TODO.md](TODO.md) (detailed task list), [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) (system architecture explanation).
 
 ---
 
-## I. MARKET ANALYSIS & COMPETITIVE ADVANTAGE
+## I. MARKET LANDSCAPE & COMPETITIVE ADVANTAGE
 
-Why is MLFX worth building and continuing to expand? The project is positioned as a **local-first, research-oriented MLOps pipeline for market prediction**, focused on control, extensibility, and reproducibility rather than cloud lock-in or black-box automation.
+Why is MLFX worth continuing to invest in and expand? This project sits at the intersection of quantitative research tooling, machine learning pipelines, and MLOps thinking for market data.
 
-| Capability | Hosted AI/AutoML Platforms | General Quant Frameworks | MLFX |
-| ---------- | -------------------------- | ------------------------ | ---- |
-| **Control over data** | **Medium.** Convenient, but data and experiment flow are often tied to vendor tooling. | **High.** You control execution and storage. | **Highest.** Local-first workflow, filesystem-based artifacts, optional tracking, and no mandatory hosted dependency. |
-| **Reproducibility** | **Medium.** Depends on platform defaults and managed runtimes. | **High.** Reproducible if disciplined. | **High.** Config-driven workflows, local artifacts, deterministic pipeline stages, and structured outputs. |
-| **Extensibility** | **Medium.** Usually limited by platform boundaries. | **High.** Flexible but often fragmented. | **High.** Modular ingestion, pipeline, training, evaluation, serving, and future adapters. |
-| **Operational simplicity** | **High.** Managed services reduce setup overhead. | **Medium.** Powerful but can require manual glue code. | **Medium to High.** Pixi-based workflow simplifies local operation while preserving engineering flexibility. |
-| **Research workflow** | **Medium.** Often optimized for production-first or dashboard-first usage. | **High.** Good for experimentation. | **High.** Built around iterative research: ingest → QA → pipeline → train → evaluate → benchmark → serve. |
-| **Backend experimentation** | **Medium.** Often tied to supported runtimes. | **High.** Strong if you build the plumbing yourself. | **High.** Multiple trainable backends already exist, with room for standardized comparison and future expansion. |
-| **Privacy / ownership** | **Low to Medium.** Vendor-managed services can expose operational metadata. | **High.** Usually self-managed. | **High.** Local execution and self-managed artifacts by default. |
+| Criteria | Fragmented Research Scripts | Trading Frameworks / Open-Source Bots | MLFX |
+| -------- | --------------------------- | ------------------------------------- | ---- |
+| **System organization** | **Low.** Code is often fragmented and hard to reuse. | **Medium to High.** Structured, but often focused more on execution logic. | **High.** Clear flow from data ingestion → validation → processing → training → evaluation → serving. |
+| **Reproducibility** | **Low.** Hard to standardize environment and execution flow. | **Medium.** Somewhat stable, but often tightly coupled to framework conventions. | **High.** Uses `pixi`, centralized configuration, and a unified CLI. |
+| **ML / MLOps depth** | **Low to Medium.** Often stops at notebooks or lightweight backtests. | **Medium.** Strong on rule-based systems or bots, but not always strong on ML pipelines. | **High.** Focused on data, feature engineering, training, model comparison, evaluation, drift detection, and serving. |
+| **Backend extensibility** | **Low.** Adding a new model often requires edits in many places. | **Medium.** Depends heavily on framework design. | **High.** Already includes multiple backends: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`. |
+| **Evaluation capability** | **Medium.** May include backtests, but often without strong standardization. | **High.** Many frameworks include solid backtesting support. | **High.** Includes evaluation, reporting, multi-backend comparison, and summary metric logging. |
+| **Operational readiness** | **Low.** Scripts are hard to deploy reliably. | **Medium.** Often strong in execution, but not always strong in ML-serving concerns. | **Medium to High.** Already has `serve`, `batch-predict`, and `drift`, but still needs stronger serving reliability, retry logic, circuit breaking, and logging. |
+| **Long-term research fit** | **Low.** Structure tends to collapse as the project grows. | **Medium.** Can become limited by framework philosophy. | **High.** Well-suited for model research, backend comparison, data-adapter expansion, and gradual movement toward more stable operation. |
 
-**Conclusion:** MLFX does not try to be a generic hosted ML platform. It is strongest as a **local, modular, developer-controlled market prediction research stack**. Its advantage is the combination of reproducible workflows, flexible backend experimentation, and a practical MLOps structure that remains understandable and hackable.
+**Conclusion:** MLFX does not try to become a “does everything” trading bot from day one. Its strength is as an **MLOps-style market-data research pipeline**, where you can download data, normalize it, train multiple backends, compare models, evaluate them, and serve predictions in one coherent system.
 
 ---
 
 ## II. DEVELOPMENT ROADMAP
 
-**Sprint dependency chain:** Sprint 1 → Sprint 2 → Sprint 3 → Sprint 4 → Sprint 5. Each sprint builds on the outputs of the previous one.
+**Sprint dependency chain:** Sprint 1 → Sprint 2 → Sprint 3 → Sprint 4 → Sprint 5.  
+These should not be implemented in parallel; each sprint depends on the outputs and stability of the previous one.
 
-**Cross-cutting operating loop:**
+**System-wide lifecycle loop:**
 
 ```text
-Observe -> Validate -> Transform -> Train -> Evaluate -> Serve -> Monitor -> Improve
+Observe → Validate → Transform → Train → Evaluate → Serve → Monitor → Improve
 ```
 
-### SPRINT 1: FOUNDATION ✅
+### SPRINT 1: FOUNDATION
 
-- **Goal:** Establish the local-first project foundation and baseline workflow.
+- **Goal:** Lay the groundwork so the project can run end-to-end at a basic level.
 - **Dependencies:** None.
 - **Estimated duration:** 1–2 weeks.
-- **Technology:** Python, Pixi, Parquet, project CLI, basic Docker setup.
+- **Core technology:** Python, Pixi, Parquet, CLI structure, basic documentation.
 - **Tasks:**
   1. Initialize the Python project with `pixi`.
-  2. Define the main project structure for `mlfx`, `tests`, `data`, `outputs`, and `docs`.
-  3. Add `pyproject.toml`, `.gitignore`, and base configuration.
-  4. Create the unified CLI entrypoint.
-  5. Establish the bilingual documentation structure.
-  6. Add basic container and local environment support.
-- **DoD:** The repository can run as a coherent local project with a documented developer workflow.
-- **Acceptance criteria:** `pixi`-based commands run successfully, repository structure is stable, and contributors can understand where each subsystem lives.
-- **Technical risks:** Keeping the initial layout simple enough for fast iteration while still leaving room for future serving and production concerns.
-- **Status:** ✅ Completed.
+  2. Establish the main project structure for `mlfx`, `tests`, `data`, `outputs`, and `docs`.
+  3. Create `pyproject.toml`, `config.toml`, `.gitignore`, and `README.md`.
+  4. Standardize the unified `mlfx` CLI.
+  5. Add basic `Dockerfile` and `docker-compose.yml`.
+  6. Set up the bilingual documentation framework.
+- **Definition of done:** The repository can run a basic CLI-driven workflow, the project structure is stable, and the development environment is reproducible.
+- **Acceptance criteria:** A new contributor can clone the repository, install the environment, and run basic commands with `pixi run`.
+- **Technical risks:** If the initial structure is unclear, later sprints will accumulate tight coupling and technical debt.
 
-### SPRINT 2: DATA INGESTION & PROCESSING ✅
+### SPRINT 2: DATA INGESTION & PROCESSING
 
-- **Goal:** Build a reliable path from raw market data to training-ready datasets.
+- **Goal:** Turn raw market data into normalized data usable for training and evaluation.
 - **Dependencies:** Sprint 1.
 - **Estimated duration:** 1–2 weeks.
-- **Technology:** Dukascopy ingestion, Parquet storage, pipeline processing, QA, resampling.
+- **Core technology:** `mlfx.ingestion`, `mlfx.pipeline`, Parquet, timeframe conversion, labeling.
 - **Tasks:**
   1. Build the downloader in `mlfx.ingestion`.
-  2. Support monthly raw tick downloads from Dukascopy.
-  3. Persist raw data to Parquet.
-  4. Track ingestion progress with state files.
-  5. Implement data QA and anomaly checks.
-  6. Resample tick data into OHLCV timeframes.
-  7. Add feature engineering and labeling flow.
-  8. Write processed outputs into stable dataset layouts.
-- **DoD:** Raw market data can be ingested, validated, transformed, and saved in a reusable structure.
-- **Acceptance criteria:** A full raw-to-processed run succeeds end-to-end and produces training-ready outputs without manual intervention.
-- **Technical risks:** Data gaps, malformed source data, and keeping time handling consistent across ingestion and resampling stages.
-- **Status:** ✅ Completed.
+  2. Download tick data from Dukascopy.
+  3. Store raw data by month.
+  4. Track download state with state files.
+  5. Validate data quality and detect gaps and anomalies.
+  6. Convert tick data into OHLCV across timeframes.
+  7. Build feature engineering and labeling stages.
+  8. Standardize processed outputs for training and evaluation.
+- **Definition of done:** Raw data can be turned into OHLCV, features, labels, and stable processed outputs in a consistent workflow.
+- **Acceptance criteria:** Data validation, timeframe conversion, feature generation, and labeling run successfully in one unified flow.
+- **Technical risks:** Financial data is highly sensitive to gaps, timestamp drift, and inconsistent formats; weak handling here will propagate errors into training.
 
-### SPRINT 3: TRAINING SYSTEM & MODEL BASELINES ✅
+### SPRINT 3: TRAINING & BACKEND STANDARDIZATION ✅
 
-- **Goal:** Train multiple forecasting backends through a unified workflow.
+- **Goal:** Train multiple backends and standardize the training workflow for fairer model comparison.
 - **Dependencies:** Sprint 2.
 - **Estimated duration:** 1–2 weeks.
-- **Technology:** `mlfx.training`, configurable backends, artifact persistence, optional MLflow.
+- **Core technology:** `mlfx.training`, optional MLflow, CLI-driven training configuration.
 - **Tasks:**
-  1. Implement the training module and backend abstraction.
-  2. Add baseline backends: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`.
-  3. Build a unified CLI training flow.
-  4. Enforce time-series-safe splitting.
-  5. Save artifacts and training outputs under `outputs/`.
-  6. Record run metadata and summary metrics.
-  7. Support optional MLflow tracking.
-- **DoD:** At least one backend can be trained end-to-end through the standard CLI, with reproducible artifacts and metrics.
-- **Acceptance criteria:** Backend selection works via CLI, artifacts are saved consistently, and time-series data leakage is avoided.
-- **Technical risks:** Divergent backend interfaces, inconsistent metrics, and accidental leakage in split logic.
+  1. Build the shared training module.
+  2. Integrate backends: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`.
+  3. Standardize train / validation / test splitting for time-series data.
+  4. Avoid data leakage.
+  5. Store training artifacts and metrics under `outputs/`.
+  6. Integrate MLflow as an optional path.
+  7. Standardize run metadata for each training job.
+- **Definition of done:** At least one backend can be trained end-to-end; artifacts and metrics are stored consistently; multiple backends can be compared within the same system.
 - **Status:** ✅ Completed.
 
-### SPRINT 4: EVALUATION, REPORTING & BENCHMARKING ✅
+### SPRINT 4: EVALUATION, BACKTESTING & MODEL COMPARISON ✅
 
-- **Goal:** Make model quality measurable, comparable, and reviewable.
+- **Goal:** Evaluate model quality reproducibly and establish a solid basis for backend comparison.
 - **Dependencies:** Sprint 3.
 - **Estimated duration:** 1–2 weeks.
-- **Technology:** `mlfx.evaluation`, backtesting, report generation, benchmark flow.
+- **Core technology:** `mlfx.evaluation`, reporting, comparison workflow.
 - **Tasks:**
-  1. Implement evaluation workflows in `mlfx.evaluation`.
-  2. Add backtesting support for prediction-driven analysis.
-  3. Generate summary metrics and structured outputs.
-  4. Persist evaluation reports under `outputs/`.
-  5. Add a unified benchmark command.
-  6. Improve result comparison across backends.
-  7. Add end-to-end train/evaluate test coverage.
-- **DoD:** Models can be trained, evaluated, benchmarked, and compared through a repeatable workflow.
-- **Acceptance criteria:** Evaluation outputs are reproducible, benchmark runs complete successfully, and summary metrics are exportable.
-- **Technical risks:** Metric inconsistency across backends, report sprawl, and fragile end-to-end test coverage.
+  1. Build the evaluation module.
+  2. Add backtesting support.
+  3. Compute basic and out-of-sample evaluation metrics.
+  4. Store evaluation outputs under `outputs/`.
+  5. Generate reports and summary metrics.
+  6. Add a unified comparison flow via `mlfx benchmark`.
+  7. Add `metrics_log.jsonl`.
+  8. Increase end-to-end test coverage for training and evaluation.
+- **Definition of done:** Trained models can be evaluated and backtested; multi-backend comparison works; results are stored and reviewable.
 - **Status:** ✅ Completed.
+- **Acceptance criteria:** The same workflow can be used to compare multiple backends on the same data and metric set.
 
-### SPRINT 5: SERVING, RELIABILITY & PRODUCTION READINESS
+### SPRINT 5: SERVING, MONITORING & RELIABILITY HARDENING
 
-- **Goal:** Turn the research stack into a more operationally reliable serving system.
+- **Goal:** Move the system toward more stable operation for inference, batch prediction, and monitoring.
 - **Dependencies:** Sprint 4.
 - **Estimated duration:** 1–2 weeks.
-- **Technology:** FastAPI serving layer, runtime packaging, drift workflow, logging, retry logic.
+- **Core technology:** FastAPI, serving layer, drift-detection workflow, logging, retry / circuit-breaker behavior.
 - **Tasks:**
-  1. Harden the serving layer and define clearer inference contracts.
-  2. Improve runtime packaging for deployment use cases.
-  3. Expand health checks and observability.
-  4. Add retry logic for unstable operations.
-  5. Add circuit-breaker-style protection where external calls may fail repeatedly.
-  6. Standardize CLI/API error handling.
-  7. Improve runtime logs for diagnosis and incident review.
-  8. Refine drift monitoring workflow.
-- **DoD:** The system can serve predictions more safely and is easier to operate in a production-like environment.
-- **Acceptance criteria:** Serving behavior is documented, health endpoints are dependable, logs are actionable, and failure recovery is more predictable.
-- **Technical risks:** Overcomplicating a research-first codebase, unclear deployment boundaries, and insufficient runtime protection for long-lived services.
-- **Status:** In progress / next major focus.
+  1. Harden the serving path for `serve` and `batch-predict`.
+  2. Standardize inference input / output contracts.
+  3. Improve health checks and runtime diagnostics.
+  4. Refine the `drift` workflow.
+  5. Add retry logic for unstable operations.
+  6. Add circuit breaker protection for fragile integrations.
+  7. Improve runtime logging and error handling.
+  8. Write clearer deployment documentation for production-like operation.
+- **Definition of done:** The system can serve predictions via API or batch mode, detect feature drift, and reach a basic level of operational readiness.
+- **Acceptance criteria:** Runtime failures are surfaced clearly, API health checks are dependable, and operators can follow the docs successfully.
+- **Technical risks:** If the serving layer is not hardened properly, it becomes the weakest point when moving from research to operation.
 
 ---
 
-## III. ADDITIONAL INFORMATION
+## III. CURRENT STATUS & NEXT PRIORITIES
 
-### Current completed milestones
+### What already exists
 
 - Unified CLI `mlfx`
 - Dukascopy ingestion in `mlfx.ingestion`
-- QA, resampling, feature engineering, and labeling in `mlfx.pipeline`
-- Multiple trainable backends in `mlfx.training`
-- Backtesting and reporting in `mlfx.evaluation`
-- Runtime packaging and workflow commands
-- Pixi-based operator and developer flow
-- Unified benchmark flow
-- End-to-end train/evaluate coverage
-- Summary metrics export via `metrics_log.jsonl`
+- QA, timeframe conversion, feature engineering, and labeling in `mlfx.pipeline`
+- Multiple training backends in `mlfx.training`
+- Evaluation, backtesting, and reporting in `mlfx.evaluation`
+- Runtime packaging through `mlfx`
+- Unified benchmark workflow
+- End-to-end training and evaluation test coverage
+- Summary metric export via `metrics_log.jsonl`
+- `serve`, `batch-predict`, and `drift` commands
 
-### Technical risks overview
+### Next priorities
 
-- **Data source instability:** External market data providers may change behavior, throttle requests, or return incomplete data.
-- **Time-series correctness:** Even small mistakes in split logic, resampling, or labeling can invalidate evaluation results.
-- **Backend drift:** Supporting multiple modeling backends can lead to inconsistent metrics, input contracts, and artifact expectations.
-- **Serving complexity:** A serving layer can accumulate production concerns faster than the rest of the stack if boundaries are not kept clean.
-- **Documentation drift:** As the project grows, English and Vietnamese docs can diverge unless maintained together.
+1. Standardize metrics across backends for fairer comparison.
+2. Expand test coverage with smaller fixture datasets for faster, more stable test runs.
+3. Reorganize the serving layer for easier maintenance.
+4. Add retry and circuit-breaker behavior.
+5. Add real-time data adapters beyond Dukascopy.
+6. Expand backend coverage, especially more attention-based variants.
 
-### Cost and best practices
+### Prioritization logic
 
-- **Baseline cost:** Near-zero for local development beyond compute and storage.
-- Prefer local, reproducible runs before adding deployment complexity.
-- Keep configs explicit and version-controlled where safe.
-- Use smaller fixture datasets to improve test speed and reliability.
-- Expand serving safeguards before treating the project as production-ready.
-
-### Why not rely only on hosted MLOps or generic quant frameworks?
-
-Hosted platforms reduce setup effort but often trade away control, transparency, and flexibility. Generic frameworks are powerful but may require more glue code to shape a coherent market-prediction workflow. MLFX sits in the middle: opinionated enough to be productive, modular enough to remain extensible.
-
-### Representative project workflow
-
-```text
-download
-  -> qa
-  -> pipeline
-  -> train
-  -> evaluate
-  -> benchmark
-  -> serve / batch-predict
-  -> drift
-```
-
-This flow is the practical backbone of the project and should remain stable even as individual modules evolve.
+- If the goal is **model comparison**: prioritize benchmark flow, metric consistency, and reporting quality.
+- If the goal is **operational reliability**: prioritize testing, retries, circuit breakers, and logging.
+- If the goal is **research expansion**: prioritize new backends and real-time data adapters.
+- If the goal is **earlier operational deployment**: prioritize serving-layer reorganization and inference-contract standardization.
 
 ---
 
-## IV. FUTURE PLAN
+## IV. ADDITIONAL INFORMATION
 
-- **Phase 1 – Stronger model comparison**
-  - Standardize cross-backend metrics more rigorously.
-  - Improve benchmark summaries for apples-to-apples comparisons.
-  - Add more compact fixture datasets for repeatable validation.
+### General technical risks
 
-- **Phase 2 – Broader experimentation**
-  - Add new backend architectures, especially more attention-based variants.
-  - Introduce additional live-data adapters beyond Dukascopy.
-  - Expand configurable experiment templates.
+- **Market data:** Data gaps, timestamp drift, or source-format changes can break the pipeline if validation is too weak.
+- **ML / DL backends:** Some deep-learning backends require large compute budgets or long training times; comparison must be standardized to avoid unfair conclusions.
+- **Serving layer:** If input / output contracts are unstable, external integrations become hard to maintain.
+- **Drift monitoring:** If reference data is not managed clearly, drift alerts become noisy and difficult to interpret.
+- **External dependencies:** Data providers or real-time adapters may change APIs, impose rate limits, or alter access policies.
 
-- **Phase 3 – More production-grade operation**
-  - Refactor the serving layer into cleaner operational boundaries.
-  - Add stronger retry, fallback, and failure-isolation behavior.
-  - Improve deployment guidance, runtime packaging, and health monitoring.
+### Cost and best practices
 
-- **Phase 4 – Better research UX**
-  - Add richer experiment dashboards and artifact comparison tools.
-  - Improve CLI ergonomics and configuration discovery.
-  - Add clearer contributor guidance for extending pipelines and backends.
+- **Initial cost:** Low; mostly local-machine or modest research-server cost.
+- Use `pixi` to keep the environment reproducible.
+- Keep raw data and processed data clearly separated.
+- Do not mix research logic with serving logic in the same layer.
+- Prefer repeatable comparisons over fast experiments that are hard to validate.
+- Every new backend should come with documentation, a minimum metric set, and appropriate tests.
+
+### Why not just use notebooks or loose scripts?
+
+Notebooks are excellent for rapid prototyping, but they become hard to maintain as projects grow. MLFX offers a more coherent structure for long-term research, model comparison, and gradual movement toward practical MLOps discipline.
+
+### How to think about the system
+
+MLFX should be viewed as a continuous improvement loop:
+
+```text
+New data → Validate quality → Transform → Train → Evaluate → Serve → Monitor drift → Adjust
+```
+
+---
+
+## V. FUTURE PLAN
+
+- **Phase 1 – Broader model research**
+  - Add more attention-based backends and sequence-model variants.
+  - Expand automated tuning or hyperparameter-search workflows.
+  - Standardize comparison more deeply across statistical and deep-learning models.
+
+- **Phase 2 – Data and operational expansion**
+  - Support more real-time data adapters beyond Dukascopy.
+  - Increase large-scale data handling capability.
+  - Refine runtime contracts and the serving layer for more production-like operation.
+
+- **Phase 3 – Observability and user experience**
+  - Add richer dashboards for training, evaluation, and serving.
+  - Improve logging, health checks, diagnostics, and drift observability.
+  - Improve CLI ergonomics and operational documentation.
 
 ---
 
@@ -213,10 +218,12 @@ This flow is the practical backbone of the project and should remain stable even
 
 | Document | Description |
 | -------- | ----------- |
-| [README.md](../README.md) | English documentation hub |
-| [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) | System architecture and design |
+| [../README.md](../README.md) | English documentation hub |
+| [../architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) | System architecture explanation |
 | [TODO.md](TODO.md) | Sprint-based task list |
 | [ROADMAP.md](ROADMAP.md) | Roadmap and development plan |
-| [Vietnamese README](../../vi/README.md) | Vietnamese documentation hub |
-| [Vietnamese TODO](../../vi/meta/TODO.md) | Vietnamese sprint task list |
-| [Vietnamese ROADMAP](../../vi/meta/ROADMAP.md) | Vietnamese version of this roadmap |
+| [../../vi/README.md](../../vi/README.md) | Vietnamese documentation hub |
+| [../../vi/meta/TODO.md](../../vi/meta/TODO.md) | Vietnamese sprint task list |
+| [../../vi/meta/ROADMAP.md](../../vi/meta/ROADMAP.md) | Vietnamese version of this roadmap |
+
+---

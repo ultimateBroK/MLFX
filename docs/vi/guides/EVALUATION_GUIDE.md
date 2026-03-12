@@ -1,13 +1,13 @@
 # MLFX - Hướng dẫn đánh giá
 
-Tài liệu này mô tả cách chạy `mlfx evaluate`, cách đọc metrics, và cách hiểu các artifact được sinh ra.
+Tài liệu này giải thích cách chạy `mlfx evaluate`, cách đọc các chỉ số đánh giá và cách hiểu các tệp đầu ra được tạo ra sau mỗi lần chạy.
 
 ## Tài liệu liên quan
 
-- [Docs Hub tiếng Việt](../README.md)
-- [Quickstart](../getting-started/QUICKSTART.md)
+- [Cổng tài liệu tiếng Việt](../README.md)
+- [Bắt đầu nhanh](../getting-started/QUICKSTART.md)
 - [Hướng dẫn cấu hình và sử dụng](USAGE_GUIDE.md)
-- [Tham chiếu Feature](../reference/FEATURE_REFERENCE.md)
+- [Tham chiếu đặc trưng](../reference/FEATURE_REFERENCE.md)
 - [Tham chiếu cấu hình](../reference/CONFIG_REFERENCE.md)
 - [Khắc phục sự cố](TROUBLESHOOTING.md)
 
@@ -15,18 +15,18 @@ Tài liệu này mô tả cách chạy `mlfx evaluate`, cách đọc metrics, v�
 
 ## 1. Dữ liệu đầu vào
 
-Evaluation đọc toàn bộ dữ liệu đã gắn nhãn trong:
+Bước đánh giá đọc toàn bộ dữ liệu đã gắn nhãn trong:
 
 ```text
 data/labels/{symbol}/{tf}/*.parquet
 ```
 
-Dataset đầu vào cần có tối thiểu:
+Tập dữ liệu đầu vào tối thiểu cần có:
 
-- cột `timestamp`
-- cột OHLC như `open`, `high`, `low`, `close`
-- cột ATR mặc định là `atr_14`
-- cột tín hiệu bạn truyền qua `--label`
+- Cột `timestamp`
+- Các cột giá như `open`, `high`, `low`, `close`
+- Cột ATR, mặc định là `atr_14`
+- Cột tín hiệu được truyền qua `--label`
 
 Các cột tín hiệu thường dùng:
 
@@ -36,7 +36,7 @@ Các cột tín hiệu thường dùng:
 
 ---
 
-## 2. Chạy backtest
+## 2. Cách chạy kiểm định
 
 ```bash
 pixi run mlfx evaluate \
@@ -53,67 +53,67 @@ pixi run mlfx evaluate \
 
 ### 2.1. Quy tắc khớp lệnh
 
-Với mỗi cây nến có tín hiệu, simulator sẽ:
+Với mỗi cây nến có tín hiệu, bộ mô phỏng sẽ:
 
-1. Mở vị thế tại **giá open của cây nến kế tiếp**
-2. Kiểm tra các cây nến tiếp theo xem có chạm TP hoặc SL không
-3. Nếu không chạm TP hoặc SL trong vòng **10 cây nến** (`horizon_limit`), lệnh sẽ bị force-exit ở cây nến thứ 10
+1. Mở vị thế tại **giá mở cửa của cây nến kế tiếp**
+2. Kiểm tra các cây nến phía sau xem có chạm mức chốt lời hoặc dừng lỗ hay không
+3. Nếu sau **10 cây nến** (`horizon_limit`) vẫn chưa chạm chốt lời hoặc dừng lỗ, lệnh sẽ bị đóng bắt buộc ở cây nến thứ 10
 
-TP và SL được biểu diễn theo đơn vị **R** — tức bội số của khoảng rủi ro ban đầu, được suy ra từ `atr_14`.
+Mức chốt lời và dừng lỗ được biểu diễn theo đơn vị **R** — tức là bội số của khoảng rủi ro ban đầu, được suy ra từ `atr_14`.
 
-### 2.2. Mapping từ label sang tín hiệu giao dịch
+### 2.2. Ánh xạ từ nhãn sang tín hiệu giao dịch
 
-Các giá trị label ordinal được ánh xạ sang tín hiệu như sau:
+Các giá trị nhãn thứ bậc được ánh xạ sang tín hiệu như sau:
 
-| Label | Signal | Ý nghĩa |
+| Nhãn | Tín hiệu | Ý nghĩa |
 |---|---|---|
 | `2` | LONG | Tăng mạnh |
 | `1` | LONG | Tăng |
-| `0` | Skip | Không vào lệnh |
+| `0` | Bỏ qua | Không vào lệnh |
 | `-1` | SHORT | Giảm |
 | `-2` | SHORT | Giảm mạnh |
 
-> **Lưu ý**: Label `1` và `2` hiện đều tạo cùng một loại lệnh LONG; mức độ mạnh/yếu (`±2` so với `±1`) chưa làm thay đổi position sizing trong implementation hiện tại.
+> **Lưu ý:** Nhãn `1` và `2` hiện đều tạo ra cùng một loại lệnh LONG. Mức độ mạnh hay yếu (`±2` so với `±1`) hiện chưa làm thay đổi quy mô vị thế trong phần cài đặt hiện tại.
 
-### 2.3. Ý nghĩa tham số
+### 2.3. Ý nghĩa các tham số
 
-- `--symbol`: mã instrument
-- `--tf`: timeframe đang evaluate
-- `--label`: cột tín hiệu dùng để vào lệnh
-- `--capital`: vốn ban đầu để quy đổi từ `R` sang dollar
-- `--risk`: % vốn rủi ro trên mỗi lệnh
-- `--commission`: chi phí commission trên mỗi lệnh
-- `--tp`: take-profit theo đơn vị `R`
-- `--sl`: stop-loss theo đơn vị `R`
-- `--slippage`: trượt giá giả lập
-- `--use-labels`: chỉ backtest labels, bỏ qua model predictions
+- `--symbol`: Mã công cụ tài chính
+- `--tf`: Khung thời gian cần đánh giá
+- `--label`: Cột tín hiệu dùng để vào lệnh
+- `--capital`: Vốn ban đầu, dùng để quy đổi từ `R` sang tiền
+- `--risk`: Phần trăm vốn chấp nhận rủi ro cho mỗi lệnh
+- `--commission`: Chi phí hoa hồng cho mỗi lệnh
+- `--tp`: Mức chốt lời theo đơn vị `R`
+- `--sl`: Mức dừng lỗ theo đơn vị `R`
+- `--slippage`: Mức trượt giá giả lập
+- `--use-labels`: Chỉ kiểm định trực tiếp trên nhãn, bỏ qua dự đoán của mô hình
 
 ---
 
-## 3. Chế độ backtest: Model và Labels
+## 3. Hai chế độ đánh giá: mô hình và nhãn
 
-### 3.1. Mặc định
+### 3.1. Chế độ mặc định
 
-Theo mặc định, `mlfx evaluate` sẽ dùng **model tốt nhất đã đăng ký** để sinh prediction, sau đó backtest prediction đó.
+Theo mặc định, `mlfx evaluate` sẽ dùng **mô hình tốt nhất đã đăng ký** để sinh dự đoán, sau đó kiểm định trên các dự đoán đó.
 
-Nếu chưa có model phù hợp, workflow sẽ fallback sang **labels**.
+Nếu chưa có mô hình phù hợp, quy trình sẽ quay về dùng **nhãn** như một mốc tham chiếu.
 
-### 3.2. Backtest labels
+### 3.2. Kiểm định trực tiếp trên nhãn
 
-Nếu bạn muốn backtest trực tiếp nhãn gốc, hãy thêm `--use-labels`:
+Nếu bạn muốn đánh giá trực tiếp nhãn gốc, hãy thêm `--use-labels`:
 
 ```bash
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
 ```
 
-### 3.3. Backtest model
+### 3.3. Kiểm định trên mô hình
 
 Nếu không truyền `--use-labels`, hệ thống sẽ cố gắng:
 
 1. Đọc `outputs/models/registry.json`
-2. Chọn model tốt nhất dựa trên metric đã đăng ký
-3. Chạy inference trên dataset đầy đủ
-4. Backtest prediction của model đó
+2. Chọn mô hình tốt nhất dựa trên chỉ số đã đăng ký
+3. Chạy suy luận trên toàn bộ tập dữ liệu
+4. Kiểm định trên dự đoán của mô hình đó
 
 Ví dụ:
 
@@ -121,40 +121,40 @@ Ví dụ:
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-### 3.4. Workflow so sánh baseline
+### 3.4. Luồng so sánh mốc nền
 
-Một workflow hợp lý để so sánh giá trị model:
+Một cách hợp lý để kiểm tra giá trị thực sự của mô hình là:
 
 ```bash
-# Bước 1: Baseline — backtest labels
+# Bước 1: Mốc nền — đánh giá trực tiếp trên nhãn
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
 
-# Bước 2: Train model
+# Bước 2: Huấn luyện mô hình
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
-# Bước 3: Backtest model
+# Bước 3: Đánh giá mô hình
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
 Khi đó bạn có thể so sánh:
 
-- Equity curve
-- Profit Factor
-- Sharpe Ratio
-- Net Profit (R)
+- Đường vốn
+- Hệ số lợi nhuận
+- Tỷ lệ Sharpe
+- Lợi nhuận ròng theo đơn vị `R`
 - Độ ổn định của kết quả
 
 ---
 
-## 4. Quy ước đặt tên report
+## 4. Quy ước đặt tên báo cáo
 
-Runner tạo `out_name` theo công thức:
+Bộ chạy sẽ tạo `out_name` theo công thức:
 
 ```text
 {label_col}_R{int(tp_r * 10)}
 ```
 
-Sau đó reporting tạo prefix đầy đủ:
+Sau đó mô-đun báo cáo tạo tiền tố đầy đủ:
 
 ```text
 {symbol}_{tf}_{out_name}
@@ -167,7 +167,7 @@ Ví dụ với:
 - `label = label_10`
 - `tp = 1.5`
 
-thì prefix sẽ là:
+thì tiền tố sẽ là:
 
 ```text
 XAUUSD_1H_label_10_R15
@@ -175,9 +175,9 @@ XAUUSD_1H_label_10_R15
 
 ---
 
-## 5. Các artifact được sinh ra
+## 5. Các tệp đầu ra được tạo ra
 
-Mỗi lần chạy thường sinh 3 artifact trong `outputs/reports/{symbol}/{tf}/`:
+Mỗi lần chạy thường sinh ra 3 đầu ra trong `outputs/reports/{symbol}/{tf}/`:
 
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
@@ -193,9 +193,9 @@ outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
 
 ---
 
-## 6. Các metric chính
+## 6. Các chỉ số quan trọng
 
-Output tóm tắt thường gồm:
+Phần tóm tắt đầu ra thường gồm:
 
 - `Total Trades`
 - `Win Rate (%)`
@@ -209,55 +209,55 @@ Output tóm tắt thường gồm:
 
 ### 6.1. Diễn giải nhanh
 
-- `Total Trades`: số lệnh được mô phỏng
-- `Win Rate (%)`: tỷ lệ lệnh lãi; không nên dùng độc lập
-- `Profit Factor`: tổng lãi chia tổng lỗ; giá trị `> 1` mới là mức tối thiểu có ý nghĩa
-- `Net Profit (R)`: lợi nhuận chuẩn hóa, rất hữu ích để so sánh nhiều cấu hình công bằng
-- `Net Profit ($)`: lợi nhuận quy đổi theo `capital` và `risk`
-- `Sharpe Ratio`: lợi nhuận trung bình so với độ biến động tổng thể
-- `Sortino Ratio`: tương tự Sharpe nhưng chỉ phạt downside volatility
-- `Calmar Ratio`: tổng lợi nhuận ròng chia cho drawdown tối đa
-- `Final Capital ($)`: vốn cuối cùng sau khi áp chi phí và kết quả giao dịch
+- `Total Trades`: Tổng số lệnh được mô phỏng
+- `Win Rate (%)`: Tỷ lệ lệnh có lãi; không nên dùng riêng lẻ
+- `Profit Factor`: Tổng lãi chia tổng lỗ; thường cần `> 1` mới có ý nghĩa tối thiểu
+- `Net Profit (R)`: Lợi nhuận chuẩn hóa; rất hữu ích khi so sánh công bằng nhiều cấu hình
+- `Net Profit ($)`: Lợi nhuận quy đổi ra tiền theo `capital` và `risk`
+- `Sharpe Ratio`: Lợi nhuận trung bình so với biến động tổng thể
+- `Sortino Ratio`: Tương tự Sharpe nhưng chỉ phạt biến động theo hướng xấu
+- `Calmar Ratio`: Lợi nhuận ròng chia cho mức sụt giảm tối đa
+- `Final Capital ($)`: Số vốn cuối cùng sau khi áp tất cả chi phí và kết quả giao dịch
 
-### 6.2. Lưu ý khi đọc metrics
+### 6.2. Lưu ý khi đọc chỉ số
 
 - Đừng dùng `Win Rate` một mình để kết luận chiến lược tốt hay xấu
-- `Profit Factor`, `Net Profit (R)` và `Sharpe/Sortino` thường hữu ích hơn khi so sánh cấu hình
-- Số lượng trade quá ít có thể làm metric đẹp nhưng thiếu ý nghĩa thống kê
-- Luôn so sánh model với baseline labels nếu có thể
+- `Profit Factor`, `Net Profit (R)` và `Sharpe / Sortino` thường hữu ích hơn khi so sánh cấu hình
+- Số lượng lệnh quá ít có thể làm chỉ số rất đẹp nhưng thiếu ý nghĩa thống kê
+- Nếu có thể, luôn so sánh mô hình với mốc nền là nhãn
 
 ---
 
-## 7. Cách đọc từng loại report
+## 7. Cách đọc từng loại báo cáo
 
-### 7.1. Candlestick HTML
+### 7.1. Báo cáo nến dạng HTML
 
 Hiển thị:
 
-- Bến giá
-- Marker vào lệnh LONG/SHORT
-- Panel RSI nếu dataset có `rsi_14`
+- Biến động giá
+- Dấu đánh dấu điểm vào lệnh LONG / SHORT
+- Khung RSI nếu tập dữ liệu có `rsi_14`
 
 Phù hợp để:
 
-- Kiểm tra điểm vào lệnh có hợp lý không
-- Xem signal có bị dồn vào một đoạn ngắn bất thường không
-- Xác nhận xem chiến lược có “đánh đúng lúc” hay không
+- Kiểm tra xem điểm vào lệnh có hợp lý không
+- Xem tín hiệu có bị dồn vào một đoạn ngắn bất thường không
+- Xác nhận chiến lược có vào lệnh đúng thời điểm hay không
 
-### 7.2. Equity Curve PNG
+### 7.2. Biểu đồ đường vốn dạng PNG
 
 Hiển thị:
 
-- Cumulative PnL theo đơn vị `R`
-- Drawdown ở panel dưới
+- Lãi/lỗ tích lũy theo đơn vị `R`
+- Mức sụt giảm vốn ở khung bên dưới
 
 Phù hợp để:
 
 - Nhìn nhịp tăng trưởng vốn
 - So sánh độ “mượt” giữa nhiều cấu hình
-- Đánh giá xem lợi nhuận có đến từ một vài trade may mắn hay từ cả chuỗi ổn định
+- Đánh giá xem lợi nhuận đến từ cả chuỗi lệnh ổn định hay chỉ từ vài lệnh may mắn
 
-### 7.3. Heatmap PNG
+### 7.3. Bản đồ nhiệt dạng PNG
 
 Hiển thị hiệu suất trung bình theo:
 
@@ -266,39 +266,39 @@ Hiển thị hiệu suất trung bình theo:
 
 Phù hợp để:
 
-- Xác định xem nên thêm time filter hay session filter hay không
-- Nhận diện khung giờ có hiệu suất tốt hoặc kém bất thường
+- Xác định xem có nên thêm bộ lọc thời gian hoặc bộ lọc phiên giao dịch hay không
+- Nhận diện khung giờ có hiệu suất tốt hoặc kém một cách bất thường
 
 ---
 
-## 8. Failure Modes thường gặp
+## 8. Những kiểu lỗi thường gặp
 
-Evaluation thường fail hoặc cho kết quả rỗng khi:
+Bước đánh giá thường lỗi hoặc cho kết quả rỗng khi:
 
-- Không có parquet trong `data/labels/{symbol}/{tf}/`
-- Cột `--label` không tồn tại
+- Không có tệp parquet trong `data/labels/{symbol}/{tf}/`
+- Cột được truyền qua `--label` không tồn tại
 - Cột `atr_14` không tồn tại
-- Dữ liệu quá ít khiến gần như không có trade
-- Signal column không bao giờ phát ra tín hiệu LONG/SHORT hữu ích
+- Dữ liệu quá ít nên gần như không có lệnh nào
+- Cột tín hiệu không bao giờ phát ra LONG hoặc SHORT có ý nghĩa
 
 ### 8.1. Dấu hiệu lỗi phổ biến
 
-- CLI không in ra summary metrics
-- Không có file mới trong `outputs/reports/{symbol}/{tf}/`
-- Trade count quá thấp hoặc bằng `0`
-- Filename sinh ra không đúng prefix mong đợi
+- Dòng lệnh không in ra bảng chỉ số tổng hợp
+- Không có tệp mới trong `outputs/reports/{symbol}/{tf}/`
+- Số lượng lệnh quá thấp hoặc bằng `0`
+- Tên tệp sinh ra không đúng tiền tố mong đợi
 
 ---
 
-## 9. Checklist xác minh sau khi evaluate
+## 9. Danh sách kiểm tra sau khi chạy đánh giá
 
-Sau khi chạy, nên kiểm tra:
+Sau khi chạy xong, bạn nên kiểm tra:
 
-- CLI có in ra summary metrics hay không
-- `outputs/reports/{symbol}/{tf}/` có 3 artifact mới hay không
-- Tên file có đúng prefix kỳ vọng hay không
-- Số trade có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
-- Nếu đang backtest model, model đó có thật sự tồn tại trong registry không
+- Dòng lệnh có in ra các chỉ số tổng hợp hay không
+- `outputs/reports/{symbol}/{tf}/` có 3 đầu ra mới hay không
+- Tên tệp có đúng tiền tố kỳ vọng hay không
+- Số lượng lệnh có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
+- Nếu đang đánh giá mô hình, mô hình đó có thực sự tồn tại trong registry không
 
 ---
 
@@ -343,7 +343,7 @@ generate_full_report(
 
 ---
 
-## 11. Gợi ý quy trình đọc kết quả
+## 11. Gợi ý thứ tự đọc kết quả
 
 Nếu bạn mới bắt đầu, hãy đọc kết quả theo thứ tự:
 
@@ -351,23 +351,23 @@ Nếu bạn mới bắt đầu, hãy đọc kết quả theo thứ tự:
 2. `Profit Factor`
 3. `Net Profit (R)`
 4. `Sharpe Ratio`
-5. Equity curve
-6. Heatmap
-7. Candlestick HTML
+5. Đường vốn
+6. Bản đồ nhiệt
+7. Báo cáo nến dạng HTML
 
 Lý do:
 
-- Metric tổng quan cho biết cấu hình có đáng xem tiếp hay không
-- Equity curve cho biết chất lượng đường vốn
-- Heatmap giúp gợi ý cải tiến chiến lược theo thời gian
-- Candlestick giúp kiểm tra trực quan điểm vào lệnh
+- Các chỉ số tổng quan cho biết cấu hình có đáng xem tiếp hay không
+- Đường vốn cho biết chất lượng diễn biến vốn
+- Bản đồ nhiệt gợi ý cải tiến chiến lược theo thời gian
+- Báo cáo nến giúp kiểm tra trực quan điểm vào lệnh
 
 ---
 
 ## 12. Xem thêm
 
-- [Quickstart](../getting-started/QUICKSTART.md)
+- [Bắt đầu nhanh](../getting-started/QUICKSTART.md)
 - [Hướng dẫn cấu hình và sử dụng](USAGE_GUIDE.md)
-- [Tham chiếu Feature](../reference/FEATURE_REFERENCE.md)
+- [Tham chiếu đặc trưng](../reference/FEATURE_REFERENCE.md)
 - [Tham chiếu cấu hình](../reference/CONFIG_REFERENCE.md)
 - [Khắc phục sự cố](TROUBLESHOOTING.md)

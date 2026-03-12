@@ -1,12 +1,37 @@
-# So sánh backend huấn luyện trong MLFX
+# So sánh các bộ máy huấn luyện trong MLFX
 
-Tài liệu này giúp bạn chọn backend phù hợp khi chạy:
+Tài liệu này so sánh các bộ máy huấn luyện hiện đang được cung cấp qua CLI `mlfx train` để bạn chọn đúng bộ máy cho nhu cầu của mình.
 
-```bash
-pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend <backend>
-```
+---
 
-Các backend hiện có trong MLFX:
+## 1. Khuyến nghị nhanh
+
+Nếu bạn muốn con đường ngắn nhất để có một mốc nền mạnh:
+
+- Bắt đầu với `mlf`
+- So sánh thêm với `stats` và `sgd`
+- Chỉ chuyển sang các bộ máy học sâu nếu bạn có lý do rõ ràng, chẳng hạn:
+  - Cần mô hình hóa mẫu chuỗi
+  - Cần cửa sổ huấn luyện dài hơn
+  - Có đủ khối lượng dữ liệu
+  - Có đủ ngân sách tính toán
+
+Thứ tự thực tế nên đi là:
+
+1. `stats`
+2. `sgd`
+3. `mlf`
+4. `lstm`
+5. `bilstm`
+6. `cnn_lstm`
+7. `transformer`
+8. `neuralforecast`
+
+---
+
+## 2. Các bộ máy hiện có
+
+CLI hiện hỗ trợ:
 
 - `mlf`
 - `lstm`
@@ -19,494 +44,416 @@ Các backend hiện có trong MLFX:
 
 ---
 
-## 1. Tóm tắt nhanh: nên chọn backend nào?
+## 3. Bảng so sánh tổng quan
 
-Nếu bạn chỉ cần một khuyến nghị ngắn gọn:
-
-- Chọn `mlf` nếu bạn muốn **điểm khởi đầu tốt nhất cho hầu hết workflow tabular/time-series feature-based**
-- Chọn `lstm` hoặc `bilstm` nếu bạn muốn **thử deep learning cho dữ liệu chuỗi**
-- Chọn `transformer` nếu bạn muốn **thử mô hình sequence hiện đại hơn**, chấp nhận train nặng hơn
-- Chọn `cnn_lstm` nếu bạn muốn **mô hình lai** cho local patterns + temporal sequence
-- Chọn `sgd` nếu bạn cần **baseline rất nhẹ, train nhanh**
-- Chọn `stats` nếu bạn cần **baseline cổ điển / đối chứng đơn giản**
-- Chọn `neuralforecast` nếu bạn muốn **mở rộng theo hướng neural forecasting ecosystem**
-
-Nếu chưa chắc, hãy bắt đầu bằng:
-
-1. `stats` hoặc `sgd` để lấy baseline nhẹ
-2. `mlf` để có baseline mạnh thực dụng
-3. Sau đó mới so với `lstm` / `bilstm` / `transformer` / `cnn_lstm`
+| Bộ máy | Họ mô hình | Điểm mạnh | Điểm yếu | Yêu cầu dữ liệu | Chi phí tính toán | Khả năng diễn giải | Trường hợp dùng tốt nhất |
+|---|---|---|---|---|---|---|---|
+| `stats` | Mốc nền thống kê | nhanh, đơn giản, chi phí thấp | hạn chế trong mô hình hóa phi tuyến | thấp | rất thấp | cao | kiểm tra chuẩn, so sánh với mốc nền |
+| `sgd` | ML tuyến tính / trực tuyến | nhanh, nhẹ, mở rộng tốt | yếu hơn với tương tác đặc trưng phức tạp | thấp đến trung bình | thấp | trung bình | dữ liệu bảng lớn, thí nghiệm rẻ |
+| `mlf` | Tăng cường độ dốc / dự báo dạng bảng | mốc nền mạnh, xử lý tốt mẫu phi tuyến | không “thuần chuỗi” như học sâu | trung bình | trung bình | trung bình | mốc nền mặc định theo hướng vận hành thực dụng |
+| `lstm` | Mô hình chuỗi học sâu | mô hình hóa phụ thuộc thời gian trực tiếp | chậm hơn, nhạy với tinh chỉnh | trung bình đến cao | cao | thấp | mẫu chuỗi theo rolling window |
+| `bilstm` | Mô hình chuỗi hai chiều | ngữ cảnh phong phú hơn `lstm` thường | tốn hơn, có thể kém thực tế cho suy luận nhân quả nghiêm ngặt nếu dùng sai thiết lập | cao | cao | thấp | thí nghiệm offline với biểu diễn chuỗi giàu ngữ cảnh |
+| `cnn_lstm` | DL lai | tốt cho trích xuất mẫu cục bộ + mô hình chuỗi | kiến trúc phức tạp hơn | cao | cao | thấp | mẫu nến / motif cục bộ kết hợp ngữ cảnh thời gian |
+| `transformer` | DL dựa trên attention | linh hoạt cho phụ thuộc dài hạn | rất tốn tài nguyên, khó tinh chỉnh, cần nhiều dữ liệu | cao | rất cao | thấp | dữ liệu lớn, mô hình hóa ngữ cảnh dài |
+| `neuralforecast` | Hệ sinh thái dự báo học sâu | mạnh cho thí nghiệm dự báo chuỗi thời gian | độ phức tạp thư viện và tinh chỉnh cao | trung bình đến cao | cao | thấp | thí nghiệm dự báo nâng cao |
 
 ---
 
-## 2. Bảng so sánh tổng quan
+## 4. Phân tích chi tiết từng bộ máy
 
-| Backend | Loại mô hình | Mức độ train | Tài nguyên | Tốc độ thử nghiệm | Khả năng làm baseline | Khả năng mở rộng | Khi nào nên dùng |
-|---|---|---:|---:|---:|---:|---:|---|
-| `mlf` | MLForecast + LightGBM | Trung bình | Thấp–vừa | Nhanh | Tốt | Tốt | Lựa chọn mặc định cho phần lớn bài toán |
-| `lstm` | Deep learning chuỗi | Trung bình–cao | Vừa–cao | Chậm hơn | Trung bình | Tốt | Khi muốn học temporal dependencies trực tiếp |
-| `bilstm` | Bidirectional LSTM | Cao | Vừa–cao | Chậm | Trung bình | Tốt | Khi muốn thử sequence model mạnh hơn LSTM thường |
-| `transformer` | Sequence transformer | Cao | Cao | Chậm | Trung bình | Rất tốt | Khi muốn thử kiến trúc sequence hiện đại |
-| `cnn_lstm` | Hybrid CNN + LSTM | Cao | Cao | Chậm | Trung bình | Tốt | Khi nghi ngờ local motif + sequence đều quan trọng |
-| `sgd` | Online / linear baseline | Thấp | Thấp | Rất nhanh | Rất tốt | Hạn chế | Khi cần baseline nhẹ và lặp nhanh |
-| `stats` | Baseline thống kê | Thấp | Thấp | Rất nhanh | Rất tốt | Hạn chế | Khi cần mốc so sánh đơn giản, dễ giải thích |
-| `neuralforecast` | Neural forecasting backend | Trung bình–cao | Vừa–cao | Chậm hơn | Trung bình | Tốt | Khi muốn tích hợp nhóm model kiểu forecasting |
-
----
-
-## 3. So sánh theo tiêu chí thực tế
-
-## 3.1 Độ dễ bắt đầu
-
-| Backend | Độ dễ bắt đầu | Ghi chú |
-|---|---|---|
-| `mlf` | Rất dễ | Phù hợp nhất để chạy sớm và đo chất lượng thực tế |
-| `sgd` | Rất dễ | Cấu hình nhẹ, dễ debug |
-| `stats` | Dễ | Baseline đơn giản, dễ làm đối chứng |
-| `lstm` | Trung bình | Cần hiểu sequence data và chi phí train |
-| `bilstm` | Trung bình | Giống `lstm` nhưng phức tạp hơn |
-| `transformer` | Khó hơn | Nhạy với cấu hình và tài nguyên |
-| `cnn_lstm` | Khó hơn | Kiến trúc lai, chi phí thử nghiệm cao hơn |
-| `neuralforecast` | Trung bình | Hữu ích nếu bạn muốn đi sâu hệ sinh thái forecasting |
-
----
-
-## 3.2 Tốc độ train tương đối
-
-| Backend | Tốc độ tương đối | Nhận xét |
-|---|---|---|
-| `stats` | Rất nhanh | Phù hợp để lấy baseline ban đầu |
-| `sgd` | Rất nhanh | Tốt cho loop thử nghiệm ngắn |
-| `mlf` | Nhanh | Cân bằng tốt giữa tốc độ và chất lượng |
-| `lstm` | Trung bình | Chậm hơn mô hình tabular |
-| `bilstm` | Trung bình–chậm | Nặng hơn `lstm` |
-| `neuralforecast` | Trung bình–chậm | Phụ thuộc kiến trúc bên dưới |
-| `cnn_lstm` | Chậm | Hybrid model thường tốn thời gian hơn |
-| `transformer` | Chậm | Thường là backend nặng nhất trong nhóm |
-
----
-
-## 3.3 Mức tiêu thụ tài nguyên
-
-| Backend | CPU | RAM | GPU | Ghi chú |
-|---|---|---|---|---|
-| `stats` | Thấp | Thấp | Không cần | Nhẹ nhất |
-| `sgd` | Thấp | Thấp | Không cần | Phù hợp máy yếu |
-| `mlf` | Thấp–vừa | Vừa | Không bắt buộc | Thực dụng nhất cho đa số máy dev |
-| `lstm` | Vừa | Vừa | Có lợi | Deep learning backend |
-| `bilstm` | Vừa–cao | Vừa–cao | Có lợi | Nặng hơn `lstm` |
-| `cnn_lstm` | Cao | Cao | Rất có lợi | Hybrid DL |
-| `transformer` | Cao | Cao | Rất có lợi | Sequence model nặng |
-| `neuralforecast` | Vừa–cao | Vừa–cao | Có lợi | Tùy model cụ thể |
-
----
-
-## 4. Phân tích từng backend
-
-## 4.1 `mlf`
+## 4.1 `stats`
 
 ### Bản chất
-`mlf` là backend thực dụng nhất cho workflow hiện tại. Nó phù hợp khi dữ liệu đã được chuyển thành bảng feature rõ ràng như:
+`stats` là mốc nền thống kê đơn giản nhất. Nó hữu ích như một điểm tham chiếu trước khi thử các mô hình nâng cao hơn.
 
-- RSI
-- MACD
-- ATR
-- EMA
-- Pivot points
-- Killzone/session features
-- FVG / order block features
-- Label columns như `label_10`
+### Điểm mạnh
+- Chạy nhanh nhất
+- Độ phức tạp vận hành thấp nhất
+- Cho bạn một mốc nền dễ giải thích
+- Hữu ích để kiểm tra xem mô hình phức tạp có thực sự tạo thêm giá trị hay không
 
-### Ưu điểm
-- Mạnh trên dữ liệu feature-based
-- Train nhanh hơn deep learning
-- Thường là lựa chọn mặc định hợp lý nhất
-- Dễ benchmark
-- Dễ dùng với Optuna / CV hơn trong thực tế
-- Không đòi GPU để có kết quả tốt
-
-### Nhược điểm
-- Phụ thuộc mạnh vào chất lượng feature engineering
-- Không “học sequence thô” theo kiểu DL backend
-- Nếu feature không tốt, trần hiệu năng có thể bị giới hạn
+### Điểm yếu
+- Khả năng mô hình hóa quan hệ phi tuyến hạn chế
+- Thường kém hơn trên các bộ đặc trưng phong phú
+- Có thể bỏ lỡ các hiệu ứng phụ thuộc regime hoặc tương tác mạnh
 
 ### Nên dùng khi
-- Bạn muốn một backend mạnh, ổn định, dễ lặp nhanh
-- Bạn đang làm research có nhiều feature thủ công
-- Bạn cần baseline “nghiêm túc”, không quá tốn tài nguyên
+- Bạn cần một mốc kiểm tra chuẩn
+- Bạn đang so sánh chuẩn nhiều bộ máy
+- Bạn muốn kiểm tra pipeline end-to-end với chi phí thấp
 
-### Không phải lựa chọn đầu tiên khi
-- Bạn muốn ưu tiên mô hình sequence end-to-end
-- Bạn đang nghiên cứu mạnh về kiến trúc deep learning hơn là feature pipeline
+### Tránh dùng khi
+- Bạn kỳ vọng có nhiều tương tác phi tuyến phức tạp
+- Bạn muốn hiệu năng dự báo tốt nhất
 
 ---
 
-## 4.2 `lstm`
+## 4.2 `sgd`
 
 ### Bản chất
-`lstm` là backend deep learning tuần tự cổ điển, phù hợp khi bạn tin rằng thứ tự thời gian và trạng thái chuỗi đóng vai trò quan trọng.
+`sgd` là một mốc nền ML nhẹ dựa trên stochastic gradient descent.
 
-### Ưu điểm
-- Mô hình hóa temporal dependencies tốt hơn baseline tuyến tính
-- Dễ hiểu hơn transformer
-- Là điểm bắt đầu hợp lý trong nhóm DL sequence
+### Điểm mạnh
+- Huấn luyện nhanh
+- Dùng ít bộ nhớ
+- Phù hợp cho thử nghiệm lặp nhanh
+- Thường mạnh hơn mốc nền thống kê thuần túy
 
-### Nhược điểm
-- Train chậm hơn `mlf`
-- Tuning khó hơn baseline tabular
-- Cần chuẩn bị sequence data đúng cách
-- Có thể không vượt `mlf` nếu feature engineering đã rất mạnh
+### Điểm yếu
+- Vẫn khá đơn giản nếu so với boosted trees hoặc học sâu
+- Hiệu năng phụ thuộc nhiều vào chất lượng đặc trưng và chuẩn hóa
+- Có thể gặp khó nếu bề mặt quyết định có độ phi tuyến cao
 
 ### Nên dùng khi
-- Bạn muốn kiểm tra giả thuyết “sequence learning có ích hơn tabular feature-based”
-- Bạn có đủ tài nguyên để train nhiều vòng
-- Bạn muốn một baseline DL trước khi thử mô hình nặng hơn
+- Bạn muốn một mốc nền ML chi phí thấp
+- Bạn có dữ liệu bảng lớn
+- Bạn cần vòng lặp phản hồi nhanh
+
+### Tránh dùng khi
+- Bài toán phụ thuộc mạnh vào quan hệ phi tuyến
+- Bạn đã biết cấu trúc chuỗi là yếu tố then chốt
 
 ---
 
-## 4.3 `bilstm`
+## 4.3 `mlf`
 
 ### Bản chất
-`bilstm` là biến thể bidirectional của LSTM, cho phép mô hình mạnh hơn về mặt biểu diễn chuỗi trong nhiều bài toán sequence.
+`mlf` là mốc nền mặc định mạnh nhất cho phần lớn người dùng MLFX. Đây là điểm bắt đầu thực dụng nhất cho các thí nghiệm nghiêm túc.
 
-### Ưu điểm
-- Thường mạnh hơn `lstm` thường trong một số cấu hình
-- Vẫn giữ họ recurrent nên dễ so sánh với `lstm`
-- Phù hợp khi muốn thử “nâng cấp vừa phải” từ LSTM
+### Điểm mạnh
+- Thường là mô hình đầu tiên tốt nhất để thử
+- Mạnh trên dữ liệu bảng đã được feature engineering
+- Xử lý quan hệ phi tuyến tốt hơn các mô hình tuyến tính
+- Cân bằng thực dụng giữa hiệu năng, tốc độ và khả năng bảo trì
+- Thường dễ đưa vào vận hành hơn các bộ máy học sâu
 
-### Nhược điểm
+### Điểm yếu
+- Không “thuần chuỗi” theo cùng cách với mô hình hồi tiếp hoặc attention
+- Có thể chạm trần nếu tín hiệu phụ thuộc mạnh vào ngữ cảnh thời gian dài
+- Tìm kiếm siêu tham số có thể làm tăng thời gian chạy
+
+### Nên dùng khi
+- Bạn muốn bộ máy mặc định tốt nhất
+- Bạn huấn luyện trên bảng đặc trưng đã được tạo
+- Bạn cần một mốc so sánh chuẩn vững cho mọi bộ máy khác
+
+### Tránh dùng khi
+- Bạn thật sự cần mô hình chuỗi sâu
+- Câu hỏi nghiên cứu của bạn tập trung vào học biểu diễn thời gian dài
+
+---
+
+## 4.4 `lstm`
+
+### Bản chất
+`lstm` là bộ máy mạng nơ-ron hồi tiếp được thiết kế cho mô hình hóa chuỗi.
+
+### Điểm mạnh
+- Mô hình hóa ngữ cảnh thời gian có thứ tự trực tiếp
+- Hữu ích cho học tuần tự theo rolling window
+- Có thể bắt được những mẫu không lộ rõ trong các hàng dữ liệu bảng độc lập
+
+### Điểm yếu
+- Huấn luyện chậm hơn
+- Nhạy với độ dài cửa sổ và các siêu tham số khác
+- Khó gỡ lỗi hơn mô hình ML đơn giản
+- Có thể overfit nếu dữ liệu không đủ lớn
+
+### Nên dùng khi
+- Thứ tự thời gian là yếu tố rất quan trọng
+- Bạn có đủ dữ liệu cho bài toán học chuỗi
+- Bạn sẵn sàng đổi sự đơn giản lấy tính linh hoạt mô hình hóa
+
+### Tránh dùng khi
+- Bạn cần thí nghiệm nhanh
+- Bạn có tập dữ liệu nhỏ
+- `mlf` đã đủ tốt cho mục tiêu của bạn
+
+---
+
+## 4.5 `bilstm`
+
+### Bản chất
+`bilstm` là biến thể LSTM hai chiều, mã hóa thông tin chuỗi theo cả hai hướng trong thiết lập huấn luyện.
+
+### Điểm mạnh
+- Biểu diễn chuỗi phong phú hơn `lstm` thường
+- Có thể nắm bắt ngữ cảnh tốt hơn trong thí nghiệm offline
+- Hữu ích khi ngữ cảnh cục bộ quanh mỗi điểm dữ liệu là quan trọng
+
+### Điểm yếu
 - Tốn tài nguyên hơn `lstm`
-- Chậm hơn `lstm`
-- Độ phức tạp tuning tăng
-- Không phải lúc nào cũng thắng rõ rệt
+- Độ phức tạp tăng thêm có thể không mang lại cải thiện đáng kể
+- Cần diễn giải rất cẩn thận trong quy trình chuỗi thời gian
 
 ### Nên dùng khi
-- Bạn đã thử `lstm` và muốn một biến thể mạnh hơn
-- Bạn muốn benchmark họ recurrent kỹ hơn
+- Bạn đang làm thí nghiệm mô hình hóa offline
+- Bạn muốn kiểm tra xem mã hóa chuỗi phong phú hơn có giúp ích không
+- Bạn đã xác nhận rằng mô hình chuỗi là hướng đáng đầu tư
+
+### Tránh dùng khi
+- Bạn muốn mô hình đơn giản nhất để triển khai
+- Bạn vẫn đang xây mốc nền đầu tiên đủ mạnh
 
 ---
 
-## 4.4 `transformer`
+## 4.6 `cnn_lstm`
 
 ### Bản chất
-`transformer` là backend sequence hiện đại hơn, phù hợp khi bạn muốn mô hình hóa quan hệ thời gian phức tạp hơn recurrent model truyền thống.
+`cnn_lstm` kết hợp trích xuất đặc trưng bằng tích chập với mô hình hóa chuỗi bằng hồi tiếp.
 
-### Ưu điểm
-- Kiến trúc hiện đại, linh hoạt
-- Tiềm năng tốt với pattern dài và quan hệ phức tạp
-- Hữu ích trong nghiên cứu sequence modeling nâng cao
+### Điểm mạnh
+- Có thể học các motif cục bộ ngắn hạn trước khi tổng hợp theo chuỗi
+- Hữu ích cho các cấu trúc giá lặp lại cục bộ
+- Thường là điểm cân bằng tốt giữa mô hình hóa chuỗi thô và trích xuất mẫu phân cấp
 
-### Nhược điểm
-- Train nặng
-- Nhạy với cấu hình
-- Khó tuning hơn
-- Không phải lựa chọn tối ưu nếu bạn chỉ cần kết quả nhanh và ổn định
+### Điểm yếu
+- Phức tạp hơn mô hình hồi tiếp thuần
+- Khó tinh chỉnh hơn
+- Chi phí huấn luyện vẫn cao
+- Khả năng diễn giải thấp hơn
 
 ### Nên dùng khi
-- Bạn có GPU hoặc tài nguyên đủ tốt
-- Bạn đang benchmark kiến trúc sequence hiện đại
-- Bạn chấp nhận chi phí thử nghiệm cao để đổi lấy tiềm năng tốt hơn
+- Bạn nghi ngờ các mẫu cửa sổ cục bộ là quan trọng
+- Bạn muốn kết hợp phát hiện motif với mô hình hóa thời gian
+- `lstm` thuần không đủ biểu đạt
 
-### Không nên dùng đầu tiên nếu
-- Bạn chưa có baseline `mlf`
-- Bạn đang debug pipeline dữ liệu
-- Bạn cần vòng lặp experiment rất nhanh
+### Tránh dùng khi
+- Bạn cần một mốc nền thí nghiệm đơn giản
+- Ngân sách tính toán của bạn bị hạn chế
 
 ---
 
-## 4.5 `cnn_lstm`
+## 4.7 `transformer`
 
 ### Bản chất
-`cnn_lstm` là mô hình lai giữa CNN và LSTM, thường được dùng khi muốn vừa trích xuất local temporal motifs vừa giữ khả năng học theo chuỗi.
+`transformer` là bộ máy học sâu dựa trên cơ chế chú ý cho mô hình hóa chuỗi.
 
-### Ưu điểm
-- Hữu ích khi dữ liệu có pattern cục bộ lặp lại
-- Là lựa chọn research tốt nếu nghi ngờ local structures quan trọng
-- Cho phép so sánh với recurrent thuần và transformer
+### Điểm mạnh
+- Kiến trúc linh hoạt cho phụ thuộc dài hạn
+- Năng lực biểu diễn mạnh
+- Hấp dẫn với dữ liệu lớn và ngữ cảnh dài hơn
 
-### Nhược điểm
-- Cấu trúc phức tạp hơn
-- Train chậm hơn
-- Tuning khó
-- Lợi ích không phải lúc nào cũng rõ trên mọi dataset
-
-### Nên dùng khi
-- Bạn đã có baseline từ `mlf` và `lstm`
-- Bạn muốn mở rộng nghiên cứu kiến trúc
-- Bạn quan tâm đến pattern ngắn hạn trong chuỗi
-
----
-
-## 4.6 `sgd`
-
-### Bản chất
-`sgd` là baseline nhẹ, thường đóng vai trò mô hình tuyến tính / online-friendly để kiểm tra nhanh độ học được của feature set.
-
-### Ưu điểm
-- Rất nhẹ
-- Train rất nhanh
-- Dễ debug
-- Tốt để kiểm tra xem feature hiện tại có signal cơ bản hay không
-
-### Nhược điểm
-- Trần hiệu năng thường thấp hơn backend mạnh hơn
-- Ít phù hợp cho pattern phi tuyến phức tạp
-- Không nên là mô hình duy nhất để kết luận chất lượng pipeline
+### Điểm yếu
+- Gánh nặng tinh chỉnh cao nhất trong các lựa chọn phổ biến
+- Tốn bộ nhớ và tính toán
+- Có thể kém hơn bộ máy đơn giản trên tập dữ liệu vừa hoặc nhỏ
+- Rất dễ bị dùng quá sớm trước khi có mốc nền mạnh
 
 ### Nên dùng khi
-- Bạn cần baseline cực nhanh
-- Bạn đang debug feature set
-- Bạn muốn benchmark sơ bộ nhiều symbol / timeframe
+- Bạn có nhiều dữ liệu
+- Bạn muốn mô hình hóa ngữ cảnh dài hạn hơn
+- Bạn đang nghiên cứu rõ ràng về mô hình chuỗi dựa trên attention
 
----
-
-## 4.7 `stats`
-
-### Bản chất
-`stats` là baseline thống kê. Vai trò chính là tạo mốc đối chứng đơn giản, rẻ, dễ diễn giải.
-
-### Ưu điểm
-- Nhanh
-- Nhẹ
-- Phù hợp làm baseline
-- Giúp tránh việc so sánh các mô hình DL/ML mà không có mốc nền
-
-### Nhược điểm
-- Năng lực biểu diễn hạn chế
-- Không kỳ vọng là backend mạnh nhất
-- Giá trị lớn nhất nằm ở vai trò đối chứng
-
-### Nên dùng khi
-- Bắt đầu benchmark
-- Viết báo cáo so sánh model
-- Muốn có “điểm 0” trước khi thử backend nặng hơn
+### Tránh dùng khi
+- Bạn đang ở giai đoạn đầu dự án
+- Bạn cần chu kỳ huấn luyện nhanh
+- Bạn chưa so sánh chuẩn `mlf` hoặc `lstm`
 
 ---
 
 ## 4.8 `neuralforecast`
 
 ### Bản chất
-`neuralforecast` phù hợp khi bạn muốn khai thác nhóm mô hình neural forecasting chuyên biệt thay vì chỉ các backend sequence tự triển khai trực tiếp.
+`neuralforecast` là bộ máy học sâu theo hướng dự báo, xây trên một hệ sinh thái chuyên biệt cho mô hình chuỗi thời gian.
 
-### Ưu điểm
-- Hữu ích cho research theo hướng forecasting
-- Mở rộng không gian thử nghiệm
-- Phù hợp khi muốn tận dụng ecosystem forecasting neural
+### Điểm mạnh
+- Tốt cho các thí nghiệm dự báo nâng cao
+- Có thể cho phép tiếp cận nhiều kiến trúc hơn thay vì một mô hình tự cài đặt duy nhất
+- Hữu ích khi quy trình của bạn gần với hướng nghiên cứu dự báo
 
-### Nhược điểm
-- Thường không phải backend đơn giản nhất để bắt đầu
-- Chi phí train và tuning có thể cao
-- Nên dùng sau khi đã có baseline rõ ràng
+### Điểm yếu
+- Tăng độ phức tạp thư viện và tích hợp
+- Tốn chi phí huấn luyện và tinh chỉnh
+- Không phải lúc nào cũng là lựa chọn đơn giản nhất cho quy trình ra quyết định kiểu phân loại
 
 ### Nên dùng khi
-- Bạn đang nghiên cứu forecasting-oriented models
-- Bạn muốn mở rộng beyond baseline ML và recurrent models
-- Bạn đã có quy trình benchmark ổn định
+- Bạn muốn khám phá các phương pháp nơ-ron được thiết kế sẵn cho bài toán dự báo
+- Bạn đã quen với các thí nghiệm sâu hơn
+- Bài toán của bạn hưởng lợi từ thiết lập thiên về dự báo
+
+### Tránh dùng khi
+- Bạn chỉ cần mô hình thực dụng đầu tiên
+- Sự đơn giản trong vận hành quan trọng hơn độ rộng thí nghiệm
 
 ---
 
-## 5. Khuyến nghị theo mục tiêu
+## 5. Hướng dẫn chọn theo mục tiêu
 
-## 5.1 Muốn kết quả tốt nhanh, ít đau đầu
-Ưu tiên:
-
-1. `mlf`
-2. `sgd`
-3. `stats`
-
-Lý do:
-- Dễ chạy
-- Dễ benchmark
-- Ít phụ thuộc GPU
-- Đủ thực dụng cho đa số workflow research
-
----
-
-## 5.2 Muốn benchmark bài bản
-Ưu tiên:
+## 5.1 Tôi muốn mốc nền hữu ích nhanh nhất
+Hãy chọn:
 
 1. `stats`
 2. `sgd`
 3. `mlf`
-4. `lstm`
-5. `bilstm`
-6. `transformer`
-7. `cnn_lstm`
-8. `neuralforecast`
 
-Lý do:
-- Đi từ nhẹ đến nặng
-- Dễ phát hiện sớm liệu dataset/feature có signal thật hay không
-- Tránh đốt thời gian vào backend nặng trước khi có baseline
+Bắt đầu bằng `stats`, sau đó sang `sgd`, rồi đến `mlf`.
 
 ---
 
-## 5.3 Muốn nghiên cứu deep learning cho chuỗi
-Ưu tiên:
+## 5.2 Tôi muốn bộ máy mặc định thực dụng nhất
+Hãy chọn:
+
+- `mlf`
+
+Đây thường nên là lần so sánh chuẩn nghiêm túc đầu tiên của bạn.
+
+---
+
+## 5.3 Tôi muốn mô hình hóa chuỗi thời gian trực tiếp
+Hãy chọn trong:
+
+- `lstm`
+- `bilstm`
+- `cnn_lstm`
+- `transformer`
+
+Thứ tự khuyến nghị:
 
 1. `lstm`
 2. `bilstm`
-3. `transformer`
-4. `cnn_lstm`
-
-Lý do:
-- Tiến từ recurrent cơ bản đến kiến trúc phức tạp hơn
-- Dễ hiểu đường đi nghiên cứu hơn
-- Dễ phân tích xem lợi ích đến từ đâu
+3. `cnn_lstm`
+4. `transformer`
 
 ---
 
-## 5.4 Máy yếu hoặc muốn loop thử nghiệm rất ngắn
-Ưu tiên:
+## 5.4 Tôi muốn chi phí tính toán thấp nhất
+Hãy chọn:
 
-1. `stats`
-2. `sgd`
-3. `mlf`
-
-Tránh bắt đầu bằng:
-- `transformer`
-- `cnn_lstm`
-
----
-
-## 5.5 Muốn productionize sớm
-Ưu tiên tương đối:
-
-1. `mlf`
-2. `sgd`
-3. `lstm`
-
-Lý do:
-- Thường dễ quản trị hơn
-- Chi phí inference và vận hành dễ kiểm soát hơn nhóm quá nặng
-- Quy trình debug đơn giản hơn
-
-> Lưu ý: “production-ready” thực tế còn phụ thuộc artifact format, tốc độ inference, monitoring, reproducibility, và quy trình deploy của bạn.
-
----
-
-## 6. Thứ tự benchmark khuyến nghị
-
-Một workflow benchmark hợp lý:
-
-### Bước 1 — Baseline nhẹ
 - `stats`
 - `sgd`
 
-### Bước 2 — Baseline mạnh thực dụng
+---
+
+## 5.5 Tôi muốn mô hình dễ giải thích nhất
+Hãy chọn:
+
+- `stats`
+- `sgd`
 - `mlf`
 
-### Bước 3 — DL sequence cơ bản
+Các bộ máy học sâu kém minh bạch hơn.
+
+---
+
+## 5.6 Tôi muốn độ rộng thí nghiệm nâng cao
+Hãy chọn:
+
+- `transformer`
+- `neuralforecast`
+- `cnn_lstm`
+
+Những lựa chọn này phù hợp nhất khi bạn đã có các mốc so sánh chuẩn đơn giản hơn đủ chắc.
+
+---
+
+## 6. Chiến lược so sánh chuẩn thực tế
+
+Một bậc thang thí nghiệm hợp lý là:
+
+### Giai đoạn 1 — Mốc nền chi phí thấp
+- `stats`
+- `sgd`
+
+### Giai đoạn 2 — Mốc so sánh chuẩn mặc định mạnh
+- `mlf`
+
+### Giai đoạn 3 — Mô hình chuỗi
 - `lstm`
 - `bilstm`
 
-### Bước 4 — Kiến trúc nâng cao
-- `transformer`
+### Giai đoạn 4 — Học sâu phức tạp hơn
 - `cnn_lstm`
+- `transformer`
 - `neuralforecast`
 
-Điều này giúp bạn:
-- Tiết kiệm thời gian
-- Tránh over-engineer quá sớm
-- Hiểu rõ backend nào thực sự tạo giá trị tăng thêm
+Mục tiêu không phải là huấn luyện tất cả ngay lập tức. Mục tiêu là xây niềm tin từng bước.
 
 ---
 
-## 7. Cách ra quyết định chọn backend
+## 7. Ma trận quyết định gợi ý
 
-Bạn có thể dùng checklist sau:
-
-### Chọn `mlf` nếu:
-- Bạn đã có feature pipeline khá tốt
-- Bạn muốn baseline mạnh, thực dụng
-- Bạn cần tốc độ thử nghiệm hợp lý
-
-### Chọn `sgd` nếu:
-- Bạn muốn benchmark cực nhanh
-- Bạn chỉ cần kiểm tra signal cơ bản
-- Máy dev hạn chế
-
-### Chọn `stats` nếu:
-- Bạn cần một baseline đối chứng rõ ràng
-- Bạn muốn so sánh công bằng với các mô hình phức tạp hơn
-
-### Chọn `lstm` / `bilstm` nếu:
-- Bạn tin sequence structure quan trọng
-- Bạn muốn nghiên cứu DL nhưng chưa muốn vào transformer ngay
-
-### Chọn `transformer` nếu:
-- Bạn có tài nguyên
-- Bạn muốn thử mô hình hiện đại hơn
-- Benchmark hiện tại cho thấy recurrent model còn giới hạn
-
-### Chọn `cnn_lstm` nếu:
-- Bạn nghi ngờ local patterns + sequence đều quan trọng
-- Bạn chấp nhận tuning phức tạp hơn
-
-### Chọn `neuralforecast` nếu:
-- Bạn đang nghiêng về forecasting ecosystem
-- Bạn muốn mở thêm hướng nghiên cứu ngoài pipeline hiện tại
-
----
-
-## 8. Cảnh báo khi so sánh backend
-
-Khi so sánh kết quả, đừng chỉ nhìn một metric.
-
-Nên so sánh đồng thời:
-- Chất lượng CV
-- Chất lượng test
-- Kết quả `evaluate`
-- `Net Profit (R)`
-- `Profit Factor`
-- `Sharpe / Sortino / Calmar`
-- Độ ổn định qua nhiều timeframe hoặc symbol
-
-Một backend có metric train đẹp nhưng backtest xấu thì chưa chắc hữu ích.
-
-Ngoài ra:
-- Backend nặng hơn không đồng nghĩa tốt hơn
-- Feature engineering mạnh có thể làm `mlf` vượt DL
-- Dataset nhỏ thường không thân thiện với model quá phức tạp
-- Nếu pipeline chưa ổn định, benchmark DL thường gây nhiễu kết luận
-
----
-
-## 9. Ma trận quyết định ngắn
-
-| Tình huống | Backend nên thử đầu tiên |
+| Tình huống | Bộ máy khuyến nghị |
 |---|---|
-| Mới vào repo | `mlf` |
-| Muốn baseline nhẹ | `stats`, `sgd` |
-| Muốn baseline mạnh | `mlf` |
-| Muốn so recurrent models | `lstm`, `bilstm` |
-| Muốn nghiên cứu sequence hiện đại | `transformer` |
-| Muốn thử hybrid sequence | `cnn_lstm` |
-| Muốn theo hướng forecasting | `neuralforecast` |
+| Người mới vào kho mã, lần chạy nghiêm túc đầu tiên | `mlf` |
+| Cần mốc sanity-check | `stats` |
+| Cần mốc nền ML rẻ | `sgd` |
+| Muốn cân bằng tốt nhất giữa tính thực dụng và sức mạnh | `mlf` |
+| Nghi ngờ phụ thuộc chuỗi mạnh | `lstm` |
+| Muốn biểu diễn chuỗi giàu ngữ cảnh hơn | `bilstm` |
+| Muốn motif cục bộ + mô hình hóa chuỗi | `cnn_lstm` |
+| Muốn thí nghiệm attention dài hạn | `transformer` |
+| Muốn thí nghiệm nơ-ron theo hướng dự báo | `neuralforecast` |
 
 ---
 
-## 10. Khuyến nghị mặc định của tài liệu này
+## 8. Heuristic về mức sẵn sàng cho vận hành thực tế
 
-Nếu bạn chưa có lý do kỹ thuật rõ ràng để chọn backend khác, hãy dùng trình tự sau:
+Đây là một bộ kinh nghiệm thực dụng, không phải quy tắc cứng.
 
-1. `stats`
-2. `sgd`
-3. `mlf`
-4. `lstm`
-5. `bilstm`
-6. `transformer`
-7. `cnn_lstm`
-8. `neuralforecast`
+| Bộ máy | Độ đơn giản khi vận hành | Độ ổn định khi huấn luyện | Độ đơn giản khi triển khai | Mức thân thiện tổng thể với vận hành thực tế |
+|---|---|---|---|---|
+| `stats` | cao | cao | cao | cao |
+| `sgd` | cao | cao | cao | cao |
+| `mlf` | cao | cao | trung bình đến cao | cao |
+| `lstm` | trung bình | trung bình | trung bình | trung bình |
+| `bilstm` | trung bình | trung bình | trung bình | trung bình |
+| `cnn_lstm` | thấp đến trung bình | trung bình | trung bình | trung bình |
+| `transformer` | thấp | thấp đến trung bình | trung bình | thấp đến trung bình |
+| `neuralforecast` | trung bình | trung bình | trung bình | trung bình |
 
-Với hầu hết workflow nghiên cứu trong MLFX, `mlf` là lựa chọn mặc định thực dụng nhất, còn các backend deep learning nên được xem là bước benchmark mở rộng sau khi bạn đã có baseline rõ ràng.
+Với phần lớn nhóm phát triển, `mlf` là điểm khởi đầu thực tế nhất theo định hướng vận hành thực dụng.
 
 ---
 
-## 11. Xem thêm
+## 9. Quy trình mặc định được khuyến nghị
 
-- [USAGE_GUIDE.md](../guides/USAGE_GUIDE.md)
-- [EVALUATION_GUIDE.md](../guides/EVALUATION_GUIDE.md)
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [FEATURE_REFERENCE.md](../reference/FEATURE_REFERENCE.md)
-- [GLOSSARY.md](../reference/GLOSSARY.md)
+Nếu bạn chưa chắc, hãy làm như sau:
+
+```text
+1. Chạy `stats`
+2. Chạy `sgd`
+3. Chạy `mlf`
+4. So sánh các chỉ số đánh giá
+5. Chỉ sau đó mới thử `lstm` hoặc các bộ máy học sâu khác
+```
+
+Điều này giúp tránh đầu tư quá nhiều vào mô hình phức tạp trước khi chứng minh rằng chúng thực sự cần thiết.
+
+---
+
+## 10. Những sai lầm thường gặp
+
+- Bắt đầu bằng `transformer` trước khi có mốc nền
+- So sánh kết quả học sâu mà không có đối chứng
+- Dùng bộ máy đắt đỏ khi dữ liệu quá ít
+- Cho rằng mô hình phức tạp mặc định tốt hơn
+- Bỏ qua chi phí vận hành khi chọn bộ máy
+- Bỏ qua `stats` hoặc `sgd` và đánh mất một mốc kiểm tra chuẩn hữu ích
+- Xem một lần backtest đẹp là đủ bằng chứng
+
+---
+
+## 11. Khuyến nghị cuối cùng
+
+### Với phần lớn người dùng
+Hãy dùng `mlf`.
+
+### Với bài toán so sánh mốc nền
+Hãy dùng `stats` và `sgd`.
+
+### Với nghiên cứu chuỗi
+Hãy bắt đầu bằng `lstm`, rồi thử `bilstm`.
+
+### Với khám phá học sâu nâng cao
+Hãy thử `cnn_lstm`, `transformer`, hoặc `neuralforecast` chỉ sau khi bạn đã hiểu rõ hành vi của các mốc nền đơn giản hơn.
+
+---
+
+## 12. Xem thêm
+
+- [Kiến trúc hệ thống](ARCHITECTURE.md)
+- [Hướng dẫn sử dụng](../guides/USAGE_GUIDE.md)
+- [Hướng dẫn đánh giá](../guides/EVALUATION_GUIDE.md)
+- [Tham chiếu cấu hình](../reference/CONFIG_REFERENCE.md)
+- [Thuật ngữ](../reference/GLOSSARY.md)

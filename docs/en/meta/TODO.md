@@ -1,276 +1,310 @@
 # MLFX – Task List
 
 > **Version:** aligned with [ROADMAP.md](ROADMAP.md).  
-> Sprint-based task list; see [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) to understand the system design.
+> Sprint-based task list; see [../architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) to understand the system design.
 
 ## SPRINT 1: FOUNDATION
 
-> **Goal:** Build a reliable end-to-end baseline workflow for data ingestion, preprocessing, training, and evaluation.
+> **Goal:** Establish the foundation so the MLFX pipeline can download data, process data, and run end-to-end on a local machine.
 >
 > **Dependencies:** None.
 >
 > **Estimated duration:** 1–2 weeks.
 
-### Project setup
+### Environment setup
 
 - [x] Initialize the Python project with `pixi`
-- [x] Create `README.md` and the initial documentation structure
+- [x] Set up the main directory structure: `mlfx/`, `tests/`, `data/`, `outputs/`, `docs/`
+- [x] Create and configure `pyproject.toml`
 - [x] Configure `.gitignore`
-- [x] Define the base project layout for `mlfx`, `tests`, `data`, and `outputs`
-- [x] Add `pyproject.toml` and core development dependencies
+- [x] Write the main project README
+- [x] Create the default `config.toml`
 
-### Market data ingestion
+### Development infrastructure
 
-- [x] Build the Dukascopy downloader in `mlfx.ingestion`
-- [x] Support monthly raw tick downloads
-- [x] Persist raw data as Parquet files
-- [x] Track completed downloads with download state files
-- [x] Add retry and recovery behavior for ingestion failures
+- [x] Create the unified `mlfx` CLI
+- [x] Standardize entrypoints for the main workflows
+- [x] Add basic logging for the CLI and pipeline
+- [x] Create a basic `Dockerfile`
+- [x] Create `docker-compose.yml` for the development environment
+- [x] Add the bilingual documentation structure under `docs/en` and `docs/vi`
 
-### Data quality and preprocessing
+### Input data
 
-- [x] Implement raw data QA checks
-- [x] Detect gaps and anomalies in tick data
-- [x] Build OHLCV resampling logic
-- [x] Normalize time handling for pipeline stages
-- [x] Organize processed outputs under stable directory conventions
+- [x] Build the downloader in `mlfx.ingestion`
+- [x] Support tick-data downloads from Dukascopy
+- [x] Save raw monthly data into `data/raw/`
+- [x] Track download state with `completed_months.json`
+- [x] Support decompression of the `bi5` format
 
-### Core pipeline
+### Sprint 1 completion criteria
 
-- [x] Implement feature engineering pipeline in `mlfx.pipeline`
-- [x] Add labeling pipeline for prediction targets
-- [x] Support configurable workflow through `config.toml`
-- [x] Produce reusable training-ready datasets
-- [x] Establish a standard CLI workflow for pipeline execution
-
-### DoD Sprint 1
-
-- [x] Raw market data can be downloaded successfully
-- [x] OHLCV and derived datasets can be generated end-to-end
-- [x] The project can run through a baseline CLI workflow
+- [x] The first raw-data download workflow can run successfully
+- [x] The CLI works locally through `pixi run`
+- [x] The project structure is ready for later sprints
 
 ---
 
-## SPRINT 2: MODEL TRAINING BASELINE
+## SPRINT 2: DATA PROCESSING & PIPELINE
 
-> **Goal:** Train initial forecasting models and standardize experiment execution.
+> **Goal:** Turn raw data into datasets that can be used for model training and evaluation.
 >
 > **Dependencies:** Sprint 1.
 >
 > **Estimated duration:** 1–2 weeks.
 
-### Training backends
+### Data quality
 
-- [x] Implement trainable backend structure in `mlfx.training`
-- [x] Add `mlf` backend
-- [x] Add `lstm` backend
-- [x] Add `bilstm` backend
-- [x] Add `transformer` backend
-- [x] Add `cnn_lstm` backend
-- [x] Add `sgd` backend
-- [x] Add `stats` backend
-- [x] Add `neuralforecast` backend
+- [x] Build the data-quality check stage in `mlfx.pipeline`
+- [x] Detect time-based data gaps
+- [x] Detect abnormal data or structural errors
+- [x] Generate a basic quality-check report
 
-### Training workflow
+### Data transformation and feature engineering
 
-- [x] Build unified training entrypoints through CLI
-- [x] Add backend selection with `--backend`
-- [x] Implement time-series-safe train/validation/test workflow
-- [x] Save model artifacts to `outputs/`
-- [x] Export training metrics and summaries
+- [x] Convert tick data into OHLCV by timeframe
+- [x] Support multiple timeframe conversions
+- [x] Build the basic feature-engineering stage
+- [x] Support label generation for forecasting or signal tasks
+- [x] Standardize output data for training and evaluation
 
-### Benchmarking and comparison
+### Processed data storage
 
-- [x] Add unified benchmark flow with `mlfx benchmark`
-- [x] Support multi-backend comparison in one workflow
-- [x] Standardize output metrics for model comparison
-- [x] Improve experiment reproducibility through config-driven runs
+- [x] Write pipeline outputs into `data/processed/`
+- [x] Standardize storage format as `parquet`
+- [x] Organize data by symbol, timeframe, and split set
 
-### DoD Sprint 2
+### Sprint 2 completion criteria
 
-- [x] Multiple backends can be trained from the CLI
-- [x] Benchmark runs compare backends consistently
-- [x] Artifacts and metrics are saved for later evaluation
+- [x] Raw data can be turned into OHLCV and features
+- [x] Quality checking, transformation, and labeling run in one unified workflow
+- [x] Output data is ready for model training
 
 ---
 
-## SPRINT 3: EVALUATION AND REPORTING
+## SPRINT 3: MODEL TRAINING
 
-> **Goal:** Evaluate model behavior in a reproducible way and generate useful reports for research.
+> **Goal:** Train forecasting backends and standardize the training workflow.
 >
 > **Dependencies:** Sprint 2.
 >
 > **Estimated duration:** 1–2 weeks.
 
-### Evaluation pipeline
+### Training backends
 
-- [x] Implement evaluation flow in `mlfx.evaluation`
-- [x] Add backtesting support
-- [x] Generate summary metrics from evaluation runs
-- [x] Persist evaluation outputs to structured directories
-- [x] Support CLI-driven evaluation execution
+- [x] Build the `mlfx.training` module
+- [x] Support the `mlf` backend
+- [x] Support the `lstm` backend
+- [x] Support the `bilstm` backend
+- [x] Support the `transformer` backend
+- [x] Support the `cnn_lstm` backend
+- [x] Support the `sgd` backend
+- [x] Support the `stats` backend
+- [x] Support the `neuralforecast` backend
 
-### Reporting
+### Training workflow
 
-- [x] Export metrics to `metrics_log.jsonl`
-- [x] Generate machine-readable result summaries
-- [x] Document evaluation workflow in the docs
-- [x] Provide guidance for interpreting reports
+- [x] Standardize the shared training program
+- [x] Support train / validation / test splits for time series
+- [x] Prevent data leakage during splitting
+- [x] Save training artifacts into `outputs/`
+- [x] Record training metrics
 
-### Test coverage
+### Experiment tracking
 
-- [x] Add end-to-end train/evaluate coverage
-- [x] Add `test_training_e2e.py`
-- [x] Expand regression protection around training and evaluation workflow
+- [x] Integrate optional MLflow support
+- [x] Save metric logs as `metrics_log.jsonl`
+- [x] Standardize metadata for each training run
 
-### DoD Sprint 3
+### Sprint 3 completion criteria
 
-- [x] Models can be evaluated end-to-end after training
-- [x] Evaluation results are reproducible and persisted
-- [x] Researchers can compare outcomes across runs
+- [x] At least one backend can be trained end-to-end
+- [x] Artifacts and metrics are saved consistently
+- [x] Multiple backends can be compared within the same workflow
 
 ---
 
-## SPRINT 4: SERVING AND OPERATIONS
+## SPRINT 4: EVALUATION & BACKTESTING
 
-> **Goal:** Improve operational readiness of the inference and runtime layer.
+> **Goal:**
+> Measure model quality and practical usefulness in forecasting or trading contexts.
 >
 > **Dependencies:** Sprint 3.
 >
 > **Estimated duration:** 1–2 weeks.
 
-### Serving layer
+### Model evaluation
 
-- [ ] Refactor the serving layer for clearer separation of concerns
-- [ ] Add stronger runtime packaging and deployment boundaries
-- [ ] Define stable inference input/output contracts
-- [ ] Improve error handling in serving endpoints
-- [ ] Add health-check behavior for runtime services
+- [x] Build the `mlfx.evaluation` module
+- [x] Compute core evaluation metrics
+- [x] Support evaluation on out-of-sample datasets
+- [x] Export evaluation reports
 
-### Reliability
+### Backtesting
 
-- [ ] Add retry logic where external or unstable operations may fail
-- [ ] Add circuit breaker patterns for fragile runtime integrations
-- [ ] Improve failure visibility with clearer logs and runtime diagnostics
-- [ ] Define recovery behavior for partial pipeline failures
+- [x] Create a backtest workflow based on prediction signals
+- [x] Compute core performance metrics
+- [x] Save backtest outputs to `outputs/`
+- [x] Generate summary reports for each evaluation run
 
-### Operational workflows
+### Multi-backend comparison
 
-- [ ] Document production-style execution patterns
-- [ ] Standardize operational commands for training, evaluation, and serving
-- [ ] Improve environment notes and deployment guidance
+- [x] Add the `mlfx benchmark` command
+- [x] Compare multiple backends in one workflow
+- [x] Standardize benchmark outputs for easier comparison
 
-### DoD Sprint 4
+### Sprint 4 completion criteria
 
-- [ ] The serving layer is easier to operate and reason about
-- [ ] Runtime failures are surfaced clearly and handled more safely
-- [ ] Operators can run the project with documented procedures
+- [x] Models can be evaluated and backtested after training
+- [x] Multi-backend comparison works reliably
+- [x] Reports clearly support backend-quality comparison
 
 ---
 
-## SPRINT 5: HARDENING AND EXPERIMENTATION SCALE
+## SPRINT 5: MODEL SERVING & OPERATIONS
 
-> **Goal:** Increase reliability, speed of experimentation, and confidence in future extensions.
+> **Goal:** Bring the system to a state where it can serve predictions and operate as a more complete research-oriented MLOps system.
 >
 > **Dependencies:** Sprint 4.
 >
 > **Estimated duration:** 1–2 weeks.
 
-### Testing and quality
+### Model serving
 
-- [ ] Expand test coverage with smaller fixture datasets
-- [ ] Add more integration tests for CLI workflows
-- [ ] Add tests for failure and recovery scenarios
-- [ ] Improve confidence around configuration edge cases
+- [x] Package the runtime layer through `mlfx`
+- [x] Support the `serve` command
+- [x] Support the `batch-predict` command
+- [x] Build a basic FastAPI serving layer
+- [x] Add a basic health-check endpoint
 
-### Experimentation breadth
+### Monitoring
 
-- [ ] Add new backend architectures beyond the current set
-- [ ] Explore more attention-based or sequence-model variants
-- [ ] Add a live data adapter for more realistic operating scenarios
-- [ ] Improve cross-backend metric consistency for research comparisons
+- [x] Support the `drift` workflow
+- [x] Compare recent data distributions against reference data
+- [x] Generate outputs for model-drift inspection
 
-### Performance and maintainability
+### Operational reliability
 
-- [ ] Identify slow stages in ingestion, pipeline, and training
-- [ ] Reduce duplicated logic between backends where possible
-- [ ] Improve internal module boundaries and service responsibilities
-- [ ] Add clearer developer guidance for extending the system
+- [ ] Add retry logic for the serving layer
+- [ ] Add circuit-breaker behavior for fragile integrations
+- [ ] Standardize error handling across the CLI and API
+- [ ] Increase runtime logging detail
+- [ ] Add clearer deployment configuration for real environments
 
-### DoD Sprint 5
+### Sprint 5 completion criteria
 
-- [ ] The codebase is easier to extend safely
-- [ ] Tests cover the most important operational paths
-- [ ] Researchers can iterate faster across backends and datasets
+- [x] Predictions can be served via API or batch mode
+- [x] A data-drift detection workflow exists
+- [ ] The system reaches a basic operational-readiness level
+
+---
+
+## RECOMMENDED NEXT WORK
+
+> This section is aligned with [ROADMAP.md](ROADMAP.md) and reflects the most sensible next steps based on the current state of the project.
+
+### High priority
+
+- [x] Expose `bilstm` through the CLI via `--backend bilstm`
+- [x] Add a unified benchmarking workflow (`mlfx benchmark`)
+- [x] Add end-to-end coverage for training and evaluation (`test_training_e2e.py`)
+- [x] Add summary metric export (`metrics_log.jsonl`)
+
+### Next priorities
+
+- [ ] Standardize metrics across backends for fairer comparison
+- [ ] Expand test coverage with smaller fixture datasets for faster, more stable runs
+- [ ] Refactor the serving layer for easier maintenance
+- [ ] Add retry logic and circuit-breaker behavior to improve operational readiness
+- [ ] Add live data adapters beyond Dukascopy
+- [ ] Expand the set of backend architectures, especially attention-based ones
 
 ---
 
 ## CROSS-CUTTING IMPROVEMENTS
 
-### Documentation
+### Service layer and internal architecture
 
-- [ ] Keep English and Vietnamese docs structurally aligned
-- [ ] Add missing cross-links between roadmap, architecture, and reference docs
-- [ ] Standardize terminology across guides and reference pages
-- [ ] Add contributor guidance for future documentation updates
+- [ ] Separate service layers more clearly for ingestion / pipeline / training / evaluation / serving
+- [ ] Reduce tight coupling between the CLI and business logic
+- [ ] Standardize interfaces between backends
+- [ ] Improve backend replaceability without major orchestration changes
 
 ### Logging and observability
 
-- [ ] Replace ad-hoc output with a more consistent logging strategy
-- [ ] Add log levels for debugging and runtime monitoring
-- [ ] Improve tracing of long-running pipeline stages
-- [ ] Make failure causes easier to diagnose from logs alone
+- [ ] Standardize logging levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`
+- [ ] Write logs to separate files per workflow
+- [ ] Add execution summaries for each run
+- [ ] Improve health checks for the realtime runtime and serving layers
 
-### Configuration and UX
+### Testing
 
-- [ ] Simplify configuration discovery for new users
-- [ ] Improve defaults for common workflows
-- [ ] Validate critical configuration earlier in command execution
-- [ ] Make CLI help and error messages more actionable
+- [ ] Expand unit tests for ingestion
+- [ ] Expand unit tests for the pipeline
+- [ ] Expand unit tests for evaluation
+- [ ] Add API tests for the serving layer
+- [ ] Add test coverage reports
+- [ ] Reduce total test-suite runtime
 
-### Packaging and deployment
+### DevOps & deployment
 
-- [ ] Review `Dockerfile` for reproducible builds
-- [ ] Review `docker-compose.yml` for local development usability
-- [ ] Define a more explicit deployment story for serving mode
-- [ ] Add graceful shutdown behavior where needed
+- [ ] Improve container packaging for the full system
+- [ ] Create clearer deployment guidance for real environments
+- [ ] Add CI/CD workflows on GitHub Actions
+- [ ] Add automated build, test, and lint checks
+- [ ] Standardize environment configuration for development / testing / operations
 
----
+### Documentation
 
-## FUTURE IDEAS
-
-> These items are outside the current core roadmap and should be considered after the main workflow is stable.
-
-### Advanced modeling
-
-- [ ] Add richer ensemble workflows
-- [ ] Add probabilistic forecasting options
-- [ ] Add model explainability support for research analysis
-- [ ] Add automated hyperparameter search workflows
-
-### Data and market coverage
-
-- [ ] Support more symbols and broader dataset management workflows
-- [ ] Add more robust live-data ingestion adapters
-- [ ] Add richer data validation and provenance tracking
-
-### Research tooling
-
-- [ ] Add experiment dashboards
-- [ ] Add richer artifact comparison tools
-- [ ] Add workflow templates for common research scenarios
+- [ ] Synchronize the English `TODO.md` with the Vietnamese version
+- [ ] Continue improving fully symmetric bilingual docs
+- [ ] Add consistent breadcrumbs and cross-links between documentation files
+- [ ] Update docs whenever a new backend or workflow is added
+- [ ] Add contributor guidance
 
 ---
 
-## Documents
+## FUTURE DIRECTIONS
+
+> The items below are outside the short-term scope, but useful for the long-term direction of MLFX.
+
+### Data and pipeline
+
+- [ ] Support more market-data sources
+- [ ] Add near-realtime streaming pipelines
+- [ ] Increase large-scale data processing capacity
+- [ ] Optimize large-batch feature generation
+
+### Modeling
+
+- [ ] Experiment with more attention-based architectures
+- [ ] Add automatic model selection
+- [ ] Add automated hyperparameter tuning
+- [ ] Deepen comparisons between statistical and deep-learning models
+
+### Serving and monitoring
+
+- [ ] Improve serving-layer scalability
+- [ ] Add API authentication
+- [ ] Add monitoring dashboards
+- [ ] Improve model-drift and data-drift alerting quality
+
+### User experience
+
+- [ ] Build visual dashboards for training / evaluation / serving
+- [ ] Improve CLI ergonomics
+- [ ] Export more readable visual reports
+- [ ] Increase configurability without requiring source-code edits
+
+---
+
+## Related Documents
 
 | Document | Description |
 | -------- | ----------- |
-| [README.md](../README.md) | English documentation hub |
-| [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) | System architecture and design |
-| [TODO.md](TODO.md) | Sprint-based task list |
-| [ROADMAP.md](ROADMAP.md) | Current status and next work |
-| [Vietnamese README](../../vi/README.md) | Vietnamese documentation hub |
-| [Vietnamese TODO](../../vi/meta/TODO.md) | Vietnamese version of this task list |
+| [../../README.md](../../README.md) | Overview of the documentation system |
+| [../README.md](../README.md) | Main entrypoint for the English docs |
+| [../architecture/ARCHITECTURE.md](../architecture/ARCHITECTURE.md) | Explanation of system architecture |
+| [ROADMAP.md](ROADMAP.md) | Current status and next steps |
 
 ---

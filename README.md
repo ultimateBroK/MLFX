@@ -13,7 +13,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/ultimateBroK/MLFX?style=social)](https://github.com/ultimateBroK/MLFX/stargazers)
 
-MLFX is an open-source, local-first framework for building market-data ML pipelines that are actually pleasant to run, debug, and extend.
+MLFX is an open-source, local-first framework for building market-data ML pipelines that are actually pleasant to run, debug, compare, and extend.
 
 Build once, then iterate fast:
 
@@ -37,10 +37,16 @@ Whether you're a solo quant, ML engineer, or systems-minded trader, MLFX gives y
 - [Highlights](#highlights)
 - [Available backends](#available-backends)
 - [Quickstart](#quickstart)
+- [Requirements](#requirements)
+- [Install environment](#install-environment)
+- [Run a minimal end-to-end flow](#run-a-minimal-end-to-end-flow)
 - [Common commands](#common-commands)
+- [Command reference](#command-reference)
 - [Project structure](#project-structure)
 - [Generated artifacts](#generated-artifacts)
 - [Documentation](#documentation)
+- [Start here](#start-here)
+- [Recommended reading](#recommended-reading)
 - [Who is this for?](#who-is-this-for)
 - [Current direction](#current-direction)
 - [Contributing](#contributing)
@@ -51,19 +57,19 @@ Whether you're a solo quant, ML engineer, or systems-minded trader, MLFX gives y
 
 ## Why MLFX?
 
-Most projects force you to choose between:
+Most projects in this space force you to choose between:
 
-- **Quick scripts** that are hard to maintain
-- **Trading frameworks** that are great at execution but less opinionated about ML workflows
-- **Hosted MLOps tools** that are convenient but reduce control
+- **Quick scripts or notebooks** that are fast to start but hard to maintain long-term
+- **Trading frameworks** that are strong at execution but less opinionated about ML workflows
+- **Hosted MLOps platforms** that are convenient but reduce control
 
-MLFX sits in the middle:
+MLFX aims for a more balanced middle ground:
 
-- 🏠 **Local-first** — your data, artifacts, and workflow stay under your control
+- 🏠 **Local-first** — your data, models, artifacts, and workflow stay under your control
 - 🔁 **Reproducible** — config-driven, Pixi-managed, CLI-first operation
 - 🧱 **Modular** — ingestion, pipeline, training, evaluation, serving, and monitoring are separated cleanly
 - 🔬 **Research-friendly** — easy to compare backends, inspect artifacts, and iterate
-- 🌍 **Open-source approachable** — readable project structure, documented workflows, bilingual docs
+- 🌍 **Open-source approachable** — readable project structure, documented workflows, and bilingual docs
 
 ---
 
@@ -232,7 +238,7 @@ MLFX/
 
 ## Generated artifacts
 
-MLFX keeps outputs organized so experiments stay inspectable:
+MLFX keeps outputs organized so experiments stay inspectable and reusable:
 
 - `data/raw/{symbol}/` — downloaded raw tick data
 - `data/ohlcv/{symbol}/{tf}/` — resampled OHLCV parquet files
@@ -293,7 +299,8 @@ MLFX is a good fit if you are:
 - An open-source user who values control, reproducibility, and inspectable artifacts
 
 MLFX may be less ideal if you only want:
-- A plug-and-play trading bot with zero setup
+
+- A plug-and-play trading bot with near-zero setup
 - A cloud-managed SaaS workflow
 - An execution-only framework without ML experimentation needs
 
@@ -313,6 +320,7 @@ The next major improvements are around:
 - Improved benchmark consistency
 
 See the roadmap for details:
+
 - [English roadmap](docs/en/meta/ROADMAP.md)
 - [Vietnamese roadmap](docs/vi/meta/ROADMAP.md)
 

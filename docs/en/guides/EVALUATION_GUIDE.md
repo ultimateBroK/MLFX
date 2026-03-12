@@ -1,6 +1,6 @@
 # MLFX - Evaluation Guide
 
-This guide explains how to run `mlfx evaluate`, interpret its metrics, and understand the artifacts it generates.
+This guide explains how to run `mlfx evaluate`, how to read the evaluation metrics, and how to understand the artifacts generated after each run.
 
 ## Related Documentation
 
@@ -11,28 +11,32 @@ This guide explains how to run `mlfx evaluate`, interpret its metrics, and under
 - [Configuration Reference](../reference/CONFIG_REFERENCE.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 
+---
+
 ## 1. Input Data
 
-Evaluation reads all labeled parquet files under:
+The evaluation step reads all labeled data under:
 
 ```text
 data/labels/{symbol}/{tf}/*.parquet
 ```
 
-The input dataset should include at least:
-- `timestamp`
-- OHLC columns such as `open`, `high`, `low`, `close`
-- The default ATR column `atr_14`
-- The signal column passed through `--label`
+The minimum input dataset should include:
+
+- a `timestamp` column
+- price columns such as `open`, `high`, `low`, `close`
+- the ATR column, by default `atr_14`
+- the signal column passed through `--label`
 
 Typical signal columns:
+
 - `label_5`
 - `label_10`
 - `label_20`
 
 ---
 
-## 2. Run a Backtest
+## 2. Running a Backtest
 
 ```bash
 pixi run mlfx evaluate \
@@ -49,17 +53,17 @@ pixi run mlfx evaluate \
 
 ### 2.1 Trade Execution Rules
 
-For each bar where a signal is present, the simulator:
+For each bar where a signal is present, the simulator will:
 
-1. Opens a position at the **next bar's open** price
-2. Checks subsequent bars for TP or SL breach
-3. If neither TP nor SL is hit within **10 bars** (`horizon_limit`), the trade is force-exited at the 10th bar
+1. Open a position at the **next bar's open price**
+2. Check subsequent bars for take-profit or stop-loss hits
+3. If neither TP nor SL is reached within **10 bars** (`horizon_limit`), the trade is force-closed on the 10th bar
 
-The TP and SL are expressed in **R** (multiples of the initial risk distance, derived from `atr_14`).
+Take-profit and stop-loss are expressed in **R** units — multiples of the initial risk distance, derived from `atr_14`.
 
-### 2.2 Label-to-Signal Mapping
+### 2.2 Label-to-Trade-Signal Mapping
 
-Ordinal label values map to trading signals as follows:
+Ordinal label values are mapped to trading signals as follows:
 
 | Label | Signal | Meaning |
 |---|---|---|
@@ -69,93 +73,101 @@ Ordinal label values map to trading signals as follows:
 | `-1` | SHORT | Bearish |
 | `-2` | SHORT | Strong bearish |
 
-> **Note**: Labels `1` and `2` both produce the same LONG trade; the confidence level (`±2` vs `±1`) does not affect position sizing in the current implementation.
+> **Note:** Labels `1` and `2` currently both produce the same LONG trade. The confidence level (`±2` versus `±1`) does not currently change position sizing in the implementation.
 
-### 2.3 Argument Summary
+### 2.3 Argument Meaning
 
 - `--symbol`: instrument identifier
-- `--tf`: timeframe being evaluated
+- `--tf`: timeframe to evaluate
 - `--label`: signal column used for entries
-- `--capital`: initial capital for converting `R` into dollars
-- `--risk`: percent of capital risked per trade
+- `--capital`: initial capital, used to convert `R` into money
+- `--risk`: percentage of capital risked per trade
 - `--commission`: commission cost per trade
 - `--tp`: take-profit in `R`
 - `--sl`: stop-loss in `R`
-- `--slippage`: simulated slippage cost
-- `--use-labels`: backtest raw labels instead of model predictions
+- `--slippage`: simulated slippage
+- `--use-labels`: backtest labels directly, skipping model predictions
 
 ---
 
-## 3. Model Backtest Mode vs Label Backtest Mode
+## 3. Two Evaluation Modes: Model vs Labels
 
-By default, `mlfx evaluate` uses the best registered model to generate predictions, then backtests those predictions.
+### 3.1 Default Mode
 
-If no suitable trained model is available, evaluation falls back to the raw labels.
+By default, `mlfx evaluate` uses the **best registered model** to generate predictions, then backtests those predictions.
 
-### 3.1 Backtest Raw Labels
+If no suitable trained model exists, the workflow falls back to using the **labels** as a reference baseline.
 
-To backtest the labels directly, use `--use-labels`:
+### 3.2 Backtesting the Labels Directly
+
+If you want to evaluate the original labels directly, add `--use-labels`:
 
 ```bash
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
 ```
 
-This is useful as a baseline because it evaluates the signal quality of the labels themselves without model inference.
+### 3.3 Backtesting a Model
 
-### 3.2 Backtest the Best Registered Model
+If `--use-labels` is not passed, the system will try to:
 
-Default behavior:
+1. Read `outputs/models/registry.json`
+2. Select the best model based on the registered metric
+3. Run inference over the full dataset
+4. Backtest those model predictions
+
+Example:
 
 ```bash
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-The model backtest:
-- Loads `outputs/models/registry.json`
-- Selects the entry with the highest `best_cv_f1_macro`
-- Runs inference over the full dataset
-- Backtests the resulting predictions
+### 3.4 Baseline Comparison Workflow
 
-### 3.3 Recommended Comparison Workflow
-
-A practical way to assess model value:
+A sensible way to test whether the model actually adds value is:
 
 ```bash
-# Step 1: Baseline — backtest the raw labels
+# Step 1: Baseline — evaluate labels directly
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --use-labels --tp 1.5 --sl 1.0
 
 # Step 2: Train a model
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
-# Step 3: Model backtest — use the trained model's predictions
+# Step 3: Evaluate the model
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-Compare the equity curves and metrics from both runs. A model adds value if it improves trading-oriented metrics such as Profit Factor, Sharpe Ratio, and Net Profit (R) versus the baseline.
+You can then compare:
+
+- equity curves
+- profit factor
+- Sharpe ratio
+- net profit in `R`
+- stability of results
 
 ---
 
 ## 4. Report Naming Convention
 
-The runner builds `out_name` as:
+The runner builds `out_name` using:
 
 ```text
 {label_col}_R{int(tp_r * 10)}
 ```
 
-The reporting layer then builds the full prefix as:
+Then the reporting layer builds the full prefix as:
 
 ```text
 {symbol}_{tf}_{out_name}
 ```
 
 Example with:
+
 - `symbol = XAUUSD`
 - `tf = 1H`
 - `label = label_10`
 - `tp = 1.5`
 
-produces:
+produces the prefix:
 
 ```text
 XAUUSD_1H_label_10_R15
@@ -165,7 +177,7 @@ XAUUSD_1H_label_10_R15
 
 ## 5. Generated Artifacts
 
-Each run typically writes three artifacts into `outputs/reports/{symbol}/{tf}/`:
+Each run typically generates 3 outputs in `outputs/reports/{symbol}/{tf}/`:
 
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
@@ -181,9 +193,9 @@ outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
 
 ---
 
-## 6. Core Metrics
+## 6. Important Metrics
 
-Typical summary output includes:
+The summary output usually includes:
 
 - `Total Trades`
 - `Win Rate (%)`
@@ -195,55 +207,67 @@ Typical summary output includes:
 - `Calmar Ratio`
 - `Final Capital ($)`
 
-### Quick Interpretation
+### 6.1 Quick Interpretation
 
-- `Total Trades`: number of simulated trades
-- `Win Rate (%)`: percentage of profitable trades; do not use it in isolation
-- `Profit Factor`: gross profit divided by gross loss; values above `1` are the minimum sign of profitability
-- `Net Profit (R)`: normalized profit, useful for comparing configurations fairly
-- `Net Profit ($)`: dollar-equivalent result after capital and risk assumptions
-- `Sharpe Ratio`: mean return relative to overall volatility
+- `Total Trades`: total number of simulated trades
+- `Win Rate (%)`: percentage of profitable trades; do not use it by itself
+- `Profit Factor`: total gross profit divided by total gross loss; usually `> 1` is the minimum useful sign
+- `Net Profit (R)`: normalized profit; very useful for fair comparison across configurations
+- `Net Profit ($)`: profit converted to money using `capital` and `risk`
+- `Sharpe Ratio`: average return relative to total volatility
 - `Sortino Ratio`: similar to Sharpe, but penalizes downside volatility only
-- `Calmar Ratio`: total net profit (in **R**) divided by maximum drawdown (in **R**); values above `1` are positive. Both numerator and denominator are expressed in R-units, not dollar amounts
-- `Final Capital ($)`: ending capital after simulated trading costs and outcomes
+- `Calmar Ratio`: net profit divided by maximum drawdown
+- `Final Capital ($)`: ending capital after all trade outcomes and costs are applied
+
+### 6.2 Notes for Reading Metrics
+
+- Do not use `Win Rate` alone to decide whether a strategy is good or bad
+- `Profit Factor`, `Net Profit (R)`, and `Sharpe / Sortino` are often more useful when comparing configurations
+- Very low trade counts can make metrics look attractive while still having weak statistical meaning
+- When possible, always compare the model against the label baseline
 
 ---
 
-## 7. Reading Each Report
+## 7. How to Read Each Report Type
 
-### 7.1 Candlestick HTML
+### 7.1 Candlestick HTML Report
 
 Shows:
 
-- Price candles
-- LONG/SHORT entry markers
-- An RSI panel when `rsi_14` is present
+- price movement
+- LONG / SHORT entry markers
+- an RSI panel if the dataset includes `rsi_14`
 
-Use it to:
+Useful for:
 
-- Visually inspect whether entries are sensible
-- Spot clustered or suspicious signals
+- checking whether entries look sensible
+- seeing whether signals cluster strangely in a short segment
+- confirming whether the strategy enters at reasonable times
 
 ### 7.2 Equity Curve PNG
 
 Shows:
 
-- Cumulative profit in `R`
-- Drawdown in the lower panel
+- cumulative profit in `R`
+- drawdown in the lower panel
 
-Use it to:
+Useful for:
 
-- Judge smoothness of performance
-- Compare multiple configurations beyond raw win rate
+- seeing the rhythm of capital growth
+- comparing the “smoothness” of different configurations
+- deciding whether profit comes from a stable series of trades or only a few lucky ones
 
 ### 7.3 Heatmap PNG
 
-Summarizes average performance by:
+Shows average performance by:
 
 - UTC hour
-- Weekday
+- weekday
 
-Use it to decide whether session filters or time filters are worth testing.
+Useful for:
+
+- deciding whether time filters or session filters are worth testing
+- identifying unusually strong or weak time windows
 
 ---
 
@@ -251,22 +275,30 @@ Use it to decide whether session filters or time filters are worth testing.
 
 Evaluation often fails or returns empty results when:
 
-- There are no parquet files in `data/labels/{symbol}/{tf}/`
-- The `--label` column does not exist
-- The `atr_14` column does not exist
-- The dataset is too small to produce meaningful trades
-- The signal column never emits `1` or `-1`
+- there are no parquet files in `data/labels/{symbol}/{tf}/`
+- the column passed through `--label` does not exist
+- the `atr_14` column does not exist
+- the dataset is too small, so there are effectively no meaningful trades
+- the signal column never emits meaningful LONG or SHORT signals
+
+### 8.1 Common Failure Signs
+
+- the CLI does not print the summary metrics table
+- no new files appear in `outputs/reports/{symbol}/{tf}/`
+- the trade count is extremely low or `0`
+- generated filenames do not match the expected prefix
 
 ---
 
-## 9. Post-Run Verification Checklist
+## 9. Post-Run Checklist
 
-After a run, confirm:
+After evaluation finishes, you should verify:
 
-- The CLI printed summary metrics
-- `outputs/reports/{symbol}/{tf}/` contains three new artifacts
-- The generated filenames match the expected prefix
-- Trade count is large enough to support interpretation
+- whether the CLI printed summary metrics
+- whether `outputs/reports/{symbol}/{tf}/` contains 3 new artifacts
+- whether the filenames match the expected prefix
+- whether the trade count is large enough to support interpretation, rather than being only a tiny sample
+- if you are evaluating a model, whether that model actually exists in the registry
 
 ---
 
@@ -281,6 +313,7 @@ from mlfx.evaluation.backtest import compute_metrics, simulate_trades
 from mlfx.evaluation.reporting import generate_full_report
 
 df = pl.read_parquet("data/labels/XAUUSD/1H/2024-01.parquet")
+
 trades = simulate_trades(
     df,
     signal_col="label_10",
@@ -289,8 +322,15 @@ trades = simulate_trades(
     commission=0.1,
     slippage=0.0,
 )
-metrics = compute_metrics(trades, initial_capital=10000.0, risk_pct=1.0)
+
+metrics = compute_metrics(
+    trades,
+    initial_capital=10000.0,
+    risk_pct=1.0,
+)
+
 print(metrics)
+
 generate_full_report(
     "XAUUSD",
     "1H",
@@ -303,23 +343,24 @@ generate_full_report(
 
 ---
 
-## 11. Practical Interpretation Tips
+## 11. Suggested Reading Order for Results
 
-When comparing runs, avoid relying on a single metric.
+If you are just starting, read the outputs in this order:
 
-A stronger evaluation workflow looks at:
+1. `Total Trades`
+2. `Profit Factor`
+3. `Net Profit (R)`
+4. `Sharpe Ratio`
+5. the equity curve
+6. the heatmap
+7. the candlestick HTML report
 
-- Profit Factor
-- Net Profit (R)
-- Sharpe Ratio
-- Sortino Ratio
-- Calmar Ratio
-- Total Trades
-- Trade clustering or timing patterns in the candlestick and heatmap reports
+Why this order:
 
-A model with a good training score but weak backtest metrics may still be operationally poor.
-
-Similarly, a very high win rate with weak Profit Factor can still indicate a weak strategy.
+- the top-level metrics tell you whether the configuration is worth inspecting further
+- the equity curve shows the quality of capital progression
+- the heatmap suggests time-based strategy improvements
+- the candlestick report helps you visually inspect entry timing
 
 ---
 
@@ -330,4 +371,3 @@ Similarly, a very high win rate with weak Profit Factor can still indicate a wea
 - [Feature Reference](../reference/FEATURE_REFERENCE.md)
 - [Configuration Reference](../reference/CONFIG_REFERENCE.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
-- [English Docs Hub](../README.md)

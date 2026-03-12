@@ -1,88 +1,88 @@
 # MLFX - Tham chiếu API
 
-Tài liệu này mô tả REST API của inference server trong MLFX.
+Tài liệu này mô tả API REST của máy chủ suy luận trong MLFX.
 
 ---
 
 ## Tổng quan
 
-Serving API của MLFX cung cấp khả năng suy luận thời gian thực thông qua FastAPI. Server tự động nạp model tốt nhất đã được đăng ký trong registry và cung cấp các endpoint để:
+API phục vụ mô hình của MLFX cung cấp khả năng suy luận thời gian thực thông qua FastAPI. Máy chủ sẽ tự động nạp mô hình tốt nhất đã được đăng ký trong sổ đăng ký mô hình và cung cấp các điểm cuối để:
 
-- Kiểm tra tình trạng hoạt động của service
-- Liệt kê các model đã đăng ký
-- Chạy dự đoán cho một feature vector
+- Kiểm tra tình trạng hoạt động của dịch vụ
+- Liệt kê các mô hình đã đăng ký
+- Chạy dự đoán cho một bộ đặc trưng đầu vào
 
-### Khởi động server
+### Khởi động máy chủ
 
-```bash
+```/dev/null/api-reference-start.sh#L1-1
 pixi run mlfx serve --port 8000
 ```
 
 ### Hoặc chạy qua Docker
 
-```bash
+```/dev/null/api-reference-docker.sh#L1-1
 docker-compose up api
 ```
 
 ---
 
-## Endpoints
+## Các điểm cuối
 
 ## `GET /health`
 
-Endpoint kiểm tra tình trạng sống của service, phù hợp cho load balancer, orchestrator, hoặc health checks trong môi trường production.
+Điểm cuối kiểm tra tình trạng sống của dịch vụ. Phù hợp cho bộ cân bằng tải, trình điều phối hoặc cơ chế kiểm tra sức khỏe trong môi trường vận hành.
 
-### Request
+### Yêu cầu
 
-```bash
+```/dev/null/api-reference-health-request.sh#L1-1
 curl http://localhost:8000/health
 ```
 
-### Response
+### Phản hồi
 
-```json
+```/dev/null/api-reference-health-response.json#L1-3
 {
   "status": "ok"
 }
 ```
 
-### Status codes
+### Mã trạng thái
 
-- `200` — Service hoạt động bình thường
+- `200` — Dịch vụ hoạt động bình thường
 
 ---
 
 ## `GET /models`
 
-Liệt kê toàn bộ model đã được đăng ký trong registry, có hỗ trợ lọc theo một số tiêu chí.
+Liệt kê toàn bộ mô hình đã được đăng ký trong sổ đăng ký, có hỗ trợ lọc theo một số tiêu chí.
 
-### Request
+### Yêu cầu
 
-```bash
-# Tất cả model
+```/dev/null/api-reference-models-request.sh#L1-10
+# Tất cả mô hình
 curl http://localhost:8000/models
 
-# Lọc theo symbol
+# Lọc theo mã công cụ
 curl "http://localhost:8000/models?symbol=XAUUSD"
 
-# Lọc theo symbol và timeframe
+# Lọc theo mã công cụ và khung thời gian
 curl "http://localhost:8000/models?symbol=XAUUSD&tf=1H"
 
-# Lọc theo backend
+# Lọc theo bộ máy
 curl "http://localhost:8000/models?backend=mlf"
 ```
 
-### Query parameters
+### Tham số truy vấn
 
-| Parameter | Type | Required | Mô tả |
+| Tham số | Kiểu | Bắt buộc | Mô tả |
 |---|---|---|---|
-| `symbol` | string | No | Lọc theo mã instrument |
-| `tf` | string | No | Lọc theo timeframe |
-| `backend` | string | No | Lọc theo loại backend |
+| `symbol` | string | Không | Lọc theo mã công cụ tài chính |
+| `tf` | string | Không | Lọc theo khung thời gian |
+| `backend` | string | Không | Lọc theo loại bộ máy |
 
-### Response
+### Phản hồi
 
-```json
+```/dev/null/api-reference-models-response.json#L1-15
 [
   {
     "run_id": "20250301_120000",
@@ -101,7 +101,7 @@ curl "http://localhost:8000/models?backend=mlf"
 ]
 ```
 
-### Status codes
+### Mã trạng thái
 
 - `200` — Thành công
 
@@ -109,11 +109,11 @@ curl "http://localhost:8000/models?backend=mlf"
 
 ## `POST /predict`
 
-Chạy suy luận cho một feature vector. Server sẽ tự động nạp model tốt nhất đã đăng ký cho tổ hợp `symbol` / `tf` / `label_col`.
+Chạy suy luận cho một bộ đặc trưng đầu vào. Máy chủ sẽ tự động nạp mô hình tốt nhất đã đăng ký cho tổ hợp `symbol` / `tf` / `label_col`.
 
-### Request
+### Yêu cầu
 
-```bash
+```/dev/null/api-reference-predict-request.sh#L1-13
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
@@ -130,18 +130,18 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-### Request body schema
+### Cấu trúc phần thân yêu cầu
 
-| Field | Type | Required | Mô tả |
+| Trường | Kiểu | Bắt buộc | Mô tả |
 |---|---|---|---|
-| `symbol` | string | Yes | Mã instrument |
-| `tf` | string | Yes | Timeframe |
-| `label_col` | string | Yes | Cột label đã dùng khi train |
-| `features` | object | Yes | Mapping `tên feature -> giá trị` |
+| `symbol` | string | Có | Mã công cụ tài chính |
+| `tf` | string | Có | Khung thời gian |
+| `label_col` | string | Có | Cột nhãn đã dùng khi huấn luyện |
+| `features` | object | Có | Ánh xạ `tên đặc trưng -> giá trị` |
 
-### Response
+### Phản hồi
 
-```json
+```/dev/null/api-reference-predict-response.json#L1-7
 {
   "symbol": "XAUUSD",
   "tf": "1H",
@@ -151,30 +151,30 @@ curl -X POST http://localhost:8000/predict \
 }
 ```
 
-### Response fields
+### Ý nghĩa các trường phản hồi
 
-| Field | Type | Mô tả |
+| Trường | Kiểu | Mô tả |
 |---|---|---|
-| `symbol` | string | Echo lại `symbol` từ request |
-| `tf` | string | Echo lại `tf` từ request |
+| `symbol` | string | Trả lại `symbol` từ yêu cầu |
+| `tf` | string | Trả lại `tf` từ yêu cầu |
 | `prediction` | integer | Nhãn dự đoán: `-2`, `-1`, `0`, `1`, `2` |
-| `confidence` | float \| null | Xác suất dự đoán; có thể là `null` với backend deep learning |
-| `model_backend` | string | Backend key của model được nạp |
+| `confidence` | float \| null | Xác suất dự đoán; có thể là `null` với một số backend học sâu |
+| `model_backend` | string | Khóa bộ máy của mô hình được nạp |
 
-### Status codes
+### Mã trạng thái
 
 - `200` — Thành công
-- `404` — Không tìm thấy model đã đăng ký cho tổ hợp `symbol/tf/label_col`
-- `422` — Thiếu feature bắt buộc hoặc request không hợp lệ
-- `500` — Registry entry không có `artifact_path` hoặc server gặp lỗi nội bộ
+- `404` — Không tìm thấy mô hình đã đăng ký cho tổ hợp `symbol/tf/label_col`
+- `422` — Thiếu đặc trưng bắt buộc hoặc yêu cầu không hợp lệ
+- `500` — Bản ghi trong sổ đăng ký không có `artifact_path` hoặc máy chủ gặp lỗi nội bộ
 
 ---
 
 ## Ý nghĩa nhãn dự đoán
 
-Trường `prediction` trả về nhãn ordinal:
+Trường `prediction` trả về nhãn thứ bậc:
 
-| Value | Ý nghĩa |
+| Giá trị | Ý nghĩa |
 |---|---|
 | `2` | Kỳ vọng giá tăng mạnh |
 | `1` | Kỳ vọng giá tăng vừa |
@@ -184,21 +184,21 @@ Trường `prediction` trả về nhãn ordinal:
 
 ---
 
-## Confidence score
+## Điểm tin cậy dự đoán
 
-- `confidence` chỉ có khi backend hỗ trợ `predict_proba()`, ví dụ như `mlf` hoặc `sgd`
-- Các backend deep learning như `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `neuralforecast` thường trả về `null`
+- `confidence` chỉ có khi bộ máy hỗ trợ `predict_proba()`, ví dụ như `mlf` hoặc `sgd`
+- Các bộ máy học sâu như `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `neuralforecast` thường trả về `null`
 - Giá trị `confidence` đại diện cho xác suất của lớp được dự đoán
 
 ---
 
 ## Xử lý lỗi
 
-## `404` — Không tìm thấy model
+## `404` — Không tìm thấy mô hình
 
-### Response
+### Phản hồi
 
-```json
+```/dev/null/api-reference-404-response.json#L1-3
 {
   "detail": "No registered model for XAUUSD/1H/label_10"
 }
@@ -206,19 +206,19 @@ Trường `prediction` trả về nhãn ordinal:
 
 ### Cách xử lý
 
-Hãy train model trước:
+Hãy huấn luyện mô hình trước:
 
-```bash
+```/dev/null/api-reference-train-before-predict.sh#L1-1
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 ```
 
 ---
 
-## `422` — Thiếu feature bắt buộc
+## `422` — Thiếu đặc trưng bắt buộc
 
-### Response
+### Phản hồi
 
-```json
+```/dev/null/api-reference-422-response.json#L1-3
 {
   "detail": "Missing required feature(s): ['rsi_14', 'atr_14']"
 }
@@ -226,33 +226,33 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
 ### Cách xử lý
 
-Truyền đầy đủ các feature đã được dùng khi train model. Bạn có thể kiểm tra danh sách `feature_columns` trong registry.
+Hãy truyền đầy đủ các đặc trưng đã được dùng khi huấn luyện mô hình. Bạn có thể kiểm tra danh sách `feature_columns` trong sổ đăng ký mô hình.
 
 ---
 
-## Model caching
+## Bộ nhớ đệm mô hình
 
-Server duy trì LRU cache với tối đa `32` model để tránh nạp lại model cho mỗi request. Cache được đánh theo `artifact_path`.
+Máy chủ duy trì bộ nhớ đệm LRU với tối đa `32` mô hình để tránh phải nạp lại mô hình cho mỗi yêu cầu. Bộ nhớ đệm này được đánh dấu theo `artifact_path`.
 
 ---
 
-## Ví dụ client Python
+## Ví dụ bằng Python
 
-```python
+```/dev/null/api-reference-python-client.py#L1-26
 import requests
 
-# Health check
+# Kiểm tra sức khỏe
 response = requests.get("http://localhost:8000/health")
 print(response.json())  # {"status": "ok"}
 
-# List models
+# Liệt kê mô hình
 response = requests.get(
     "http://localhost:8000/models",
     params={"symbol": "XAUUSD", "tf": "1H"},
 )
 print(response.json())
 
-# Predict
+# Dự đoán
 payload = {
     "symbol": "XAUUSD",
     "tf": "1H",
@@ -274,11 +274,11 @@ print(response.json())
 
 ## Ghi chú vận hành
 
-- API này phù hợp cho suy luận thời gian thực sau khi model đã được train và đăng ký
-- Nếu chưa có model trong registry, endpoint `/predict` sẽ không hoạt động
-- Dữ liệu trong `features` phải khớp với schema feature mà model đã dùng khi train
-- Nên dùng endpoint `/health` cho readiness/liveness checks trong môi trường deploy
-- Nếu cần scale production, bạn có thể chạy nhiều instance phía sau load balancer
+- API này phù hợp cho suy luận thời gian thực sau khi mô hình đã được huấn luyện và đăng ký
+- Nếu chưa có mô hình trong sổ đăng ký, điểm cuối `/predict` sẽ không hoạt động
+- Dữ liệu trong `features` phải khớp với lược đồ đặc trưng mà mô hình đã dùng khi huấn luyện
+- Nên dùng điểm cuối `/health` cho các kiểm tra sẵn sàng / còn sống trong môi trường triển khai
+- Nếu cần mở rộng khi vận hành thực tế, bạn có thể chạy nhiều phiên bản dịch vụ phía sau bộ cân bằng tải
 
 ---
 
@@ -287,5 +287,5 @@ print(response.json())
 - [API Reference (English)](../../en/reference/API_REFERENCE.md)
 - [Hướng dẫn sử dụng CLI](../guides/USAGE_GUIDE.md)
 - [Kiến trúc hệ thống](../architecture/ARCHITECTURE.md)
-- [Tham chiếu feature](FEATURE_REFERENCE.md)
+- [Tham chiếu đặc trưng](FEATURE_REFERENCE.md)
 - [Tham chiếu cấu hình](CONFIG_REFERENCE.md)

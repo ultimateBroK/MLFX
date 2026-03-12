@@ -1,24 +1,26 @@
 # MLFX API Reference
 
-REST API documentation for the MLFX inference server.
+This document describes the REST API of the MLFX inference server.
 
 ---
 
 ## Overview
 
-The MLFX serving API provides real-time model inference via FastAPI. It automatically loads the best registered model for the requested context and exposes endpoints for:
+The MLFX serving API provides real-time inference through FastAPI. The server automatically loads the best model registered in the model registry and exposes endpoints for:
 
-- Health checks
-- Model listing
-- Prediction requests
+- Service health checks
+- Listing registered models
+- Running predictions for an input feature set
 
-**Start the server:**
-```bash
+### Start the server
+
+```/dev/null/api-reference-start.sh#L1-1
 pixi run mlfx serve --port 8000
 ```
 
-**Or via Docker:**
-```bash
+### Or run via Docker
+
+```/dev/null/api-reference-docker.sh#L1-1
 docker-compose up api
 ```
 
@@ -26,33 +28,37 @@ docker-compose up api
 
 ## Endpoints
 
-### `GET /health`
+## `GET /health`
 
-Liveness probe for load balancers, orchestrators, and deployment platforms.
+A liveness endpoint for the service. Suitable for load balancers, orchestrators, or health checks in operational environments.
 
-**Request:**
-```bash
+### Request
+
+```/dev/null/api-reference-health-request.sh#L1-1
 curl http://localhost:8000/health
 ```
 
-**Response:**
-```json
+### Response
+
+```/dev/null/api-reference-health-response.json#L1-3
 {
   "status": "ok"
 }
 ```
 
-**Status Codes:**
-- `200` — Server is healthy
+### Status codes
+
+- `200` — Service is healthy
 
 ---
 
-### `GET /models`
+## `GET /models`
 
-List all registered models with optional filtering.
+List all models registered in the model registry, with optional filtering.
 
-**Request:**
-```bash
+### Request
+
+```/dev/null/api-reference-models-request.sh#L1-10
 # All models
 curl http://localhost:8000/models
 
@@ -66,7 +72,7 @@ curl "http://localhost:8000/models?symbol=XAUUSD&tf=1H"
 curl "http://localhost:8000/models?backend=mlf"
 ```
 
-**Query Parameters:**
+### Query parameters
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
@@ -74,8 +80,9 @@ curl "http://localhost:8000/models?backend=mlf"
 | `tf` | string | No | Filter by timeframe |
 | `backend` | string | No | Filter by backend type |
 
-**Response:**
-```json
+### Response
+
+```/dev/null/api-reference-models-response.json#L1-15
 [
   {
     "run_id": "20250301_120000",
@@ -88,23 +95,25 @@ curl "http://localhost:8000/models?backend=mlf"
       "best_cv_f1_macro": 0.72,
       "test_f1_macro": 0.71
     },
-    "feature_columns": ["rsi_14", "atr_14", "ema_20", "macd", "macd_signal"],
+    "feature_columns": ["rsi_14", "atr_14", "ema_20", "..."],
     "timestamp": "2025-03-01T12:00:00"
   }
 ]
 ```
 
-**Status Codes:**
+### Status codes
+
 - `200` — Success
 
 ---
 
-### `POST /predict`
+## `POST /predict`
 
-Run inference for a single feature vector. The best registered model for the requested `symbol` / `tf` / `label_col` combination is loaded automatically.
+Run inference for an input feature vector. The server automatically loads the best registered model for the `symbol` / `tf` / `label_col` combination.
 
-**Request:**
-```bash
+### Request
+
+```/dev/null/api-reference-predict-request.sh#L1-13
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
@@ -121,17 +130,18 @@ curl -X POST http://localhost:8000/predict \
   }'
 ```
 
-**Request Body Schema:**
+### Request body schema
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `symbol` | string | Yes | Instrument symbol |
 | `tf` | string | Yes | Timeframe |
 | `label_col` | string | Yes | Label column used during training |
-| `features` | object | Yes | Mapping of feature name → numeric value |
+| `features` | object | Yes | Mapping of `feature name -> value` |
 
-**Response:**
-```json
+### Response
+
+```/dev/null/api-reference-predict-response.json#L1-7
 {
   "symbol": "XAUUSD",
   "tf": "1H",
@@ -141,25 +151,26 @@ curl -X POST http://localhost:8000/predict \
 }
 ```
 
-**Response Fields:**
+### Response field meanings
 
 | Field | Type | Description |
 |---|---|---|
-| `symbol` | string | Echo of the request symbol |
-| `tf` | string | Echo of the request timeframe |
+| `symbol` | string | Echo of the request `symbol` |
+| `tf` | string | Echo of the request `tf` |
 | `prediction` | integer | Predicted label: `-2`, `-1`, `0`, `1`, `2` |
-| `confidence` | float \| null | Predicted-class probability; `null` for backends that do not expose `predict_proba()` |
+| `confidence` | float \| null | Prediction probability; may be `null` for some deep-learning backends |
 | `model_backend` | string | Backend key of the loaded model |
 
-**Status Codes:**
+### Status codes
+
 - `200` — Success
-- `404` — No registered model for the requested `symbol` / `tf` / `label_col`
-- `422` — Missing required feature columns
-- `500` — Registry entry exists but has no usable `artifact_path`
+- `404` — No registered model found for the `symbol/tf/label_col` combination
+- `422` — Missing required features or invalid request
+- `500` — Registry entry has no `artifact_path` or the server encountered an internal error
 
 ---
 
-## Prediction Labels
+## Meaning of prediction labels
 
 The `prediction` field returns ordinal labels:
 
@@ -173,78 +184,73 @@ The `prediction` field returns ordinal labels:
 
 ---
 
-## Confidence Scores
+## Confidence scores
 
-- `confidence` is only available for backends that support `predict_proba()` such as `mlf` and `sgd`
-- Deep learning backends such as `lstm`, `bilstm`, `transformer`, `cnn_lstm`, and `neuralforecast` typically return `null`
-- The value represents the probability of the predicted class, not a full class-distribution payload
+- `confidence` is only available when the backend supports `predict_proba()`, such as `mlf` or `sgd`
+- Deep-learning backends such as `lstm`, `bilstm`, `transformer`, `cnn_lstm`, and `neuralforecast` usually return `null`
+- The `confidence` value represents the probability of the predicted class
 
 ---
 
-## Error Handling
+## Error handling
 
-### 404 — Model Not Found
+## `404` — Model not found
 
-```json
+### Response
+
+```/dev/null/api-reference-404-response.json#L1-3
 {
   "detail": "No registered model for XAUUSD/1H/label_10"
 }
 ```
 
-**Resolution:** Train and register a model first.
+### Resolution
 
-```bash
+Train a model first:
+
+```/dev/null/api-reference-train-before-predict.sh#L1-1
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 ```
 
 ---
 
-### 422 — Missing Features
+## `422` — Missing required features
 
-```json
+### Response
+
+```/dev/null/api-reference-422-response.json#L1-3
 {
   "detail": "Missing required feature(s): ['rsi_14', 'atr_14']"
 }
 ```
 
-**Resolution:** Include all features used during training. Check the model's `feature_columns` in the registry output.
+### Resolution
+
+Pass all features that were used during model training. You can inspect the `feature_columns` list in the model registry.
 
 ---
 
-### 500 — Invalid Registry Entry
+## Model cache
 
-```json
-{
-  "detail": "Registry entry has no artifact_path"
-}
-```
-
-**Resolution:** Re-train the model or repair the registry entry so that it points to a valid saved artifact.
+The server maintains an LRU cache of up to `32` models to avoid reloading the model for every request. The cache key is based on `artifact_path`.
 
 ---
 
-## Model Caching
+## Python example
 
-The server maintains an LRU cache with a maximum of `32` loaded models. Models are cached by `artifact_path` to avoid reloading them on every request.
-
----
-
-## Python Client Example
-
-```python
+```/dev/null/api-reference-python-client.py#L1-26
 import requests
 
 # Health check
-health = requests.get("http://localhost:8000/health")
-print(health.json())  # {"status": "ok"}
+response = requests.get("http://localhost:8000/health")
+print(response.json())  # {"status": "ok"}
 
 # List models
-models_response = requests.get(
+response = requests.get(
     "http://localhost:8000/models",
     params={"symbol": "XAUUSD", "tf": "1H"},
 )
-models = models_response.json()
-print(f"Found {len(models)} model(s)")
+print(response.json())
 
 # Predict
 payload = {
@@ -256,30 +262,30 @@ payload = {
         "atr_14": 2.1,
         "ema_20": 1940.5,
         "macd": 1.5,
-        "macd_signal": 1.2,
-    },
+        "macd_signal": 1.2
+    }
 }
-prediction_response = requests.post("http://localhost:8000/predict", json=payload)
-result = prediction_response.json()
-print(f"Prediction: {result['prediction']}, Confidence: {result['confidence']}")
+
+response = requests.post("http://localhost:8000/predict", json=payload)
+print(response.json())
 ```
 
 ---
 
-## Integration Notes
+## Operational notes
 
-- The API is stateless: each request is handled independently
-- Model selection is automatic based on the best registered model for the requested context
-- For production deployments, consider running multiple API instances behind a load balancer
-- Use `/health` for Kubernetes liveness and readiness probes
-- Ensure the request feature schema matches the feature schema used during training
+- This API is suitable for real-time inference after a model has been trained and registered
+- If no model exists in the registry, the `/predict` endpoint will not work
+- The data inside `features` must match the feature schema used when the model was trained
+- You should use the `/health` endpoint for readiness / liveness checks in deployed environments
+- If you need to scale in a real deployment, you can run multiple service instances behind a load balancer
 
 ---
 
 ## See Also
 
-- [Configuration Reference](CONFIG_REFERENCE.md)
-- [Feature Reference](FEATURE_REFERENCE.md)
+- [API Reference (Vietnamese)](../../vi/reference/API_REFERENCE.md)
+- [CLI Usage Guide](../guides/USAGE_GUIDE.md)
 - [Architecture](../architecture/ARCHITECTURE.md)
-- [Usage Guide](../guides/USAGE_GUIDE.md)
-- [Evaluation Guide](../guides/EVALUATION_GUIDE.md)
+- [Feature Reference](FEATURE_REFERENCE.md)
+- [Configuration Reference](CONFIG_REFERENCE.md)
