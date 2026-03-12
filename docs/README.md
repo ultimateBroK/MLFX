@@ -98,9 +98,6 @@ docs/
 │   │   └── BACKEND_COMPARISON.md
 │   └── meta/
 │       └── ROADMAP.md
-└── archive/
-    ├── DOCUMENTATION_IMPROVEMENT_TRACKING.md
-    └── legacy/
 ```
 
 ---
@@ -181,11 +178,7 @@ Use this section when you need:
 - Planning
 - Project/documentation direction
 
-### Archive
-Use this section when you need:
-- Historical notes
-- Migration history
-- Retired or planning-oriented documentation
+
 
 ---
 
@@ -207,5 +200,3 @@ When adding or updating docs:
 
 - Project root overview: [../README.md](../README.md)
 - Project roadmap: [../ROADMAP.md](../ROADMAP.md)
-- Documentation restructure plan: [DOCS_RESTRUCTURE_PLAN.md](DOCS_RESTRUCTURE_PLAN.md)
-- Documentation archive and tracking: [archive/DOCUMENTATION_IMPROVEMENT_TRACKING.md](archive/DOCUMENTATION_IMPROVEMENT_TRACKING.md)
