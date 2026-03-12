@@ -251,8 +251,8 @@ Thông thường là do bạn chưa chạy `download` hoặc `pipeline` trước
 
 Hãy kiểm tra:
 
-- đã có parquet trong `data/labels/{symbol}/{tf}/` chưa
-- mô hình đã được huấn luyện chưa
+- Đã có parquet trong `data/labels/{symbol}/{tf}/` chưa
+- Mô hình đã được huấn luyện chưa
 - `label_col` có đúng không
 
 ### Muốn dọn đầu ra cũ
@@ -272,8 +272,8 @@ Lệnh này dọn vùng nhớ đệm và các đầu ra được tạo ra, nhưn
 File này là **hướng dẫn bắt đầu nhanh chuẩn** của tài liệu tiếng Việt.  
 Các tài liệu khác nên:
 
-- dẫn liên kết về file này khi cần luồng bắt đầu nhanh
-- không lặp lại toàn bộ chuỗi lệnh ở đây trừ khi thật sự cần thiết
+- Dẫn liên kết về file này khi cần luồng bắt đầu nhanh
+- Không lặp lại toàn bộ chuỗi lệnh ở đây trừ khi thật sự cần thiết
 
 ---
 

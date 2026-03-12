@@ -3,11 +3,11 @@
 Nếu bạn mới vào kho mã này, hãy đọc tài liệu này trước.  
 Mục tiêu của file này là giúp bạn hiểu:
 
-- dự án này dùng để làm gì
-- dữ liệu đi qua những bước nào
-- vì sao phải chạy đúng thứ tự
-- sau mỗi bước bạn nên nhìn thấy kết quả gì
-- cách bắt đầu an toàn bằng `Pixi`
+- Dự án này dùng để làm gì
+- Dữ liệu đi qua những bước nào
+- Vì sao phải chạy đúng thứ tự
+- Sau mỗi bước bạn nên nhìn thấy kết quả gì
+- Cách bắt đầu an toàn bằng `Pixi`
 
 MLFX là môi trường **nghiên cứu, huấn luyện và đánh giá mô hình** trên dữ liệu thị trường. Đây **không phải** là một bot giao dịch trực tiếp hoàn chỉnh.
 
@@ -17,12 +17,12 @@ MLFX là môi trường **nghiên cứu, huấn luyện và đánh giá mô hìn
 
 MLFX là một quy trình học máy cho dữ liệu thị trường. Luồng cơ bản của dự án gồm:
 
-- tải dữ liệu tick lịch sử
-- chuyển dữ liệu đó thành OHLCV
-- tạo đặc trưng kỹ thuật và đặc trưng theo ngữ cảnh
-- tạo nhãn cho bài toán dự báo
-- huấn luyện mô hình
-- chạy đánh giá và xuất báo cáo
+- Tải dữ liệu tick lịch sử
+- Chuyển dữ liệu đó thành OHLCV
+- Tạo đặc trưng kỹ thuật và đặc trưng theo ngữ cảnh
+- Tạo nhãn cho bài toán dự báo
+- Huấn luyện mô hình
+- Chạy đánh giá và xuất báo cáo
 
 Hiểu ngắn gọn: MLFX giúp bạn đi từ **dữ liệu giá thô** đến **kết quả backtest có thể so sánh được** trong một quy trình nhất quán.
 
@@ -48,8 +48,8 @@ Sau bước `evaluate`, dòng lệnh sẽ in ra bảng chỉ số tổng hợp v
 
 Mặc định:
 
-- nếu đã có mô hình phù hợp, hệ thống sẽ đánh giá **mô hình**
-- nếu chưa có mô hình, hệ thống có thể đánh giá **nhãn** như một mốc tham chiếu ban đầu
+- Nếu đã có mô hình phù hợp, hệ thống sẽ đánh giá **mô hình**
+- Nếu chưa có mô hình, hệ thống có thể đánh giá **nhãn** như một mốc tham chiếu ban đầu
 
 Các phần mã nguồn tương ứng nằm ở:
 
@@ -68,10 +68,10 @@ Nhiều người mới thường muốn nhảy thẳng đến bước huấn luy
 
 Sau khi tải dữ liệu, bạn nên kiểm tra dữ liệu thô để phát hiện:
 
-- khoảng trống dữ liệu
-- tháng bị lỗi
-- dữ liệu bất thường
-- tệp tải chưa đầy đủ
+- Khoảng trống dữ liệu
+- Tháng bị lỗi
+- Dữ liệu bất thường
+- Tệp tải chưa đầy đủ
 
 Bước này giúp tránh việc bạn huấn luyện trên dữ liệu có vấn đề mà không biết.
 
@@ -95,10 +95,10 @@ Sau khi có nến, hệ thống bổ sung ngữ cảnh bằng các đặc trưng
 - MACD
 - ATR
 - EMA
-- các mức điểm xoay
-- vùng hỗ trợ/kháng cự
-- phiên giao dịch
-- các đặc trưng theo ngữ cảnh ICT
+- Các mức điểm xoay
+- Vùng hỗ trợ/kháng cự
+- Phân phiên giao dịch
+- Các đặc trưng theo ngữ cảnh ICT
 
 Nói cách khác, thay vì đưa cho mô hình chỉ dữ liệu giá đơn thuần, bạn đưa cho nó dữ liệu giá **kèm ngữ cảnh đã được xử lý**.
 
@@ -132,10 +132,10 @@ Mỗi bộ máy là một hướng tiếp cận khác nhau để học từ cùn
 
 Bước `evaluate` không chỉ đơn giản là “in ra vài con số”. Đây là nơi bạn kiểm tra:
 
-- mô hình có tạo ra tín hiệu dùng được hay không
-- backtest ra sao
-- lợi nhuận giả lập thế nào
-- rủi ro và độ ổn định có chấp nhận được không
+- Mô hình có tạo ra tín hiệu dùng được hay không
+- Backtest ra sao
+- Lợi nhuận giả lập thế nào
+- Rủi ro và độ ổn định có chấp nhận được không
 
 Nói ngắn gọn: nếu chưa đánh giá thì chưa thể kết luận mô hình có ích.
 
@@ -150,16 +150,16 @@ Nếu bạn muốn chạy nhanh toàn bộ quy trình theo lối ngắn nhất, 
 File này giữ vai trò **bắt đầu nhanh chuẩn**.  
 Còn file hiện tại giữ vai trò **nhập môn**, nghĩa là giúp bạn hiểu:
 
-- dự án làm gì
-- thứ tự các bước có ý nghĩa gì
-- vì sao mỗi bước đều quan trọng
-- sau mỗi bước thì nên kiểm tra điều gì
+- Dự án làm gì
+- Thứ tự các bước có ý nghĩa gì
+- Vì sao mỗi bước đều quan trọng
+- Sau mỗi bước thì nên kiểm tra điều gì
 
 Nếu bạn mới vào kho mã, cách đọc hợp lý nhất là:
 
-1. đọc file này
-2. chạy theo `QUICKSTART.md`
-3. sau đó mới sang tài liệu sử dụng chi tiết
+1. Đọc file này
+2. Chạy theo `QUICKSTART.md`
+3. Sau đó mới sang tài liệu sử dụng chi tiết
 
 ---
 
@@ -170,8 +170,8 @@ Khi mới làm quen, cách tốt nhất để không bị rối là kiểm tra �
 ### Sau `download`
 Bạn nên thấy:
 
-- các tệp parquet trong `data/raw/{symbol}/`
-- tệp `completed_months.json`
+- Các tệp parquet trong `data/raw/{symbol}/`
+- Tệp `completed_months.json`
 
 Ví dụ:
 - `data/raw/XAUUSD/YYYY-MM.parquet`
@@ -180,7 +180,7 @@ Ví dụ:
 ### Sau `qa`
 Bạn nên thấy:
 
-- báo cáo kiểm tra chất lượng trong `data/raw/{symbol}/`
+- Báo cáo kiểm tra chất lượng trong `data/raw/{symbol}/`
 
 ### Sau `pipeline`
 Bạn nên thấy dữ liệu được sinh ở các khu vực:
@@ -197,9 +197,9 @@ Bạn nên thấy tệp đầu ra của mô hình trong:
 - `outputs/models/{symbol}/{tf}/`
 
 Thông thường nơi này sẽ chứa:
-- mô hình đã lưu
-- siêu dữ liệu
-- chỉ số huấn luyện
+- Mô hình đã lưu
+- Siêu dữ liệu
+- Chỉ số huấn luyện
 
 ### Sau `evaluate`
 Bạn nên thấy báo cáo trong:
@@ -207,9 +207,9 @@ Bạn nên thấy báo cáo trong:
 - `outputs/reports/{symbol}/{tf}/`
 
 Thường sẽ có:
-- báo cáo HTML biểu đồ nến
-- biểu đồ đường vốn
-- bản đồ nhiệt theo phiên hoặc theo thời gian
+- Báo cáo HTML biểu đồ nến
+- Biểu đồ đường vốn
+- Bản đồ nhiệt theo phiên hoặc theo thời gian
 
 ---
 
@@ -219,9 +219,9 @@ Khi mới dùng MLFX, hãy nhớ vài nguyên tắc đơn giản sau:
 
 - Nếu bước huấn luyện báo thiếu tệp, nguyên nhân thường là bạn **chưa chạy `pipeline`**
 - Nếu bước đánh giá không có gì để đọc, hãy kiểm tra xem bạn đã có:
-  - dữ liệu nhãn
-  - mô hình đã huấn luyện
-  - đúng tên cột nhãn
+  - Dữ liệu nhãn
+  - Mô hình đã huấn luyện
+  - Đúng tên cột nhãn
 - `outputs/models/{symbol}/{tf}/` là nơi lưu mô hình
 - `outputs/reports/{symbol}/{tf}/` là nơi lưu báo cáo đánh giá
 - `pixi run clean-generated` dùng để dọn vùng nhớ đệm và đầu ra sinh tự động mà **không đụng vào dữ liệu thô**
@@ -236,13 +236,13 @@ Câu trả lời là:
 
 - **không bắt buộc** nếu bạn chỉ đang chạy thử nhanh lần đầu
 - **nên dùng** khi:
-  - bạn nghi dữ liệu có lỗi
-  - bạn muốn kiểm tra độ tin cậy của dữ liệu trước khi huấn luyện
-  - bạn đang làm nghiên cứu nghiêm túc và cần loại trừ rủi ro từ đầu vào
+  - Bạn nghi dữ liệu có lỗi
+  - Bạn muốn kiểm tra độ tin cậy của dữ liệu trước khi huấn luyện
+  - Bạn đang làm nghiên cứu nghiêm túc và cần loại trừ rủi ro từ đầu vào
 
 Vì vậy, với người mới:
-- có thể bỏ qua `qa` trong lần chạy đầu tiên
-- nhưng nên biết bước này tồn tại để dùng khi cần
+- Có thể bỏ qua `qa` trong lần chạy đầu tiên
+- Nhưng nên biết bước này tồn tại để dùng khi cần
 
 ---
 
@@ -252,9 +252,9 @@ Nếu bạn không muốn bị ngợp, hãy đi theo thứ tự sau:
 
 ### Bước 1 — Hiểu ý tưởng chung
 Đọc file này để hiểu:
-- dự án làm gì
-- dữ liệu đi như thế nào
-- thứ tự các bước có ý nghĩa gì
+- Dự án làm gì
+- Dữ liệu đi như thế nào
+- Thứ tự các bước có ý nghĩa gì
 
 ### Bước 2 — Chạy thử một vòng hoàn chỉnh
 Đọc và làm theo:

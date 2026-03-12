@@ -48,15 +48,15 @@ The CLI currently supports:
 
 | Backend | Family | Strengths | Weaknesses | Data Requirement | Compute Cost | Interpretability | Best Use Case |
 |---|---|---|---|---|---|---|---|
-| `stats` | Statistical baseline | fast, simple, cheap baseline | limited nonlinear modeling | low | very low | high | sanity check, baseline comparison |
-| `sgd` | Linear / online ML | fast, lightweight, scalable | weaker on complex feature interactions | low to medium | low | medium | large tabular feature sets, cheap experiments |
-| `mlf` | Gradient boosting / tabular forecasting | strong baseline, handles nonlinear patterns well | less sequence-native than DL | medium | medium | medium | default production-style baseline |
-| `lstm` | Deep learning sequence model | models temporal dependencies directly | slower, more tuning-sensitive | medium to high | high | low | sequential patterns over rolling windows |
-| `bilstm` | Bidirectional sequence model | richer context than plain LSTM | more expensive, may be less realistic for strict causal inference if misused in setup | high | high | low | offline experiments with richer sequence encoding |
-| `cnn_lstm` | Hybrid DL | good at local pattern extraction + sequence modeling | more architecture complexity | high | high | low | candlestick-like local motifs plus temporal context |
-| `transformer` | Attention-based DL | flexible long-range dependency modeling | compute-heavy, tuning-heavy, data-hungry | high | very high | low | large datasets, longer-range pattern modeling |
-| `neuralforecast` | Forecasting DL ecosystem | strong for time-series experimentation | library complexity, tuning overhead | medium to high | high | low | advanced forecasting experiments |
-| `mlf` | Boosted tabular forecasting | balanced performance and usability | not the best for all long-context sequence problems | medium | medium | medium | first serious model to train |
+| `stats` | Statistical baseline | Fast, simple, cheap baseline | Limited nonlinear modeling | low | very low | high | sanity check, baseline comparison |
+| `sgd` | Linear / online ML | Fast, lightweight, scalable | Weaker on complex feature interactions | Low to medium | Low | Medium | Large tabular feature sets, cheap experiments |
+| `mlf` | Gradient boosting / tabular forecasting | Strong baseline, handles nonlinear patterns well | Less sequence-native than DL | Medium | Medium | Medium | Default production-style baseline |
+| `lstm` | Deep learning sequence model | Models temporal dependencies directly | Slower, more tuning-sensitive | Medium to high | High | Low | Sequential patterns over rolling windows |
+| `bilstm` | Bidirectional sequence model | Richer context than plain LSTM | More expensive, may be less realistic for strict causal inference if misused in setup | High | High | Low | Offline experiments with richer sequence encoding |
+| `cnn_lstm` | Hybrid DL | Good at local pattern extraction + sequence modeling | More architecture complexity | High | High | Low | Candlestick-like local motifs plus temporal context |
+| `transformer` | Attention-based DL | Flexible long-range dependency modeling | Compute-heavy, tuning-heavy, data-hungry | High | Very high | Low | Large datasets, longer-range pattern modeling |
+| `neuralforecast` | Forecasting DL ecosystem | Strong for time-series experimentation | Library complexity, tuning overhead | Medium to high | High | Low | Advanced forecasting experiments |
+| `mlf` | Boosted tabular forecasting | Balanced performance and usability | Not the best for all long-context sequence problems | Medium | Medium | Medium | First serious model to train |
 
 ---
 
@@ -394,14 +394,14 @@ This is a practical heuristic, not a strict rule.
 
 | Backend | Operational Simplicity | Training Stability | Deployment Simplicity | Overall Production Friendliness |
 |---|---|---|---|---|
-| `stats` | high | high | high | high |
-| `sgd` | high | high | high | high |
-| `mlf` | high | high | medium to high | high |
-| `lstm` | medium | medium | medium | medium |
-| `bilstm` | medium | medium | medium | medium |
-| `cnn_lstm` | low to medium | medium | medium | medium |
-| `transformer` | low | low to medium | medium | low to medium |
-| `neuralforecast` | medium | medium | medium | medium |
+| `stats` | High | high | high | high |
+| `sgd` | High | High | High | High |
+| `mlf` | High | High | Medium to High | High |
+| `lstm` | Medium | Medium | Medium | Medium |
+| `bilstm` | Medium | Medium | Medium | Medium |
+| `cnn_lstm` | Low to Medium | Medium | Medium | Medium |
+| `transformer` | Low | Low to Medium | Medium | Low to Medium |
+| `neuralforecast` | Medium | Medium | Medium | Medium |
 
 For most teams, `mlf` is the most realistic production-oriented starting point.
 

@@ -240,10 +240,10 @@ Serving module layout:
 mlfx/serving/
 ├── __init__.py
 ├── api.py           ← FastAPI app (GET /health, GET /models, POST /predict)
-├── batch.py         ← batch inference runner
-├── core.py          ← shared serving utilities
-├── features.py      ← feature preparation for inference
-├── inference.py     ← model loading and prediction
+├── batch.py         ← Batch inference runner
+├── core.py          ← Shared serving utilities
+├── features.py      ← Feature preparation for inference
+├── inference.py     ← Model loading and prediction
 └── torch_adapters.py ← PyTorch model adapters for serving
 ```
 
@@ -422,7 +422,7 @@ X_aligned = prepare_features(
 ## Deployment
 
 ```
-Dockerfile        ← multi-stage build (TA-Lib + Python)
+Dockerfile        ← Multi-stage build (TA-Lib + Python)
 docker-compose.yml
   ├── api         ← mlfx inference server (port 8000)
   └── mlflow      ← MLflow tracking server (port 5000, profile: tracking)

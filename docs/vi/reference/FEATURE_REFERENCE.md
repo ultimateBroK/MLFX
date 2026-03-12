@@ -10,12 +10,12 @@ Các cột này được tạo ra từ dữ liệu tick thô sau bước chuyể
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
-| `timestamp` | Datetime (UTC) | Thời điểm mở cây nến |
-| `open` | Float | Giá mở cửa |
-| `high` | Float | Giá cao nhất |
-| `low` | Float | Giá thấp nhất |
-| `close` | Float | Giá đóng cửa |
-| `volume` | Float | Khối lượng tick của cây nến |
+| `timestamp` | datetime (UTC) | Thời điểm mở cây nến |
+| `open` | float | Giá mở cửa |
+| `high` | float | Giá cao nhất |
+| `low` | float | Giá thấp nhất |
+| `close` | float | Giá đóng cửa |
+| `volume` | float | Khối lượng tick của cây nến |
 
 > **Lưu ý:** OHLCV được tính từ **giá trung bình** (`(bid + ask) / 2`), không phải chỉ từ `bid` hoặc `ask`.
 
@@ -144,14 +144,14 @@ Khối lệnh được dùng để xác định các vùng giá mang tính cấu
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
-| `ob_bullish` | Boolean | Cây nến này là khối lệnh tăng |
-| `ob_bearish` | Boolean | Cây nến này là khối lệnh giảm |
-| `ob_bull_high` | Float | Giá cao của khối lệnh tăng gần nhất |
-| `ob_bull_low` | Float | Giá thấp của khối lệnh tăng gần nhất |
-| `ob_bear_high` | Float | Giá cao của khối lệnh giảm gần nhất |
-| `ob_bear_low` | Float | Giá thấp của khối lệnh giảm gần nhất |
-| `price_in_bull_ob` | Boolean | `close` nằm trong vùng khối lệnh tăng |
-| `price_in_bear_ob` | Boolean | `close` nằm trong vùng khối lệnh giảm |
+| `ob_bullish` | boolean | Cây nến này là khối lệnh tăng |
+| `ob_bearish` | boolean | Cây nến này là khối lệnh giảm |
+| `ob_bull_high` | float | Giá cao của khối lệnh tăng gần nhất |
+| `ob_bull_low` | float | Giá thấp của khối lệnh tăng gần nhất |
+| `ob_bear_high` | float | Giá cao của khối lệnh giảm gần nhất |
+| `ob_bear_low` | float | Giá thấp của khối lệnh giảm gần nhất |
+| `price_in_bull_ob` | boolean | `close` nằm trong vùng khối lệnh tăng |
+| `price_in_bear_ob` | boolean | `close` nằm trong vùng khối lệnh giảm |
 
 ---
 
@@ -166,14 +166,14 @@ FVG là vùng mất cân bằng giá được xác định theo mẫu 3 cây n�
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
-| `fvg_bullish` | Boolean | Cây nến này tạo ra một FVG tăng |
-| `fvg_bearish` | Boolean | Cây nến này tạo ra một FVG giảm |
-| `fvg_bull_top` | Float | Đỉnh của FVG tăng gần nhất |
-| `fvg_bull_bot` | Float | Đáy của FVG tăng gần nhất |
-| `fvg_bear_top` | Float | Đỉnh của FVG giảm gần nhất |
-| `fvg_bear_bot` | Float | Đáy của FVG giảm gần nhất |
-| `price_in_bull_fvg` | Boolean | `close` nằm trong vùng FVG tăng |
-| `price_in_bear_fvg` | Boolean | `close` nằm trong vùng FVG giảm |
+| `fvg_bullish` | boolean | Cây nến này tạo ra một FVG tăng |
+| `fvg_bearish` | boolean | Cây nến này tạo ra một FVG giảm |
+| `fvg_bull_top` | float | Đỉnh của FVG tăng gần nhất |
+| `fvg_bull_bot` | float | Đáy của FVG tăng gần nhất |
+| `fvg_bear_top` | float | Đỉnh của FVG giảm gần nhất |
+| `fvg_bear_bot` | float | Đáy của FVG giảm gần nhất |
+| `price_in_bull_fvg` | boolean | `close` nằm trong vùng FVG tăng |
+| `price_in_bear_fvg` | boolean | `close` nằm trong vùng FVG giảm |
 
 ---
 

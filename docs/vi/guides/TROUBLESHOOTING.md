@@ -235,10 +235,10 @@ Không nên dùng nếu bạn chỉ muốn kiểm tra một lỗi nhỏ mà chư
 
 ### Cần kiểm tra
 
-- thư mục `data/labels/{symbol}/{tf}/` có parquet hay không
-- cột tín hiệu truyền qua `--label` có tồn tại hay không
-- cột `atr_14` có tồn tại hay không
-- thư mục `outputs/reports/{symbol}/{tf}/` có ghi được hay không
+- Thư mục `data/labels/{symbol}/{tf}/` có parquet hay không
+- Cột tín hiệu truyền qua `--label` có tồn tại hay không
+- Cột `atr_14` có tồn tại hay không
+- Thư mục `outputs/reports/{symbol}/{tf}/` có ghi được hay không
 
 ### Lệnh mẫu hợp lệ
 

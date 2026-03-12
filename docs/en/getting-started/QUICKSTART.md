@@ -8,10 +8,10 @@ If you want to go from **no data** to **your first backtest result**, follow thi
 
 Read `QUICKSTART.md` when you want to:
 
-- try the repository quickly
-- know the exact order of commands to run
-- see what each step produces
-- have a short onboarding path before reading the more detailed docs
+- Try the repository quickly
+- Know the exact order of commands to run
+- See what each step produces
+- Have a short onboarding path before reading the more detailed docs
 
 If you need deeper explanations:
 
@@ -109,9 +109,9 @@ You should see intermediate data under:
 
 If you are just getting started, use the `1H` timeframe because it is:
 
-- lighter than very small timeframes
-- easier to inspect
-- less resource-intensive
+- Lighter than very small timeframes
+- Easier to inspect
+- Less resource-intensive
 
 ---
 
@@ -174,12 +174,12 @@ Typical files include:
 
 The CLI will also print summary values such as:
 
-- total trades
-- win rate
-- profit factor
-- net profit
+- Total trades
+- Win rate
+- Profit factor
+- Net profit
 - Sharpe / Sortino / Calmar
-- ending equity
+- Ending equity
 
 ---
 
@@ -252,9 +252,9 @@ This usually means you did not run `download` or `pipeline` first.
 
 Check:
 
-- whether parquet files exist under `data/labels/{symbol}/{tf}/`
-- whether a model has been trained
-- whether `label_col` is correct
+- Whether parquet files exist under `data/labels/{symbol}/{tf}/`
+- Whether a model has been trained
+- Whether `label_col` is correct
 
 ### Want to clean old outputs
 
@@ -274,8 +274,8 @@ This file is the **canonical quickstart** for the English documentation.
 
 Other documents should:
 
-- link back to this file when a fast-start workflow is needed
-- avoid repeating the full command chain here unless it is genuinely necessary
+- Link back to this file when a fast-start workflow is needed
+- Avoid repeating the full command chain here unless it is genuinely necessary
 
 ---
 

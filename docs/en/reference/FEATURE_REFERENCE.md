@@ -10,12 +10,12 @@ These columns are created from raw tick data after resampling into candles and a
 
 | Column | Type | Description |
 |---|---|---|
-| `timestamp` | Datetime (UTC) | Bar open timestamp |
-| `open` | Float | Open price |
-| `high` | Float | Highest price |
-| `low` | Float | Lowest price |
-| `close` | Float | Close price |
-| `volume` | Float | Tick volume for the bar |
+| `timestamp` | datetime (UTC) | Bar open timestamp |
+| `open` | float | Open price |
+| `high` | float | Highest price |
+| `low` | float | Lowest price |
+| `close` | float | Close price |
+| `volume` | float | Tick volume for the bar |
 
 > **Note:** OHLCV is computed from the **mid-price** (`(bid + ask) / 2`), not from bid or ask alone.
 
@@ -144,14 +144,14 @@ Order blocks are used to identify structural price zones that often appear befor
 
 | Column | Type | Description |
 |---|---|---|
-| `ob_bullish` | Boolean | This candle is a bullish order block |
-| `ob_bearish` | Boolean | This candle is a bearish order block |
-| `ob_bull_high` | Float | High of the most recent bullish order block |
-| `ob_bull_low` | Float | Low of the most recent bullish order block |
-| `ob_bear_high` | Float | High of the most recent bearish order block |
-| `ob_bear_low` | Float | Low of the most recent bearish order block |
-| `price_in_bull_ob` | Boolean | `close` is inside the bullish order-block zone |
-| `price_in_bear_ob` | Boolean | `close` is inside the bearish order-block zone |
+| `ob_bullish` | boolean | This candle is a bullish order block |
+| `ob_bearish` | boolean | This candle is a bearish order block |
+| `ob_bull_high` | float | High of the most recent bullish order block |
+| `ob_bull_low` | float | Low of the most recent bullish order block |
+| `ob_bear_high` | float | High of the most recent bearish order block |
+| `ob_bear_low` | float | Low of the most recent bearish order block |
+| `price_in_bull_ob` | boolean | `close` is inside the bullish order-block zone |
+| `price_in_bear_ob` | boolean | `close` is inside the bearish order-block zone |
 
 ---
 
@@ -166,14 +166,14 @@ An FVG is a price imbalance identified by a 3-candle pattern.
 
 | Column | Type | Description |
 |---|---|---|
-| `fvg_bullish` | Boolean | This candle creates a bullish FVG |
-| `fvg_bearish` | Boolean | This candle creates a bearish FVG |
-| `fvg_bull_top` | Float | Top of the most recent bullish FVG |
-| `fvg_bull_bot` | Float | Bottom of the most recent bullish FVG |
-| `fvg_bear_top` | Float | Top of the most recent bearish FVG |
-| `fvg_bear_bot` | Float | Bottom of the most recent bearish FVG |
-| `price_in_bull_fvg` | Boolean | `close` is inside the bullish FVG zone |
-| `price_in_bear_fvg` | Boolean | `close` is inside the bearish FVG zone |
+| `fvg_bullish` | boolean | This candle creates a bullish FVG |
+| `fvg_bearish` | boolean | This candle creates a bearish FVG |
+| `fvg_bull_top` | float | Top of the most recent bullish FVG |
+| `fvg_bull_bot` | float | Bottom of the most recent bullish FVG |
+| `fvg_bear_top` | float | Top of the most recent bearish FVG |
+| `fvg_bear_bot` | float | Bottom of the most recent bearish FVG |
+| `price_in_bull_fvg` | boolean | `close` is inside the bullish FVG zone |
+| `price_in_bear_fvg` | boolean | `close` is inside the bearish FVG zone |
 
 ---
 

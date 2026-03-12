@@ -23,10 +23,10 @@ data/labels/{symbol}/{tf}/*.parquet
 
 The minimum input dataset should include:
 
-- a `timestamp` column
-- price columns such as `open`, `high`, `low`, `close`
-- the ATR column, by default `atr_14`
-- the signal column passed through `--label`
+- A `timestamp` column
+- Price columns such as `open`, `high`, `low`, `close`
+- The ATR column, by default `atr_14`
+- The signal column passed through `--label`
 
 Typical signal columns:
 
@@ -138,11 +138,11 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 You can then compare:
 
-- equity curves
-- profit factor
+- Equity curves
+- Profit factor
 - Sharpe ratio
-- net profit in `R`
-- stability of results
+- Net profit in `R`
+- Stability of results
 
 ---
 
@@ -209,15 +209,15 @@ The summary output usually includes:
 
 ### 6.1 Quick Interpretation
 
-- `Total Trades`: total number of simulated trades
-- `Win Rate (%)`: percentage of profitable trades; do not use it by itself
-- `Profit Factor`: total gross profit divided by total gross loss; usually `> 1` is the minimum useful sign
-- `Net Profit (R)`: normalized profit; very useful for fair comparison across configurations
-- `Net Profit ($)`: profit converted to money using `capital` and `risk`
-- `Sharpe Ratio`: average return relative to total volatility
-- `Sortino Ratio`: similar to Sharpe, but penalizes downside volatility only
-- `Calmar Ratio`: net profit divided by maximum drawdown
-- `Final Capital ($)`: ending capital after all trade outcomes and costs are applied
+- `Total Trades`: Total number of simulated trades
+- `Win Rate (%)`: Percentage of profitable trades; do not use it by itself
+- `Profit Factor`: Total gross profit divided by total gross loss; usually `> 1` is the minimum useful sign
+- `Net Profit (R)`: Normalized profit; very useful for fair comparison across configurations
+- `Net Profit ($)`: Profit converted to money using `capital` and `risk`
+- `Sharpe Ratio`: Average return relative to total volatility
+- `Sortino Ratio`: Similar to Sharpe, but penalizes downside volatility only
+- `Calmar Ratio`: Net profit divided by maximum drawdown
+- `Final Capital ($)`: Ending capital after all trade outcomes and costs are applied
 
 ### 6.2 Notes for Reading Metrics
 
@@ -234,40 +234,40 @@ The summary output usually includes:
 
 Shows:
 
-- price movement
+- Price movement
 - LONG / SHORT entry markers
-- an RSI panel if the dataset includes `rsi_14`
+- An RSI panel if the dataset includes `rsi_14`
 
 Useful for:
 
-- checking whether entries look sensible
-- seeing whether signals cluster strangely in a short segment
-- confirming whether the strategy enters at reasonable times
+- Checking whether entries look sensible
+- Seeing whether signals cluster strangely in a short segment
+- Confirming whether the strategy enters at reasonable times
 
 ### 7.2 Equity Curve PNG
 
 Shows:
 
-- cumulative profit in `R`
-- drawdown in the lower panel
+- Cumulative profit in `R`
+- Drawdown in the lower panel
 
 Useful for:
 
-- seeing the rhythm of capital growth
-- comparing the “smoothness” of different configurations
-- deciding whether profit comes from a stable series of trades or only a few lucky ones
+- Seeing the rhythm of capital growth
+- Comparing the “smoothness” of different configurations
+- Deciding whether profit comes from a stable series of trades or only a few lucky ones
 
 ### 7.3 Heatmap PNG
 
 Shows average performance by:
 
 - UTC hour
-- weekday
+- Weekday
 
 Useful for:
 
-- deciding whether time filters or session filters are worth testing
-- identifying unusually strong or weak time windows
+- Deciding whether time filters or session filters are worth testing
+- Identifying unusually strong or weak time windows
 
 ---
 
@@ -275,18 +275,18 @@ Useful for:
 
 Evaluation often fails or returns empty results when:
 
-- there are no parquet files in `data/labels/{symbol}/{tf}/`
-- the column passed through `--label` does not exist
-- the `atr_14` column does not exist
-- the dataset is too small, so there are effectively no meaningful trades
-- the signal column never emits meaningful LONG or SHORT signals
+- There are no parquet files in `data/labels/{symbol}/{tf}/`
+- The column passed through `--label` does not exist
+- The `atr_14` column does not exist
+- The dataset is too small, so there are effectively no meaningful trades
+- The signal column never emits meaningful LONG or SHORT signals
 
 ### 8.1 Common Failure Signs
 
-- the CLI does not print the summary metrics table
-- no new files appear in `outputs/reports/{symbol}/{tf}/`
-- the trade count is extremely low or `0`
-- generated filenames do not match the expected prefix
+- The CLI does not print the summary metrics table
+- No new files appear in `outputs/reports/{symbol}/{tf}/`
+- The trade count is extremely low or `0`
+- Generated filenames do not match the expected prefix
 
 ---
 
@@ -294,11 +294,11 @@ Evaluation often fails or returns empty results when:
 
 After evaluation finishes, you should verify:
 
-- whether the CLI printed summary metrics
-- whether `outputs/reports/{symbol}/{tf}/` contains 3 new artifacts
-- whether the filenames match the expected prefix
-- whether the trade count is large enough to support interpretation, rather than being only a tiny sample
-- if you are evaluating a model, whether that model actually exists in the registry
+- Whether the CLI printed summary metrics
+- Whether `outputs/reports/{symbol}/{tf}/` contains 3 new artifacts
+- Whether the filenames match the expected prefix
+- Whether the trade count is large enough to support interpretation, rather than being only a tiny sample
+- If you are evaluating a model, whether that model actually exists in the registry
 
 ---
 
@@ -351,16 +351,16 @@ If you are just starting, read the outputs in this order:
 2. `Profit Factor`
 3. `Net Profit (R)`
 4. `Sharpe Ratio`
-5. the equity curve
-6. the heatmap
-7. the candlestick HTML report
+5. The equity curve
+6. The heatmap
+7. The candlestick HTML report
 
 Why this order:
 
-- the top-level metrics tell you whether the configuration is worth inspecting further
-- the equity curve shows the quality of capital progression
-- the heatmap suggests time-based strategy improvements
-- the candlestick report helps you visually inspect entry timing
+- The top-level metrics tell you whether the configuration is worth inspecting further
+- The equity curve shows the quality of capital progression
+- The heatmap suggests time-based strategy improvements
+- The candlestick report helps you visually inspect entry timing
 
 ---
 

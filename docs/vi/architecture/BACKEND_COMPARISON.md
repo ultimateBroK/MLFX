@@ -48,14 +48,14 @@ CLI hiện hỗ trợ:
 
 | Bộ máy | Họ mô hình | Điểm mạnh | Điểm yếu | Yêu cầu dữ liệu | Chi phí tính toán | Khả năng diễn giải | Trường hợp dùng tốt nhất |
 |---|---|---|---|---|---|---|---|
-| `stats` | Mốc nền thống kê | nhanh, đơn giản, chi phí thấp | hạn chế trong mô hình hóa phi tuyến | thấp | rất thấp | cao | kiểm tra chuẩn, so sánh với mốc nền |
-| `sgd` | ML tuyến tính / trực tuyến | nhanh, nhẹ, mở rộng tốt | yếu hơn với tương tác đặc trưng phức tạp | thấp đến trung bình | thấp | trung bình | dữ liệu bảng lớn, thí nghiệm rẻ |
-| `mlf` | Tăng cường độ dốc / dự báo dạng bảng | mốc nền mạnh, xử lý tốt mẫu phi tuyến | không “thuần chuỗi” như học sâu | trung bình | trung bình | trung bình | mốc nền mặc định theo hướng vận hành thực dụng |
-| `lstm` | Mô hình chuỗi học sâu | mô hình hóa phụ thuộc thời gian trực tiếp | chậm hơn, nhạy với tinh chỉnh | trung bình đến cao | cao | thấp | mẫu chuỗi theo rolling window |
-| `bilstm` | Mô hình chuỗi hai chiều | ngữ cảnh phong phú hơn `lstm` thường | tốn hơn, có thể kém thực tế cho suy luận nhân quả nghiêm ngặt nếu dùng sai thiết lập | cao | cao | thấp | thí nghiệm offline với biểu diễn chuỗi giàu ngữ cảnh |
-| `cnn_lstm` | DL lai | tốt cho trích xuất mẫu cục bộ + mô hình chuỗi | kiến trúc phức tạp hơn | cao | cao | thấp | mẫu nến / motif cục bộ kết hợp ngữ cảnh thời gian |
-| `transformer` | DL dựa trên attention | linh hoạt cho phụ thuộc dài hạn | rất tốn tài nguyên, khó tinh chỉnh, cần nhiều dữ liệu | cao | rất cao | thấp | dữ liệu lớn, mô hình hóa ngữ cảnh dài |
-| `neuralforecast` | Hệ sinh thái dự báo học sâu | mạnh cho thí nghiệm dự báo chuỗi thời gian | độ phức tạp thư viện và tinh chỉnh cao | trung bình đến cao | cao | thấp | thí nghiệm dự báo nâng cao |
+| `stats` | Mốc nền thống kê | Nhanh, đơn giản, chi phí thấp | Hạn chế trong mô hình hóa phi tuyến | Thấp | Rất thấp | Cao | Kiểm tra chuẩn, so sánh với mốc nền |
+| `sgd` | ML tuyến tính / trực tuyến | Nhanh, nhẹ, mở rộng tốt | Yếu hơn với tương tác đặc trưng phức tạp | Thấp đến trung bình | Thấp | Trung bình | Dữ liệu bảng lớn, thí nghiệm rẻ |
+| `mlf` | Tăng cường độ dốc / dự báo dạng bảng | Mốc nền mạnh, xử lý tốt mẫu phi tuyến | Không “thuần chuỗi” như học sâu | Trung bình | Trung bình | Trung bình | Mốc nền mặc định theo hướng vận hành thực dụng |
+| `lstm` | Mô hình chuỗi học sâu | Mô hình hóa phụ thuộc thời gian trực tiếp | Chậm hơn, nhạy với tinh chỉnh | Trung bình đến cao | Cao | Thấp | Mẫu chuỗi theo rolling window |
+| `bilstm` | Mô hình chuỗi hai chiều | ngữ cảnh phong phú hơn `lstm` thường | tốn hơn, có thể kém thực tế cho suy luận nhân quả nghiêm ngặt nếu dùng sai thiết lập | Cao | Cao | Thấp | Thí nghiệm offline với biểu diễn chuỗi giàu ngữ cảnh |
+| `cnn_lstm` | DL lai | Tốt cho trích xuất mẫu cục bộ + mô hình chuỗi | kiến trúc phức tạp hơn | Cao | Cao | Thấp | Mẫu nến / motif cục bộ kết hợp ngữ cảnh thời gian |
+| `transformer` | DL dựa trên attention | Linh hoạt cho phụ thuộc dài hạn | Rất tốn tài nguyên, khó tinh chỉnh, cần nhiều dữ liệu | Cao | Rất cao | Thấp | Dữ liệu lớn, mô hình hóa ngữ cảnh dài |
+| `neuralforecast` | Hệ sinh thái dự báo học sâu | mạnh cho thí nghiệm dự báo chuỗi thời gian | Độ phức tạp thư viện và tinh chỉnh cao | Trung bình đến cao | Cao | Thấp | Thí nghiệm dự báo nâng cao |
 
 ---
 
@@ -393,14 +393,14 @@ Mục tiêu không phải là huấn luyện tất cả ngay lập tức. Mục 
 
 | Bộ máy | Độ đơn giản khi vận hành | Độ ổn định khi huấn luyện | Độ đơn giản khi triển khai | Mức thân thiện tổng thể với vận hành thực tế |
 |---|---|---|---|---|
-| `stats` | cao | cao | cao | cao |
-| `sgd` | cao | cao | cao | cao |
-| `mlf` | cao | cao | trung bình đến cao | cao |
-| `lstm` | trung bình | trung bình | trung bình | trung bình |
-| `bilstm` | trung bình | trung bình | trung bình | trung bình |
-| `cnn_lstm` | thấp đến trung bình | trung bình | trung bình | trung bình |
-| `transformer` | thấp | thấp đến trung bình | trung bình | thấp đến trung bình |
-| `neuralforecast` | trung bình | trung bình | trung bình | trung bình |
+| `stats` | Cao | Cao | Cao | Cao |
+| `sgd` | Cao | Cao | Cao | Cao |
+| `mlf` | Cao | Cao | Trung bình đến Cao | Cao |
+| `lstm` | Trung bình | Trung bình | Trung bình | Trung bình |
+| `bilstm` | Trung bình | Trung bình | Trung bình | Trung bình |
+| `cnn_lstm` | Thấp đến Trung bình | Trung bình | Trung bình | Trung bình |
+| `transformer` | Thấp | Thấp đến Trung bình | Trung bình | Thấp đến Trung bình |
+| `neuralforecast` | Trung bình | Trung bình | Trung bình | Trung bình |
 
 Với phần lớn nhóm phát triển, `mlf` là điểm khởi đầu thực tế nhất theo định hướng vận hành thực dụng.
 

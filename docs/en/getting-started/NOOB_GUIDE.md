@@ -3,11 +3,11 @@
 If you are new to this repository, read this file first.  
 The goal of this guide is to help you understand:
 
-- what this project is for
-- how data moves through the system
-- why the stages must run in the correct order
-- what outputs you should expect after each step
-- how to get started safely with `Pixi`
+- What this project is for
+- How data moves through the system
+- Why the stages must run in the correct order
+- What outputs you should expect after each step
+- How to get started safely with `Pixi`
 
 MLFX is a **research, training, and model evaluation environment** for market data. It is **not** a finished live-trading bot.
 
@@ -17,12 +17,12 @@ MLFX is a **research, training, and model evaluation environment** for market da
 
 MLFX is a machine learning pipeline for market data. Its basic workflow is:
 
-- download historical tick data
-- convert that data into OHLCV
-- build technical and context-aware features
-- generate labels for forecasting tasks
-- train models
-- run evaluation and export reports
+- Download historical tick data
+- Convert that data into OHLCV
+- Build technical and context-aware features
+- Generate labels for forecasting tasks
+- Train models
+- Run evaluation and export reports
 
 In short: MLFX helps you go from **raw price data** to **comparable backtest results** in one consistent workflow.
 
@@ -48,8 +48,8 @@ After `evaluate`, the CLI prints summary metrics and paths to the generated repo
 
 By default:
 
-- if a matching trained model exists, the system evaluates the **model**
-- if no matching model exists, the system can evaluate the **labels** as an initial reference baseline
+- If a matching trained model exists, the system evaluates the **model**
+- If no matching model exists, the system can evaluate the **labels** as an initial reference baseline
 
 The corresponding code areas live in:
 
@@ -68,10 +68,10 @@ Many new users want to jump straight to training. That usually leads to errors o
 
 After downloading, you should inspect raw data to detect:
 
-- data gaps
-- damaged months
-- abnormal records
-- incomplete downloads
+- Data gaps
+- Damaged months
+- Abnormal records
+- Incomplete downloads
 
 This helps prevent training on broken or misleading inputs without realizing it.
 
@@ -95,9 +95,9 @@ Once candle bars exist, the system adds context through features such as:
 - MACD
 - ATR
 - EMA
-- pivot points
-- support/resistance zones
-- session features
+- Pivot points
+- Support/resistance zones
+- Session features
 - ICT-style contextual features
 
 In other words, instead of giving the model only raw price structure, you give it price data **plus processed context**.
@@ -132,12 +132,12 @@ Each backend is a different way to learn from the same prepared dataset.
 
 The `evaluate` step does more than just print a few numbers. It is where you check:
 
-- whether the model produces usable signals
-- how the backtest behaves
-- what the simulated profit looks like
-- whether the risk and stability are acceptable
+- Whether the model produces usable signals
+- How the backtest behaves
+- What the simulated profit looks like
+- Whether the risk and stability are acceptable
 
-In short: if you have not evaluated the result, you cannot conclude that the model is useful.
+In short: If you have not evaluated the result, you cannot conclude that the model is useful.
 
 ---
 
@@ -150,16 +150,16 @@ If you want the shortest runnable workflow, read:
 That file is the **canonical fast-start guide**.  
 This file is the **beginner guide**, which means it focuses on helping you understand:
 
-- what the project does
-- what the stage order means
-- why each step matters
-- what you should inspect after each stage
+- What the project does
+- What the stage order means
+- Why each step matters
+- What you should inspect after each stage
 
 If you are new to the repository, the most sensible reading order is:
 
-1. read this file
-2. run the workflow from `QUICKSTART.md`
-3. only then move on to the more detailed usage docs
+1. Read this file
+2. Run the workflow from `QUICKSTART.md`
+3. Only then move on to the more detailed usage docs
 
 ---
 
@@ -170,7 +170,7 @@ When you are learning a new repository, the best way to avoid confusion is to ch
 ### After `download`
 You should see:
 
-- parquet files under `data/raw/{symbol}/`
+- Parquet files under `data/raw/{symbol}/`
 - `completed_months.json`
 
 Example:
@@ -180,7 +180,7 @@ Example:
 ### After `qa`
 You should see:
 
-- a data quality report under `data/raw/{symbol}/`
+- A data quality report under `data/raw/{symbol}/`
 
 ### After `pipeline`
 You should see data generated in these areas:
@@ -197,9 +197,9 @@ You should see model artifacts under:
 - `outputs/models/{symbol}/{tf}/`
 
 This location will typically contain:
-- a saved model
-- metadata
-- training metrics
+- A saved model
+- Metadata
+- Training metrics
 
 ### After `evaluate`
 You should see reports under:
@@ -207,9 +207,9 @@ You should see reports under:
 - `outputs/reports/{symbol}/{tf}/`
 
 Typical outputs include:
-- candlestick HTML report
-- equity curve chart
-- session or time-based heatmap
+- Candlestick HTML report
+- Equity curve chart
+- Session or time-based heatmap
 
 ---
 
@@ -219,9 +219,9 @@ When you first start using MLFX, keep these simple rules in mind:
 
 - If training fails because files are missing, the usual reason is that you **did not run `pipeline` yet**
 - If evaluation has nothing useful to read, check whether you already have:
-  - labeled data
-  - a trained model
-  - the correct label column name
+  - Labeled data
+  - A trained model
+  - The correct label column name
 - `outputs/models/{symbol}/{tf}/` stores model artifacts
 - `outputs/reports/{symbol}/{tf}/` stores evaluation reports
 - `pixi run clean-generated` removes caches and generated outputs **without touching raw data**
@@ -236,14 +236,14 @@ The answer is:
 
 - **not strictly required** if you are only doing a quick first trial
 - **recommended** when:
-  - you suspect the raw data may be broken
-  - you want to validate data reliability before training
-  - you are doing serious research and want to reduce input-side risk early
+  - You suspect the raw data may be broken
+  - You want to validate data reliability before training
+  - You are doing serious research and want to reduce input-side risk early
 
 So for new users:
 
-- you may skip `qa` during the very first run
-- but you should know the stage exists and use it when needed
+- You may skip `qa` during the very first run
+- But you should know the stage exists and use it when needed
 
 ---
 
@@ -253,9 +253,9 @@ If you do not want to feel overwhelmed, follow this order:
 
 ### Step 1 — Understand the big idea
 Read this file to understand:
-- what the project does
-- how data moves
-- why stage order matters
+- What the project does
+- How data moves
+- Why stage order matters
 
 ### Step 2 — Run one complete workflow
 Read and follow:

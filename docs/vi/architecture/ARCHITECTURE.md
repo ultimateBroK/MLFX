@@ -245,11 +245,11 @@ Bố cục mô-đun phục vụ:
 mlfx/serving/
 ├── __init__.py
 ├── api.py            ← FastAPI app (GET /health, GET /models, POST /predict)
-├── batch.py          ← bộ chạy suy luận theo lô
-├── core.py           ← tiện ích dùng chung cho lớp phục vụ
-├── features.py       ← chuẩn bị đặc trưng cho suy luận
-├── inference.py      ← nạp mô hình và dự đoán
-└── torch_adapters.py ← bộ điều hợp mô hình PyTorch cho lớp phục vụ
+├── batch.py          ← Bộ chạy suy luận theo lô
+├── core.py           ← Tiện ích dùng chung cho lớp phục vụ
+├── features.py       ← Chuẩn bị đặc trưng cho suy luận
+├── inference.py      ← Nạp mô hình và dự đoán
+└── torch_adapters.py ← Bộ điều hợp mô hình PyTorch cho lớp phục vụ
 ```
 
 ### Theo lô
