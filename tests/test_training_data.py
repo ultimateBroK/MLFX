@@ -3,12 +3,16 @@
 Covers:
   - ``select_numeric_feature_columns`` blacklist enforcement
   - ``load_labelled_dataset`` null path (missing directory)
+  - ``load_labelled_dataset`` inclusive date-range filtering
   - ``prepare_tabular_data`` null path (no data or missing label column)
   - ``prepare_tabular_data`` label-mapping: raw {-2,-1,0,1,2} → {0,1,2,3,4}
   - ``prepare_tabular_data`` NaN row-dropping
+  - ``prepare_tabular_data`` date-range passthrough
 """
 
 from __future__ import annotations
+
+from datetime import datetime, timezone
 
 import numpy as np
 import polars as pl
@@ -19,7 +23,6 @@ from mlfx.training.feature_selection import (
     DEFAULT_FEATURE_BLACKLIST,
     select_numeric_feature_columns,
 )
-
 
 # ── feature_selection ─────────────────────────────────────────────────────────
 
@@ -60,6 +63,133 @@ def test_load_labelled_dataset_returns_none_for_missing_symbol() -> None:
 
 
 # ── prepare_tabular_data ──────────────────────────────────────────────────────
+
+
+def test_load_labelled_dataset_filters_inclusive_date_range(tmp_path) -> None:
+    """Compact YYYYMMDD bounds must filter rows inclusively."""
+    from mlfx.config.paths import ProjectPaths
+
+    paths = ProjectPaths(project_root=tmp_path)
+    labels_dir = paths.labels_dir("XAUUSD", "1H")
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    df = pl.DataFrame(
+        {
+            "timestamp": [
+                datetime(2024, 1, 1, 0, 0),
+                datetime(2024, 1, 15, 12, 0),
+                datetime(2024, 1, 31, 23, 59),
+                datetime(2024, 2, 1, 0, 0),
+            ],
+            "feat_a": [1.0, 2.0, 3.0, 4.0],
+            "label_10": [0, 1, -1, 2],
+        }
+    )
+    df.write_parquet(labels_dir / "2024-01.parquet")
+
+    result = load_labelled_dataset(
+        "XAUUSD",
+        "1H",
+        paths=paths,
+        train_start="20240115",
+        train_end="20240131",
+    )
+
+    assert result is not None
+    assert result["timestamp"].to_list() == [
+        datetime(2024, 1, 15, 12, 0),
+        datetime(2024, 1, 31, 23, 59),
+    ]
+
+
+def test_load_labelled_dataset_filters_timezone_aware_date_range(tmp_path) -> None:
+    """Compact YYYYMMDD bounds must also work with timezone-aware UTC timestamps."""
+    from mlfx.config.paths import ProjectPaths
+
+    paths = ProjectPaths(project_root=tmp_path)
+    labels_dir = paths.labels_dir("XAUUSD", "1H")
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    df = pl.DataFrame(
+        {
+            "timestamp": [
+                datetime(2024, 1, 1, 0, 0, tzinfo=timezone.utc),
+                datetime(2024, 1, 15, 12, 0, tzinfo=timezone.utc),
+                datetime(2024, 1, 31, 23, 59, tzinfo=timezone.utc),
+                datetime(2024, 2, 1, 0, 0, tzinfo=timezone.utc),
+            ],
+            "feat_a": [1.0, 2.0, 3.0, 4.0],
+            "label_10": [0, 1, -1, 2],
+        }
+    )
+    df.write_parquet(labels_dir / "2024-01.parquet")
+
+    result = load_labelled_dataset(
+        "XAUUSD",
+        "1H",
+        paths=paths,
+        train_start="20240115",
+        train_end="20240131",
+    )
+
+    assert result is not None
+    assert result["timestamp"].to_list() == [
+        datetime(2024, 1, 15, 12, 0, tzinfo=timezone.utc),
+        datetime(2024, 1, 31, 23, 59, tzinfo=timezone.utc),
+    ]
+
+
+def test_load_labelled_dataset_returns_none_when_date_range_excludes_all_rows(tmp_path) -> None:
+    """Filtering away all rows must return None."""
+    from mlfx.config.paths import ProjectPaths
+
+    paths = ProjectPaths(project_root=tmp_path)
+    labels_dir = paths.labels_dir("XAUUSD", "1H")
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    pl.DataFrame(
+        {
+            "timestamp": [datetime(2024, 1, 1, 0, 0)],
+            "feat_a": [1.0],
+            "label_10": [0],
+        }
+    ).write_parquet(labels_dir / "2024-01.parquet")
+
+    result = load_labelled_dataset(
+        "XAUUSD",
+        "1H",
+        paths=paths,
+        train_start="20240201",
+        train_end="20240228",
+    )
+
+    assert result is None
+
+
+def test_load_labelled_dataset_raises_for_inverted_date_range(tmp_path) -> None:
+    """Start date after end date must raise a clear ValueError."""
+    from mlfx.config.paths import ProjectPaths
+
+    paths = ProjectPaths(project_root=tmp_path)
+    labels_dir = paths.labels_dir("XAUUSD", "1H")
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    pl.DataFrame(
+        {
+            "timestamp": [datetime(2024, 1, 1, 0, 0)],
+            "feat_a": [1.0],
+            "label_10": [0],
+        }
+    ).write_parquet(labels_dir / "2024-01.parquet")
+
+    with pytest.raises(ValueError, match="train_start must be <= train_end"):
+        load_labelled_dataset(
+            "XAUUSD",
+            "1H",
+            paths=paths,
+            train_start="20240201",
+            train_end="20240101",
+        )
 
 
 def test_prepare_tabular_data_returns_none_when_no_files() -> None:
@@ -117,3 +247,39 @@ def test_prepare_tabular_data_returns_none_for_missing_label_col(monkeypatch) ->
 
     result = prepare_tabular_data("SYM", "1H", "label_10")  # label_10 absent
     assert result is None
+
+
+def test_prepare_tabular_data_passes_date_range_to_loader(monkeypatch) -> None:
+    """Date bounds must be forwarded unchanged to the dataset loader."""
+    captured: dict[str, str | None] = {}
+
+    def _fake_loader(symbol, tf, *, paths=None, train_start=None, train_end=None):
+        captured["symbol"] = symbol
+        captured["tf"] = tf
+        captured["train_start"] = train_start
+        captured["train_end"] = train_end
+        return pl.DataFrame(
+            {
+                "feat_a": [1.0, 2.0],
+                "feat_b": [3.0, 4.0],
+                "label_10": [0, 1],
+            }
+        )
+
+    monkeypatch.setattr("mlfx.training.data.load_labelled_dataset", _fake_loader)
+
+    result = prepare_tabular_data(
+        "XAUUSD",
+        "1H",
+        "label_10",
+        train_start="20240101",
+        train_end="20240131",
+    )
+
+    assert result is not None
+    assert captured == {
+        "symbol": "XAUUSD",
+        "tf": "1H",
+        "train_start": "20240101",
+        "train_end": "20240131",
+    }

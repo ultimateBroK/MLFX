@@ -3,14 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import datetime
-import json
 import logging
 import sys
-import time
-
-from rich.console import Console
-from rich.table import Table
 
 from mlfx.evaluation.runner import (
     get_baseline_metrics,
@@ -26,21 +20,40 @@ from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.registry import BACKEND_REGISTRY
 from mlfx.training.runner import run_training
 
-console = Console()
+from .render import (
+    console,
+    print_backtest_results,
+    print_profiles_summary,
+    print_resolved_evaluate_summary,
+    print_resolved_train_summary,
+)
+from .resolve import (
+    resolve_evaluate_config,
+    resolve_train_config,
+)
+from .workflows import run_benchmark, run_profile_command
+
+_resolve_profile_section = None
 
 _ALL_BACKENDS = sorted(BACKEND_REGISTRY)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the consolidated argument parser for download, pipeline, train, evaluate, serve, batch-predict, drift, models, and benchmark."""
+    """Build the consolidated argument parser for MLFX workflows."""
     parser = argparse.ArgumentParser(
         description="MLFX — Machine Learning for Forex. Terminal-first workflow.",
         epilog="Examples:\n"
-               "  mlfx download --symbol XAUUSD --start-year 2020\n"
-               "  mlfx pipeline --tf 1H\n"
-               "  mlfx train --backend bilstm --n-trials 20\n"
-               "  mlfx benchmark --backends mlf bilstm lstm --n-trials 10\n"
-               "  mlfx evaluate --tp 2.0 --sl 1.0\n",
+        "  mlfx download --symbol XAUUSD --start-year 2020\n"
+        "  mlfx pipeline --tf 1H\n"
+        "  mlfx train --backend bilstm --n-trials 20\n"
+        "  mlfx train --profile research\n"
+        "  mlfx benchmark --backends mlf bilstm lstm --n-trials 10\n"
+        "  mlfx benchmark --profile benchmark_fast\n"
+        "  mlfx evaluate --tp 2.0 --sl 1.0\n"
+        "  mlfx evaluate --profile research\n"
+        "  mlfx profiles\n"
+        "  mlfx run-profile --profile research\n"
+        "  mlfx run-profile --profile research --skip-benchmark\n",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
@@ -51,14 +64,28 @@ def build_parser() -> argparse.ArgumentParser:
         description="Download historical tick data for a symbol.",
     )
     download.add_argument("--symbol", default="XAUUSD", help="Symbol to download (default: XAUUSD)")
-    download.add_argument("--asset-class", choices=["fx", "crypto"], default="fx", help="Asset class (default: fx)")
+    download.add_argument(
+        "--asset-class",
+        choices=["fx", "crypto"],
+        default="fx",
+        help="Asset class (default: fx)",
+    )
     download.add_argument("--start-year", type=int, default=2015, help="Start year (default: 2015)")
     download.add_argument("--start-month", type=int, default=1, help="Start month 1-12 (default: 1)")
     download.add_argument("--end-year", type=int, default=None, help="End year (default: current year)")
     download.add_argument("--end-month", type=int, default=None, help="End month (default: current month)")
     download.add_argument("--concurrency", type=int, default=20, help="Parallel downloads (default: 20)")
-    download.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Force re-verify existing months")
-    download.add_argument("--skip-current-month", action="store_true", help="Skip checking/repairing current month")
+    download.add_argument(
+        "--force",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Force re-verify existing months",
+    )
+    download.add_argument(
+        "--skip-current-month",
+        action="store_true",
+        help="Skip checking/repairing current month",
+    )
 
     pipeline = subparsers.add_parser(
         "pipeline",
@@ -73,12 +100,39 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="TF",
         help="Timeframe(s) to process: 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D (default: 1H)",
     )
-    pipeline.add_argument("--pivot", default="traditional", help="Pivot type: traditional, fibonacci, woodie, classic, demark, camarilla (default: traditional)")
-    pipeline.add_argument("--anchor", default="daily", help="Pivot anchor: daily, weekly, monthly (default: daily)")
-    pipeline.add_argument("--atr-period", type=int, default=14, help="ATR period for label generation (default: 14)")
-    pipeline.add_argument("--atr-mult", type=float, default=0.5, help="ATR multiplier for label thresholds (default: 0.5)")
-    pipeline.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Overwrite existing files")
-    pipeline.add_argument("--skip-resample", action="store_true", help="Skip tick → OHLCV resampling")
+    pipeline.add_argument(
+        "--pivot",
+        default="traditional",
+        help="Pivot type: traditional, fibonacci, woodie, classic, demark, camarilla (default: traditional)",
+    )
+    pipeline.add_argument(
+        "--anchor",
+        default="daily",
+        help="Pivot anchor: daily, weekly, monthly (default: daily)",
+    )
+    pipeline.add_argument(
+        "--atr-period",
+        type=int,
+        default=14,
+        help="ATR period for label generation (default: 14)",
+    )
+    pipeline.add_argument(
+        "--atr-mult",
+        type=float,
+        default=0.5,
+        help="ATR multiplier for label thresholds (default: 0.5)",
+    )
+    pipeline.add_argument(
+        "--force",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Overwrite existing files",
+    )
+    pipeline.add_argument(
+        "--skip-resample",
+        action="store_true",
+        help="Skip tick → OHLCV resampling",
+    )
     pipeline.add_argument("--skip-features", action="store_true", help="Skip feature engineering")
     pipeline.add_argument("--skip-labels", action="store_true", help="Skip label generation")
 
@@ -88,7 +142,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run quality checks on downloaded raw tick data.",
     )
     qa.add_argument("--symbol", default="XAUUSD", help="Symbol to audit (default: XAUUSD)")
-    qa.add_argument("--asset-class", choices=["fx", "crypto"], default="fx", help="Asset class (default: fx)")
+    qa.add_argument(
+        "--asset-class",
+        choices=["fx", "crypto"],
+        default="fx",
+        help="Asset class (default: fx)",
+    )
 
     train = subparsers.add_parser(
         "train",
@@ -97,7 +156,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
     train.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
-    train.add_argument("--label", default="label_10", help="Label column: label_5, label_10, label_20 (default: label_10)")
+    train.add_argument(
+        "--label",
+        default="label_10",
+        help="Label column: label_5, label_10, label_20 (default: label_10)",
+    )
     train.add_argument(
         "--backend",
         default="mlf",
@@ -105,31 +168,63 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="BACKEND",
         help=f"Model backend. Options: {', '.join(_ALL_BACKENDS)} (default: mlf)",
     )
-    train.add_argument("--n-trials", type=int, default=15, help="Optuna trials for HPO (default: 15)")
-    train.add_argument("--n-splits", type=int, default=5, help="TimeSeriesSplit folds (default: 5)")
-    train.add_argument("--train-start", default=None, help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101")
-    train.add_argument("--train-end", default=None, help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231")
-    train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Force retrain (overwrite saved model)")
+    train.add_argument("--n-trials", type=int, default=None, help="Optuna trials for HPO")
+    train.add_argument("--n-splits", type=int, default=None, help="TimeSeriesSplit folds")
+    train.add_argument(
+        "--train-start",
+        default=None,
+        help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101",
+    )
+    train.add_argument(
+        "--train-end",
+        default=None,
+        help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231",
+    )
+    train.add_argument(
+        "--profile",
+        default=None,
+        help="Load train defaults from a named profile in config.toml",
+    )
+    train.add_argument(
+        "--force",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Force retrain (overwrite saved model)",
+    )
 
     evaluate = subparsers.add_parser(
         "evaluate",
         help="Run walk-forward backtest",
         description="Backtest a trained model or baseline labels.",
     )
-    evaluate.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
-    evaluate.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
-    evaluate.add_argument("--label", default="label_10", help="Label column (default: label_10)")
-    evaluate.add_argument("--capital", type=float, default=10000.0, help="Initial capital in USD (default: 10000)")
-    evaluate.add_argument("--risk", type=float, default=1.0, help="Risk per trade %% (default: 1.0)")
-    evaluate.add_argument("--commission", type=float, default=0.1, help="Commission in pips (default: 0.1)")
-    evaluate.add_argument("--tp", type=float, default=1.5, help="Take-profit in R multiples (default: 1.5)")
-    evaluate.add_argument("--sl", type=float, default=1.0, help="Stop-loss in R multiples (default: 1.0)")
-    evaluate.add_argument("--slippage", type=float, default=0.0, help="Slippage in pips (default: 0.0)")
-    evaluate.add_argument("--eval-start", default=None, help="Inclusive evaluation start date in compact format YYYYMMDD, e.g. 20240101")
-    evaluate.add_argument("--eval-end", default=None, help="Inclusive evaluation end date in compact format YYYYMMDD, e.g. 20241231")
+    evaluate.add_argument("--symbol", default=None, help="Symbol")
+    evaluate.add_argument("--tf", default=None, help="Timeframe")
+    evaluate.add_argument("--label", default=None, help="Label column")
+    evaluate.add_argument("--capital", type=float, default=None, help="Initial capital in USD")
+    evaluate.add_argument("--risk", type=float, default=None, help="Risk per trade %")
+    evaluate.add_argument("--commission", type=float, default=None, help="Commission in pips")
+    evaluate.add_argument("--tp", type=float, default=None, help="Take-profit in R multiples")
+    evaluate.add_argument("--sl", type=float, default=None, help="Stop-loss in R multiples")
+    evaluate.add_argument("--slippage", type=float, default=None, help="Slippage in pips")
+    evaluate.add_argument(
+        "--eval-start",
+        default=None,
+        help="Inclusive evaluation start date in compact format YYYYMMDD, e.g. 20240101",
+    )
+    evaluate.add_argument(
+        "--eval-end",
+        default=None,
+        help="Inclusive evaluation end date in compact format YYYYMMDD, e.g. 20241231",
+    )
+    evaluate.add_argument(
+        "--profile",
+        default=None,
+        help="Load evaluation defaults from a named profile in config.toml",
+    )
     evaluate.add_argument(
         "--use-labels",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=None,
         help="Backtest labels only (baseline). Default: backtest model if trained, else labels.",
     )
 
@@ -159,8 +254,18 @@ def build_parser() -> argparse.ArgumentParser:
     drift.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
     drift.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
     drift.add_argument("--label", default="label_10", help="Label column (default: label_10)")
-    drift.add_argument("--threshold-ks", type=float, default=0.1, help="Kolmogorov-Smirnov threshold (default: 0.1)")
-    drift.add_argument("--threshold-psi", type=float, default=0.2, help="Population Stability Index threshold (default: 0.2)")
+    drift.add_argument(
+        "--threshold-ks",
+        type=float,
+        default=0.1,
+        help="Kolmogorov-Smirnov threshold (default: 0.1)",
+    )
+    drift.add_argument(
+        "--threshold-psi",
+        type=float,
+        default=0.2,
+        help="Population Stability Index threshold (default: 0.2)",
+    )
 
     models = subparsers.add_parser(
         "models",
@@ -170,6 +275,48 @@ def build_parser() -> argparse.ArgumentParser:
     models.add_argument("--symbol", default=None, help="Filter by symbol")
     models.add_argument("--tf", default=None, help="Filter by timeframe")
     models.add_argument("--backend", default=None, help="Filter by backend")
+
+    profiles = subparsers.add_parser(
+        "profiles",
+        help="List available workflow profiles",
+        description="Show workflow profiles from config.toml and which commands they support.",
+    )
+    profiles.add_argument(
+        "--profile",
+        default=None,
+        help="Show only one profile in detailed form",
+    )
+
+    run_profile = subparsers.add_parser(
+        "run-profile",
+        help="Run train then evaluate from one workflow profile",
+        description="Resolve one profile and orchestrate train followed by evaluate using that profile's sections.",
+    )
+    run_profile.add_argument(
+        "--profile",
+        required=True,
+        help="Workflow profile name to execute",
+    )
+    run_profile.add_argument(
+        "--skip-train",
+        action="store_true",
+        help="Skip the training step and run only evaluation from the profile",
+    )
+    run_profile.add_argument(
+        "--skip-evaluate",
+        action="store_true",
+        help="Skip the evaluation step and run only training from the profile",
+    )
+    run_profile.add_argument(
+        "--skip-benchmark",
+        action="store_true",
+        help="Skip the benchmark step even if the profile defines one",
+    )
+    run_profile.add_argument(
+        "--json",
+        action="store_true",
+        help="Print a JSON summary of the run-profile orchestration result",
+    )
 
     benchmark = subparsers.add_parser(
         "benchmark",
@@ -186,17 +333,151 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="BACKEND",
         help=f"Backends to run. Default: mlf sgd stats. Available: {', '.join(_ALL_BACKENDS)}",
     )
-    benchmark.add_argument("--n-trials", type=int, default=5, help="Optuna trials per backend (default: 5)")
-    benchmark.add_argument("--n-splits", type=int, default=3, help="CV folds (default: 3)")
-    benchmark.add_argument("--train-start", default=None, help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101")
-    benchmark.add_argument("--train-end", default=None, help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231")
-    benchmark.add_argument("--force", action=argparse.BooleanOptionalAction, default=False, help="Force retrain all backends")
+    benchmark.add_argument("--n-trials", type=int, default=None, help="Optuna trials per backend")
+    benchmark.add_argument("--n-splits", type=int, default=None, help="CV folds")
+    benchmark.add_argument(
+        "--train-start",
+        default=None,
+        help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101",
+    )
+    benchmark.add_argument(
+        "--train-end",
+        default=None,
+        help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231",
+    )
+    benchmark.add_argument(
+        "--profile",
+        default=None,
+        help="Load benchmark defaults from a named profile in config.toml",
+    )
+    benchmark.add_argument(
+        "--force",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Force retrain all backends",
+    )
 
     return parser
 
 
+def _print_profiles_summary(profile_name: str | None) -> None:
+    """Load workflow profiles from config and render them."""
+    import tomllib
+
+    from mlfx.config.paths import DEFAULT_PATHS
+
+    config_path = DEFAULT_PATHS.config_file
+    if not config_path.exists():
+        console.print("[yellow]config.toml not found — no workflow profiles available.[/yellow]")
+        return
+
+    with config_path.open("rb") as handle:
+        data = tomllib.load(handle)
+
+    profiles = data.get("profiles", {})
+    print_profiles_summary(profile_name, profiles)
+
+
+def _run_train_command(args: argparse.Namespace) -> None:
+    """Resolve and execute the train command."""
+    train_cfg = _resolve_train_command_config(args)
+
+    print_resolved_train_summary(
+        profile=args.profile,
+        symbol=train_cfg["symbol"],
+        tf=train_cfg["tf"],
+        label=train_cfg["label"],
+        backend=train_cfg["backend"],
+        n_trials=train_cfg["n_trials"],
+        n_splits=train_cfg["n_splits"],
+        train_start=train_cfg["train_start"],
+        train_end=train_cfg["train_end"],
+        force=train_cfg["force"],
+    )
+
+    cfg = TrainingConfig(
+        symbol=train_cfg["symbol"],
+        tf=train_cfg["tf"],
+        label_col=train_cfg["label"],
+        backend=train_cfg["backend"],
+        n_trials=train_cfg["n_trials"],
+        n_splits=train_cfg["n_splits"],
+        force=train_cfg["force"],
+        extra={
+            "train_start": train_cfg["train_start"],
+            "train_end": train_cfg["train_end"],
+            "profile": args.profile,
+        },
+    )
+    run_training(cfg)
+
+
+def _run_evaluate_command(args: argparse.Namespace) -> None:
+    """Resolve and execute the evaluate command."""
+    from mlfx.config.paths import DEFAULT_PATHS
+
+    eval_cfg = _resolve_evaluate_command_config(args)
+
+    print_resolved_evaluate_summary(
+        profile=args.profile,
+        symbol=eval_cfg["symbol"],
+        tf=eval_cfg["tf"],
+        label=eval_cfg["label"],
+        capital=eval_cfg["capital"],
+        risk=eval_cfg["risk"],
+        commission=eval_cfg["commission"],
+        tp=eval_cfg["tp"],
+        sl=eval_cfg["sl"],
+        slippage=eval_cfg["slippage"],
+        eval_start=eval_cfg["eval_start"],
+        eval_end=eval_cfg["eval_end"],
+        use_labels=eval_cfg["use_labels"],
+    )
+
+    eval_kw = dict(
+        symbol=eval_cfg["symbol"],
+        tf=eval_cfg["tf"],
+        label_col=eval_cfg["label"],
+        initial_capital=eval_cfg["capital"],
+        risk_pct=eval_cfg["risk"],
+        commission=eval_cfg["commission"],
+        tp_r=eval_cfg["tp"],
+        sl_r=eval_cfg["sl"],
+        slippage=eval_cfg["slippage"],
+        train_start=eval_cfg["eval_start"],
+        train_end=eval_cfg["eval_end"],
+    )
+
+    if eval_cfg["use_labels"]:
+        results = run_full_eval(**eval_kw)
+        source = "Labels (baseline)"
+    else:
+        results = run_model_backtest(**eval_kw)
+        if results is not None:
+            source = "Model"
+        else:
+            results = run_full_eval(**eval_kw)
+            source = "Labels (no model, fallback)"
+
+    if not results:
+        return
+
+    baseline = get_baseline_metrics(**eval_kw) if source == "Model" else None
+    print_backtest_results(results=results, source=source, baseline=baseline)
+
+    risk_dir = f"R{int(eval_cfg['tp'] * 10)}"
+    report_mode = "labels" if source != "Model" else "model"
+    reports_dir = (
+        DEFAULT_PATHS.reports_dir(eval_cfg["symbol"], eval_cfg["tf"])
+        / eval_cfg["label"]
+        / report_mode
+        / risk_dir
+    )
+    console.print(f"\n[dim]Biểu đồ: {reports_dir}/[/]")
+
+
 def main() -> None:
-    """Parse CLI args and dispatch to the appropriate workflow (download, pipeline, train, qa, evaluate, serve, batch-predict, drift, models)."""
+    """Parse CLI args and dispatch to the appropriate workflow."""
     try:
         from mlfx.monitoring.logging_config import configure_logging
 
@@ -244,20 +525,7 @@ def main() -> None:
         return
 
     if args.command == "train":
-        cfg = TrainingConfig(
-            symbol=args.symbol,
-            tf=args.tf,
-            label_col=args.label,
-            backend=args.backend,
-            n_trials=args.n_trials,
-            n_splits=args.n_splits,
-            force=args.force,
-            extra={
-                "train_start": args.train_start,
-                "train_end": args.train_end,
-            },
-        )
-        run_training(cfg)
+        _run_train_command(args)
         return
 
     if args.command == "qa":
@@ -270,68 +538,7 @@ def main() -> None:
         return
 
     if args.command == "evaluate":
-        from mlfx.config.paths import DEFAULT_PATHS
-
-        eval_kw = dict(
-            symbol=args.symbol,
-            tf=args.tf,
-            label_col=args.label,
-            initial_capital=args.capital,
-            risk_pct=args.risk,
-            commission=args.commission,
-            tp_r=args.tp,
-            sl_r=args.sl,
-            slippage=args.slippage,
-            train_start=args.eval_start,
-            train_end=args.eval_end,
-        )
-        if args.use_labels:
-            results = run_full_eval(**eval_kw)
-            source = "Labels (baseline)"
-        else:
-            results = run_model_backtest(**eval_kw)
-            if results is not None:
-                source = "Model"
-            else:
-                results = run_full_eval(**eval_kw)
-                source = "Labels (no model, fallback)"
-        if results:
-            console.print(f"[dim]Backtest: {source}[/]")
-            if source == "Model":
-                baseline = get_baseline_metrics(**eval_kw)
-                if baseline is not None:
-                    try:
-                        model_r = float(
-                            results["Net Profit (R)"].replace("R", "").replace(",", "").strip()
-                        )
-                        base_r = baseline["total_r"]
-                        diff = model_r - base_r
-                        if diff > 0:
-                            diff_str = f"model tốt hơn +{diff:.1f}R"
-                        elif diff < 0:
-                            diff_str = f"labels tốt hơn {-diff:.1f}R"
-                        else:
-                            diff_str = "bằng nhau"
-                        console.print(
-                            f"[dim]So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R → {diff_str}[/]"
-                        )
-                    except (ValueError, KeyError):
-                        pass
-            table = Table(title="Kết quả Backtest", show_header=True, header_style="bold cyan")
-            table.add_column("Chỉ số", style="dim")
-            table.add_column("Giá trị", justify="right")
-            for k, v in results.items():
-                table.add_row(k, v)
-            console.print(table)
-            risk_dir = f"R{int(args.tp * 10)}"
-            report_mode = "labels" if source != "Model" else "model"
-            reports_dir = (
-                DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
-                / args.label
-                / report_mode
-                / risk_dir
-            )
-            console.print(f"\n[dim]Biểu đồ: {reports_dir}/[/]")
+        _run_evaluate_command(args)
         return
 
     if args.command == "serve":
@@ -395,25 +602,37 @@ def main() -> None:
             console.print("[yellow]No models found in the registry.[/yellow]")
             return
 
+        from rich.table import Table
+
         table = Table(title="Registered Model Versions", show_header=True, header_style="bold magenta")
 
-        keys = []
-        for e in entries:
-            for k in e.keys():
-                if k not in keys:
-                    keys.append(k)
+        keys: list[str] = []
+        for entry in entries:
+            for key in entry.keys():
+                if key not in keys:
+                    keys.append(key)
 
         std_columns = ["symbol", "tf", "backend", "run_id", "accuracy"]
-        ordered_keys = [k for k in std_columns if k in keys] + [k for k in keys if k not in std_columns]
+        ordered_keys = [key for key in std_columns if key in keys] + [
+            key for key in keys if key not in std_columns
+        ]
 
-        for k in ordered_keys:
-            table.add_column(str(k))
+        for key in ordered_keys:
+            table.add_column(str(key))
 
-        for e in entries:
-            row = [str(e.get(k, "")) for k in ordered_keys]
+        for entry in entries:
+            row = [str(entry.get(key, "")) for key in ordered_keys]
             table.add_row(*row)
 
         console.print(table)
+        return
+
+    if args.command == "profiles":
+        _print_profiles_summary(args.profile)
+        return
+
+    if args.command == "run-profile":
+        _run_profile_command(args)
         return
 
     if args.command == "benchmark":
@@ -421,103 +640,9 @@ def main() -> None:
         return
 
 
-def _run_benchmark(args: argparse.Namespace) -> None:
-    """Run multiple backends on the same dataset and print a comparison table."""
-    from mlfx.config.paths import DEFAULT_PATHS  # noqa: PLC0415
-
-    backends: list[str] = args.backends
-    invalid = [b for b in backends if b not in BACKEND_REGISTRY]
-    if invalid:
-        console.print(f"[red]Unknown backends: {invalid}. Available: {_ALL_BACKENDS}[/red]")
-        return
-
-    console.rule(f"[bold cyan]MLFX Benchmark — {args.symbol} {args.tf} {args.label}[/]")
-    console.print(f"Backends: {', '.join(backends)}  |  n_trials={args.n_trials}  n_splits={args.n_splits}\n")
-
-    results: list[dict] = []
-
-    for backend in backends:
-        console.print(f"[yellow]Running:[/] {backend} ...", end="  ")
-        t0 = time.perf_counter()
-        try:
-            cfg = TrainingConfig(
-                symbol=args.symbol,
-                tf=args.tf,
-                label_col=args.label,
-                backend=backend,
-                n_trials=args.n_trials,
-                n_splits=args.n_splits,
-                force=args.force,
-                extra={
-                    "train_start": args.train_start,
-                    "train_end": args.train_end,
-                },
-            )
-            metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
-            elapsed = time.perf_counter() - t0
-            row = {
-                "backend": backend,
-                "cv_f1_macro": f"{metrics.get('best_cv_f1_macro', metrics.get('cv_f1_macro', 0.0)):.4f}",
-                "train_f1": f"{metrics.get('f1_macro_train', 0.0):.4f}",
-                "accuracy": f"{metrics.get('accuracy', 0.0):.4f}",
-                "elapsed_s": f"{elapsed:.1f}",
-                "status": "OK",
-            }
-            console.print(f"[green]OK[/] ({elapsed:.1f}s)")
-        except Exception as exc:  # noqa: BLE001
-            elapsed = time.perf_counter() - t0
-            row = {
-                "backend": backend,
-                "cv_f1_macro": "-",
-                "train_f1": "-",
-                "accuracy": "-",
-                "elapsed_s": f"{elapsed:.1f}",
-                "status": f"ERROR: {exc}",
-            }
-            console.print(f"[red]ERROR[/] — {exc}")
-        results.append(row)
-
-    # Print comparison table
-    console.print()
-    table = Table(
-        title=f"Benchmark Results — {args.symbol} {args.tf} {args.label}",
-        show_header=True,
-        header_style="bold cyan",
-    )
-    table.add_column("Backend", style="bold")
-    table.add_column("CV F1 (macro)", justify="right")
-    table.add_column("Train F1", justify="right")
-    table.add_column("Accuracy", justify="right")
-    table.add_column("Time (s)", justify="right")
-    table.add_column("Status")
-
-    for row in results:
-        status_style = "green" if row["status"] == "OK" else "red"
-        table.add_row(
-            row["backend"],
-            row["cv_f1_macro"],
-            row["train_f1"],
-            row["accuracy"],
-            row["elapsed_s"],
-            f"[{status_style}]{row['status']}[/]",
-        )
-    console.print(table)
-
-    # Save JSON report
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf) / args.label / "benchmark"
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    report_path = reports_dir / f"benchmark_{ts}.json"
-    payload = {
-        "symbol": args.symbol,
-        "tf": args.tf,
-        "label": args.label,
-        "n_trials": args.n_trials,
-        "n_splits": args.n_splits,
-        "train_start": args.train_start,
-        "train_end": args.train_end,
-        "timestamp": ts,
-        "results": results,
-    }
-    report_path.write_text(json.dumps(payload, indent=2))
-    console.print(f"\n[dim]Report saved → {report_path}[/]")
+_resolve_train_command_config = resolve_train_config
+_resolve_evaluate_command_config = resolve_evaluate_config
+_print_resolved_train_summary = print_resolved_train_summary
+_print_resolved_evaluate_summary = print_resolved_evaluate_summary
+_run_profile_command = run_profile_command
+_run_benchmark = run_benchmark

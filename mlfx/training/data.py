@@ -24,7 +24,9 @@ def _normalize_timestamp_bound(
     if value is None:
         return None
     if isinstance(value, dt.datetime):
-        value = value.date()
+        if end_of_day:
+            return value.replace(hour=23, minute=59, second=59, microsecond=999999)
+        return value.replace(hour=0, minute=0, second=0, microsecond=0)
     if isinstance(value, dt.date):
         if end_of_day:
             return dt.datetime.combine(value, dt.time.max)
@@ -44,6 +46,29 @@ def _normalize_timestamp_bound(
     raise TypeError(f"Unsupported timestamp bound type: {type(value)!r}")
 
 
+def _match_timestamp_timezone(
+    value: dt.datetime | None,
+    timestamp_dtype: pl.DataType,
+) -> dt.datetime | None:
+    """Align a datetime bound with the timezone-awareness of the timestamp column."""
+    if value is None:
+        return None
+
+    timezone: str | None = None
+    if isinstance(timestamp_dtype, pl.Datetime):
+        timezone = timestamp_dtype.time_zone
+
+    if timezone is None:
+        if value.tzinfo is not None:
+            return value.astimezone(dt.UTC).replace(tzinfo=None)
+        return value
+
+    if value.tzinfo is None:
+        return value.replace(tzinfo=dt.timezone.utc)
+
+    return value.astimezone(dt.timezone.utc)
+
+
 def _filter_dataset_by_timestamp(
     df: pl.DataFrame,
     *,
@@ -54,8 +79,15 @@ def _filter_dataset_by_timestamp(
     if df.is_empty() or "timestamp" not in df.columns:
         return df
 
-    start_ts = _normalize_timestamp_bound(train_start, end_of_day=False)
-    end_ts = _normalize_timestamp_bound(train_end, end_of_day=True)
+    timestamp_dtype = df.schema["timestamp"]
+    start_ts = _match_timestamp_timezone(
+        _normalize_timestamp_bound(train_start, end_of_day=False),
+        timestamp_dtype,
+    )
+    end_ts = _match_timestamp_timezone(
+        _normalize_timestamp_bound(train_end, end_of_day=True),
+        timestamp_dtype,
+    )
 
     if start_ts is None and end_ts is None:
         return df

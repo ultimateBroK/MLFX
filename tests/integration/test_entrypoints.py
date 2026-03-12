@@ -4,7 +4,6 @@ import os
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -28,7 +27,7 @@ def _run_python(code: str) -> subprocess.CompletedProcess[str]:
 def test_mlfx_help_smoke() -> None:
     result = _run_entrypoint("mlfx", "--help")
     assert result.returncode == 0, result.stderr
-    assert "MLFX consolidated CLI" in result.stdout
+    assert "MLFX — Machine Learning for Forex. Terminal-first workflow." in result.stdout
 
 
 def test_mlfx_pipeline_help_smoke() -> None:

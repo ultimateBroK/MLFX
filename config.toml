@@ -41,3 +41,89 @@ sl_r            = 1.0
 initial_capital = 10000.0
 risk_pct        = 1.0
 commission      = 0.1
+
+# ---------------------------------------------------------------------------
+# Workflow profiles
+# Use one profile name across `train`, `evaluate`, and `benchmark`.
+# The CLI can resolve the matching subsection for the command being run.
+# Example intent:
+# - `train --profile research`
+# - `evaluate --profile research`
+# - `benchmark --profile benchmark_fast`
+# ---------------------------------------------------------------------------
+
+[profiles.research.train]
+symbol      = "XAUUSD"
+timeframe   = "1H"
+label_col   = "label_10"
+backend     = "mlf"
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+
+[profiles.research.evaluate]
+symbol          = "XAUUSD"
+timeframe       = "1H"
+label_col       = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250331"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
+slippage        = 0.0
+
+[profiles.research.benchmark]
+symbol      = "XAUUSD"
+timeframe   = "1H"
+label_col   = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+
+[profiles.oos.train]
+symbol      = "XAUUSD"
+timeframe   = "1H"
+label_col   = "label_10"
+backend     = "mlf"
+train_start = "20230101"
+train_end   = "20241231"
+n_trials    = 10
+n_splits    = 5
+
+[profiles.oos.evaluate]
+symbol          = "XAUUSD"
+timeframe       = "1H"
+label_col       = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250630"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
+slippage        = 0.0
+
+[profiles.oos.benchmark]
+symbol      = "XAUUSD"
+timeframe   = "1H"
+label_col   = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20230101"
+train_end   = "20241231"
+n_trials    = 10
+n_splits    = 5
+
+[profiles.benchmark_fast.benchmark]
+symbol      = "XAUUSD"
+timeframe   = "1H"
+label_col   = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20230101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
