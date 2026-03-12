@@ -244,9 +244,9 @@ MLFX tổ chức đầu ra theo cách giúp thí nghiệm luôn dễ kiểm tra:
 - `data/ohlcv/{symbol}/{tf}/` — tệp parquet OHLCV sau khi chuyển đổi
 - `data/features/{symbol}/{tf}/` — tập dữ liệu đặc trưng
 - `data/labels/{symbol}/{tf}/` — tập dữ liệu đã gắn nhãn
-- `outputs/models/{symbol}/{tf}/` — tệp mô hình và siêu dữ liệu
-- `outputs/reports/{symbol}/{tf}/` — báo cáo đánh giá
-- `outputs/predictions/{symbol}/{tf}/` — kết quả dự đoán theo lô
+- `outputs/models/{symbol}/{tf}/{label}/` — tệp mô hình và siêu dữ liệu theo từng nhãn
+- `outputs/reports/{symbol}/{tf}/{label}/{mode}/Rxx/` — báo cáo đánh giá theo nhãn, chế độ (`model` hoặc `labels`) và mức rủi ro
+- `outputs/predictions/{symbol}/{tf}/{label}/` — kết quả dự đoán theo lô cho từng nhãn
 - `outputs/monitoring/{symbol}/{tf}/` — mốc tham chiếu drift và cảnh báo
 
 ---

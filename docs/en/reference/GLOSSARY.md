@@ -117,9 +117,9 @@ Its goal is to help you read the documentation, use the CLI, and interpret outpu
 - `data/ohlcv/`: Candle data resampled from raw tick data.
 - `data/features/`: Feature-enriched datasets.
 - `data/labels/`: Labeled datasets.
-- `outputs/models/{symbol}/{tf}/`: Model artifacts, metrics, and training metadata.
-- `outputs/reports/{symbol}/{tf}/`: Backtest reports and related charts.
-- `outputs/predictions/{symbol}/{tf}/`: Batch prediction outputs.
+- `outputs/models/{symbol}/{tf}/{label}/`: Model artifacts, metrics, and training metadata for a specific label.
+- `outputs/reports/{symbol}/{tf}/{label}/{mode}/{run}/`: Backtest reports and related charts grouped by label, evaluation mode, and run bucket such as `R15`.
+- `outputs/predictions/{symbol}/{tf}/{label}/`: Batch prediction outputs for a specific label.
 - `outputs/monitoring/{symbol}/{tf}/`: Outputs for monitoring and drift detection.
 - `outputs/runs/{symbol}/{tf}/`: Run logs when using the file-based tracking path.
 

@@ -197,8 +197,8 @@ Common reproducible workspace state, such as:
 - `.ruff_cache/`
 - `__pycache__/`
 - `lightning_logs/`
-- Contents of `outputs/models/{symbol}/{tf}/`
-- Contents of `outputs/reports/{symbol}/{tf}/`
+- Contents of `outputs/models/{symbol}/{tf}/{label}/`
+- Contents of `outputs/reports/{symbol}/{tf}/{label}/`
 
 ### What it does not remove
 
@@ -238,7 +238,7 @@ Do not use it if you are only trying to inspect a small failure and do not yet k
 - Does `data/labels/{symbol}/{tf}/` contain parquet files?
 - Does the column passed via `--label` exist?
 - Does the `atr_14` column exist?
-- Is `outputs/reports/{symbol}/{tf}/` writable?
+- Is `outputs/reports/{symbol}/{tf}/{label}/` writable?
 
 ### Valid example
 
@@ -250,7 +250,8 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 - The CLI currently does **not** expose an `--outdir` flag
 - Reports are written by default to:
-  - `outputs/reports/{symbol}/{tf}/`
+  - baseline labels: `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+  - model backtests: `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 If the command completes but no new files appear, inspect the labeled data and signal column first.
 
@@ -325,19 +326,19 @@ During troubleshooting, running one timeframe at a time is usually easier to rea
 After `benchmark` finishes, the JSON summary is written automatically to:
 
 ```text
-outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json
+outputs/reports/{symbol}/{tf}/{label}/benchmark/benchmark_{timestamp}.json
 ```
 
 Example:
 
 ```text
-outputs/reports/XAUUSD/1H/benchmark_20260101_120000.json
+outputs/reports/XAUUSD/1H/label_10/benchmark/benchmark_20260101_120000.json
 ```
 
 If you do not see that file, check:
 
 - Whether the benchmark command actually completed
-- Whether `outputs/reports/{symbol}/{tf}/` exists
+- Whether `outputs/reports/{symbol}/{tf}/{label}/benchmark/` exists
 - Whether there was a write failure or permission issue
 
 ---

@@ -197,8 +197,8 @@ Các thành phần có thể tạo lại an toàn, ví dụ:
 - `.ruff_cache/`
 - `__pycache__/`
 - `lightning_logs/`
-- Nội dung trong `outputs/models/{symbol}/{tf}/`
-- Nội dung trong `outputs/reports/{symbol}/{tf}/`
+- Nội dung trong `outputs/models/{symbol}/{tf}/{label}/`
+- Nội dung trong `outputs/reports/{symbol}/{tf}/{label}/`
 
 ### Tác vụ này không xóa
 
@@ -238,7 +238,7 @@ Không nên dùng nếu bạn chỉ muốn kiểm tra một lỗi nhỏ mà chư
 - Thư mục `data/labels/{symbol}/{tf}/` có parquet hay không
 - Cột tín hiệu truyền qua `--label` có tồn tại hay không
 - Cột `atr_14` có tồn tại hay không
-- Thư mục `outputs/reports/{symbol}/{tf}/` có ghi được hay không
+- Thư mục `outputs/reports/{symbol}/{tf}/{label}/` có ghi được hay không
 
 ### Lệnh mẫu hợp lệ
 
@@ -250,7 +250,8 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 - CLI hiện **không có** tham số `--outdir`
 - Báo cáo mặc định được ghi vào:
-  - `outputs/reports/{symbol}/{tf}/`
+  - baseline labels: `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+  - model backtests: `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 Nếu lệnh chạy xong mà không có tệp mới, hãy kiểm tra lại dữ liệu nhãn và cột tín hiệu trước tiên.
 
@@ -325,19 +326,19 @@ Trong lúc xử lý sự cố, chạy từng khung thời gian riêng lẻ thư�
 Sau khi chạy `benchmark`, kết quả JSON sẽ được lưu tự động vào:
 
 ```text
-outputs/reports/{symbol}/{tf}/benchmark_{timestamp}.json
+outputs/reports/{symbol}/{tf}/{label}/benchmark/benchmark_{timestamp}.json
 ```
 
 Ví dụ:
 
 ```text
-outputs/reports/XAUUSD/1H/benchmark_20260101_120000.json
+outputs/reports/XAUUSD/1H/label_10/benchmark/benchmark_20260101_120000.json
 ```
 
 Nếu bạn không thấy tệp này, hãy kiểm tra:
 
 - Bước so sánh chuẩn có thực sự chạy xong không
-- Thư mục `outputs/reports/{symbol}/{tf}/` có tồn tại không
+- Thư mục `outputs/reports/{symbol}/{tf}/{label}/benchmark/` có tồn tại không
 - Có lỗi ghi tệp hoặc lỗi quyền truy cập hay không
 
 ---

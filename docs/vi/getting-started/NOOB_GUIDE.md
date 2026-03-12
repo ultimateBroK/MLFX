@@ -194,17 +194,18 @@ Bạn nên thấy dữ liệu được sinh ở các khu vực:
 ### Sau `train`
 Bạn nên thấy tệp đầu ra của mô hình trong:
 
-- `outputs/models/{symbol}/{tf}/`
+- `outputs/models/{symbol}/{tf}/{label}/`
 
 Thông thường nơi này sẽ chứa:
-- Mô hình đã lưu
+- Mô hình đã lưu cho nhãn đã chọn
 - Siêu dữ liệu
 - Chỉ số huấn luyện
 
 ### Sau `evaluate`
 Bạn nên thấy báo cáo trong:
 
-- `outputs/reports/{symbol}/{tf}/`
+- `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 Thường sẽ có:
 - Báo cáo HTML biểu đồ nến
@@ -222,8 +223,8 @@ Khi mới dùng MLFX, hãy nhớ vài nguyên tắc đơn giản sau:
   - Dữ liệu nhãn
   - Mô hình đã huấn luyện
   - Đúng tên cột nhãn
-- `outputs/models/{symbol}/{tf}/` là nơi lưu mô hình
-- `outputs/reports/{symbol}/{tf}/` là nơi lưu báo cáo đánh giá
+- `outputs/models/{symbol}/{tf}/{label}/` là nơi lưu mô hình cho từng nhãn cụ thể
+- `outputs/reports/{symbol}/{tf}/{label}/...` là nơi lưu báo cáo đánh giá theo nhãn, chế độ và mức rủi ro
 - `pixi run clean-generated` dùng để dọn vùng nhớ đệm và đầu ra sinh tự động mà **không đụng vào dữ liệu thô**
 
 ---

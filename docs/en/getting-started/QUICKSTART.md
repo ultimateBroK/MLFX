@@ -134,7 +134,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
 You should see outputs under:
 
-- `outputs/models/XAUUSD/1H/`
+- `outputs/models/XAUUSD/1H/label_10/`
 
 ### Recommended first-run parameters
 
@@ -164,13 +164,14 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 You should see reports under:
 
-- `outputs/reports/XAUUSD/1H/`
+- `outputs/reports/XAUUSD/1H/label_10/model/R15/`
 
 Typical files include:
 
 - `*_candlestick.html`
 - `*_equity.png`
 - `*_heatmap.png`
+- `*_trades.parquet`
 
 The CLI will also print summary values such as:
 

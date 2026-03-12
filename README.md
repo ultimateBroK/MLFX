@@ -244,9 +244,9 @@ MLFX keeps outputs organized so experiments stay inspectable and reusable:
 - `data/ohlcv/{symbol}/{tf}/` — resampled OHLCV parquet files
 - `data/features/{symbol}/{tf}/` — feature datasets
 - `data/labels/{symbol}/{tf}/` — labeled datasets
-- `outputs/models/{symbol}/{tf}/` — trained model artifacts and metadata
-- `outputs/reports/{symbol}/{tf}/` — evaluation reports
-- `outputs/predictions/{symbol}/{tf}/` — batch prediction outputs
+- `outputs/models/{symbol}/{tf}/{label}/` — trained model artifacts and metadata
+- `outputs/reports/{symbol}/{tf}/{label}/{mode}/R{tp*10}/` — evaluation reports grouped by label, source (`model` or `labels`), and risk setting
+- `outputs/predictions/{symbol}/{tf}/{label}/` — batch prediction outputs
 - `outputs/monitoring/{symbol}/{tf}/` — drift references and alerts
 
 ---

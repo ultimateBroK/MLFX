@@ -133,7 +133,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
 Bạn sẽ thấy đầu ra trong:
 
-- `outputs/models/XAUUSD/1H/`
+- `outputs/models/XAUUSD/1H/label_10/`
 
 ### Bộ tham số mặc định nên dùng
 
@@ -163,13 +163,14 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 Bạn sẽ thấy báo cáo ở:
 
-- `outputs/reports/XAUUSD/1H/`
+- `outputs/reports/XAUUSD/1H/label_10/model/R15/`
 
 Thường có các tệp như:
 
 - `*_candlestick.html`
 - `*_equity.png`
 - `*_heatmap.png`
+- `*_trades.parquet`
 
 Giao diện dòng lệnh cũng sẽ in ra:
 

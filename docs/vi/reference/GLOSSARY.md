@@ -117,9 +117,9 @@ Mục tiêu là giúp bạn đọc tài liệu, dùng giao diện dòng lệnh v
 - `data/ohlcv/`: Dữ liệu nến sau khi chuyển đổi từ dữ liệu tick.
 - `data/features/`: Dữ liệu đã được bổ sung đặc trưng.
 - `data/labels/`: Dữ liệu đã được gắn nhãn.
-- `outputs/models/{symbol}/{tf}/`: Tệp đầu ra mô hình, chỉ số và siêu dữ liệu huấn luyện.
-- `outputs/reports/{symbol}/{tf}/`: Báo cáo backtest và hình ảnh liên quan.
-- `outputs/predictions/{symbol}/{tf}/`: Kết quả dự đoán theo lô.
+- `outputs/models/{symbol}/{tf}/{label}/`: Tệp đầu ra mô hình, chỉ số và siêu dữ liệu huấn luyện cho một nhãn cụ thể.
+- `outputs/reports/{symbol}/{tf}/{label}/{mode}/{run}/`: Báo cáo backtest và hình ảnh liên quan, được nhóm theo nhãn, chế độ đánh giá và thư mục lần chạy như `R15`.
+- `outputs/predictions/{symbol}/{tf}/{label}/`: Kết quả dự đoán theo lô cho một nhãn cụ thể.
 - `outputs/monitoring/{symbol}/{tf}/`: Đầu ra phục vụ giám sát và phát hiện độ lệch dữ liệu.
 - `outputs/runs/{symbol}/{tf}/`: Nhật ký các lần chạy khi dùng bộ theo dõi bằng tệp.
 

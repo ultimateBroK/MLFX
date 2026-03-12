@@ -256,7 +256,7 @@ mlfx/serving/
 
 ```bash
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H
-# → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
+# → outputs/predictions/XAUUSD/1H/label_10/predictions.parquet
 ```
 
 ---
@@ -489,7 +489,9 @@ DEFAULT_PATHS.features_dir("XAUUSD", "1H")   # data/features/XAUUSD/1H/
 DEFAULT_PATHS.labels_dir("XAUUSD", "1H")     # data/labels/XAUUSD/1H/
 
 # Đường dẫn đầu ra
-DEFAULT_PATHS.models_dir("XAUUSD", "1H")     # outputs/models/XAUUSD/1H/
-DEFAULT_PATHS.reports_dir("XAUUSD", "1H")    # outputs/reports/XAUUSD/1H/
-DEFAULT_PATHS.runs_dir("XAUUSD", "1H")       # outputs/runs/XAUUSD/1H/
+DEFAULT_PATHS.models_dir("XAUUSD", "1H")                      # outputs/models/XAUUSD/1H/
+DEFAULT_PATHS.models_label_dir("XAUUSD", "1H", "label_10")   # outputs/models/XAUUSD/1H/label_10/
+DEFAULT_PATHS.reports_dir("XAUUSD", "1H")                     # outputs/reports/XAUUSD/1H/
+DEFAULT_PATHS.report_run_dir("XAUUSD", "1H", "label_10", "model", "R15")   # outputs/reports/XAUUSD/1H/label_10/model/R15/
+DEFAULT_PATHS.runs_dir("XAUUSD", "1H")                        # outputs/runs/XAUUSD/1H/
 ```

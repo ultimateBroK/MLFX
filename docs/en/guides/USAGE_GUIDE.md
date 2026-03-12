@@ -230,7 +230,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 
 #### Artifacts
 
-- `outputs/models/{symbol}/{tf}/`
+- `outputs/models/{symbol}/{tf}/{label}/`
 
 #### Notes
 
@@ -277,9 +277,9 @@ pixi run mlfx evaluate \
 
 #### Default Artifacts
 
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_candlestick.html`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_equity.png`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_heatmap.png`
 
 #### Read Next
 
@@ -327,7 +327,7 @@ Use this when you need to export prediction parquet files for deployment or inte
 
 ```bash
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
-# → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
+# → outputs/predictions/XAUUSD/1H/label_10/predictions.parquet
 ```
 
 ---
@@ -429,7 +429,7 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H
 
 Each training run usually produces:
 
-- **Model artifact** — stored in `outputs/models/{symbol}/{tf}/`
+- **Model artifact** — stored in `outputs/models/{symbol}/{tf}/{label}/`
 - **Registry record** — appended to `outputs/models/registry.json`
 - **Metrics record** — usually stored in `outputs/runs/{symbol}/{tf}/`
 - **Run metadata file** — detailed run output when using the file-based tracker
@@ -454,9 +454,9 @@ After each stage, verify:
 - After `download`: parquet files exist in `data/raw/{symbol}/`
 - After `qa`: a data-quality report exists
 - After `pipeline`: parquet files exist in `data/ohlcv/`, `data/features/`, and `data/labels/`
-- After `train`: new artifacts exist in `outputs/models/{symbol}/{tf}/`
-- After `evaluate`: new HTML or PNG files exist in `outputs/reports/{symbol}/{tf}/`
-- After `batch-predict`: parquet files exist in `outputs/predictions/{symbol}/{tf}/`
+- After `train`: new artifacts exist in `outputs/models/{symbol}/{tf}/{label}/`
+- After `evaluate`: new HTML or PNG files exist in `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/` or `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- After `batch-predict`: parquet files exist in `outputs/predictions/{symbol}/{tf}/{label}/`
 - After `drift`: there is no severe drift alert, or you already understand the reason
 
 ---

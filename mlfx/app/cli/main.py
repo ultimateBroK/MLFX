@@ -311,7 +311,14 @@ def main() -> None:
             for k, v in results.items():
                 table.add_row(k, v)
             console.print(table)
-            reports_dir = DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
+            risk_dir = f"R{int(args.tp * 10)}"
+            report_mode = "labels" if source != "Model" else "model"
+            reports_dir = (
+                DEFAULT_PATHS.reports_dir(args.symbol, args.tf)
+                / args.label
+                / report_mode
+                / risk_dir
+            )
             console.print(f"\n[dim]Biểu đồ: {reports_dir}/[/]")
         return
 

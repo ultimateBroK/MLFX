@@ -232,7 +232,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 
 #### Đầu ra
 
-- `outputs/models/{symbol}/{tf}/`
+- `outputs/models/{symbol}/{tf}/{label}/`
 
 #### Lưu ý
 
@@ -279,9 +279,9 @@ pixi run mlfx evaluate \
 
 #### Đầu ra mặc định
 
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_candlestick.html`
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_equity.png`
-- `outputs/reports/{symbol}/{tf}/{symbol}_{tf}_{label}_R{tp*10}_heatmap.png`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_candlestick.html`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_equity.png`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/model_{label}_R{tp*10}_heatmap.png`
 
 #### Đọc tiếp
 
@@ -329,7 +329,7 @@ Dùng khi cần xuất parquet dự đoán để triển khai hoặc tích hợp
 
 ```bash
 pixi run mlfx batch-predict --symbol XAUUSD --tf 1H --label label_10
-# → outputs/predictions/XAUUSD/1H/label_10_predictions.parquet
+# → outputs/predictions/XAUUSD/1H/label_10/predictions.parquet
 ```
 
 ---
@@ -431,9 +431,9 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H
 
 Mỗi lần huấn luyện thường sinh ra:
 
-- **Tệp mô hình** — lưu trong `outputs/models/{symbol}/{tf}/`
+- **Tệp mô hình** — lưu trong `outputs/models/{symbol}/{tf}/{label}/`
 - **Bản ghi trong sổ đăng ký** — cập nhật vào `outputs/models/registry.json`
-- **Bản ghi chỉ số** — thường nằm trong `outputs/runs/{symbol}/{tf}/`
+- **Bản ghi chỉ số** — thường nằm trong `outputs/runs/{symbol}/{tf}/{label}/`
 - **Tệp thông tin lần chạy** — lưu chi tiết khi dùng bộ theo dõi bằng tệp
 
 ### Theo dõi thí nghiệm
@@ -456,9 +456,9 @@ Sau mỗi bước, nên kiểm tra:
 - Sau `download`: có tệp parquet trong `data/raw/{symbol}/`
 - Sau `qa`: có tệp báo cáo chất lượng dữ liệu
 - Sau `pipeline`: có parquet trong `data/ohlcv/`, `data/features/`, `data/labels/`
-- Sau `train`: có tệp đầu ra mới trong `outputs/models/{symbol}/{tf}/`
-- Sau `evaluate`: có HTML hoặc PNG mới trong `outputs/reports/{symbol}/{tf}/`
-- Sau `batch-predict`: có parquet trong `outputs/predictions/{symbol}/{tf}/`
+- Sau `train`: có tệp đầu ra mới trong `outputs/models/{symbol}/{tf}/{label}/`
+- Sau `evaluate`: có HTML hoặc PNG mới trong `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/` hoặc `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- Sau `batch-predict`: có parquet trong `outputs/predictions/{symbol}/{tf}/{label}/`
 - Sau `drift`: không có cảnh báo độ lệch nghiêm trọng hoặc bạn đã hiểu rõ nguyên nhân
 
 ---

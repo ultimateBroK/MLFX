@@ -177,18 +177,25 @@ XAUUSD_1H_label_10_R15
 
 ## 5. Generated Artifacts
 
-Each run typically generates 3 outputs in `outputs/reports/{symbol}/{tf}/`:
+Each run typically generates 4 outputs in a label-scoped report directory:
 
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
 - `{prefix}_heatmap.png`
+- `{prefix}_trades.parquet`
+
+Default locations:
+
+- Label baseline mode: `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- Model backtest mode: `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 Example:
 
 ```text
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_candlestick.html
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_candlestick.html
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_equity.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_trades.parquet
 ```
 
 ---
@@ -284,7 +291,7 @@ Evaluation often fails or returns empty results when:
 ### 8.1 Common Failure Signs
 
 - The CLI does not print the summary metrics table
-- No new files appear in `outputs/reports/{symbol}/{tf}/`
+- No new files appear in `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/` or `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 - The trade count is extremely low or `0`
 - Generated filenames do not match the expected prefix
 
@@ -295,7 +302,7 @@ Evaluation often fails or returns empty results when:
 After evaluation finishes, you should verify:
 
 - Whether the CLI printed summary metrics
-- Whether `outputs/reports/{symbol}/{tf}/` contains 3 new artifacts
+- Whether `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/` or `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/` contains the expected new artifacts
 - Whether the filenames match the expected prefix
 - Whether the trade count is large enough to support interpretation, rather than being only a tiny sample
 - If you are evaluating a model, whether that model actually exists in the registry

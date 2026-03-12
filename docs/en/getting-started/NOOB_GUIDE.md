@@ -194,17 +194,18 @@ This confirms that the raw data has passed through the required transformation s
 ### After `train`
 You should see model artifacts under:
 
-- `outputs/models/{symbol}/{tf}/`
+- `outputs/models/{symbol}/{tf}/{label}/`
 
 This location will typically contain:
-- A saved model
+- A saved model for the selected label
 - Metadata
 - Training metrics
 
 ### After `evaluate`
 You should see reports under:
 
-- `outputs/reports/{symbol}/{tf}/`
+- `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 Typical outputs include:
 - Candlestick HTML report
@@ -222,8 +223,8 @@ When you first start using MLFX, keep these simple rules in mind:
   - Labeled data
   - A trained model
   - The correct label column name
-- `outputs/models/{symbol}/{tf}/` stores model artifacts
-- `outputs/reports/{symbol}/{tf}/` stores evaluation reports
+- `outputs/models/{symbol}/{tf}/{label}/` stores model artifacts for a specific label
+- `outputs/reports/{symbol}/{tf}/{label}/...` stores evaluation reports grouped by label, mode, and risk
 - `pixi run clean-generated` removes caches and generated outputs **without touching raw data**
 
 ---

@@ -177,18 +177,25 @@ XAUUSD_1H_label_10_R15
 
 ## 5. Các tệp đầu ra được tạo ra
 
-Mỗi lần chạy thường sinh ra 3 đầu ra trong `outputs/reports/{symbol}/{tf}/`:
+Mỗi lần chạy thường sinh ra 4 đầu ra trong thư mục báo cáo theo từng nhãn:
 
 - `{prefix}_candlestick.html`
 - `{prefix}_equity.png`
 - `{prefix}_heatmap.png`
+- `{prefix}_trades.parquet`
+
+Vị trí mặc định:
+
+- Chế độ nhãn nền: `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/`
+- Chế độ backtest mô hình: `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 
 Ví dụ:
 
 ```text
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_candlestick.html
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_equity.png
-outputs/reports/XAUUSD/1H/XAUUSD_1H_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_candlestick.html
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_equity.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_heatmap.png
+outputs/reports/XAUUSD/1H/label_10/model/R15/model_label_10_R15_trades.parquet
 ```
 
 ---
@@ -284,7 +291,7 @@ Bước đánh giá thường lỗi hoặc cho kết quả rỗng khi:
 ### 8.1. Dấu hiệu lỗi phổ biến
 
 - Dòng lệnh không in ra bảng chỉ số tổng hợp
-- Không có tệp mới trong `outputs/reports/{symbol}/{tf}/`
+- Không có tệp mới trong `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/` hoặc `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/`
 - Số lượng lệnh quá thấp hoặc bằng `0`
 - Tên tệp sinh ra không đúng tiền tố mong đợi
 
@@ -295,7 +302,7 @@ Bước đánh giá thường lỗi hoặc cho kết quả rỗng khi:
 Sau khi chạy xong, bạn nên kiểm tra:
 
 - Dòng lệnh có in ra các chỉ số tổng hợp hay không
-- `outputs/reports/{symbol}/{tf}/` có 3 đầu ra mới hay không
+- `outputs/reports/{symbol}/{tf}/{label}/labels/R{tp*10}/` hoặc `outputs/reports/{symbol}/{tf}/{label}/model/R{tp*10}/` có các đầu ra mới hay không
 - Tên tệp có đúng tiền tố kỳ vọng hay không
 - Số lượng lệnh có đủ lớn để kết luận hay chỉ là một mẫu quá nhỏ
 - Nếu đang đánh giá mô hình, mô hình đó có thực sự tồn tại trong registry không
