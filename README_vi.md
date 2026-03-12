@@ -1,6 +1,6 @@
 # MLFX
 
-> Pipeline MLOps local-first, Pixi-first cho nghiên cứu dữ liệu thị trường, feature engineering, forecasting, evaluation và serving.
+> Pipeline MLOps theo hướng local-first, Pixi-first dành cho nghiên cứu dữ liệu thị trường, xây dựng đặc trưng, dự báo, đánh giá và phục vụ mô hình.
 
 [![Python](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)](README.md#quickstart)
 [![Pixi](https://img.shields.io/badge/workflow-pixi-7A4DFF)](README.md#quickstart)
@@ -12,57 +12,66 @@
 [![LightGBM](https://img.shields.io/badge/gbm-LightGBM-02569B)](README.md#available-backends)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-MLFX là một framework mã nguồn mở, local-first, giúp bạn xây dựng pipeline ML cho dữ liệu thị trường theo cách dễ chạy, dễ debug, dễ benchmark và dễ mở rộng.
+MLFX là một framework mã nguồn mở, vận hành cục bộ, giúp bạn xây dựng pipeline học máy cho dữ liệu thị trường theo cách dễ chạy, dễ gỡ lỗi, dễ so sánh và dễ mở rộng.
 
-Xây một lần, lặp nhanh nhiều lần:
+Thiết lập một lần, thử nghiệm nhiều lần:
 
-- 📥 ingest dữ liệu tick lịch sử
-- 🧪 kiểm tra chất lượng và resample sang OHLCV
-- 🧩 tạo feature và label
-- 🤖 train nhiều backend dự báo khác nhau
-- 📊 benchmark và evaluate kết quả
-- 🚀 serve prediction và theo dõi drift
+- 📥 Thu thập dữ liệu tick lịch sử
+- 🧪 Kiểm tra chất lượng và chuyển đổi sang OHLCV
+- 🧩 Tạo đặc trưng và nhãn
+- 🤖 Huấn luyện nhiều backend dự báo khác nhau
+- 📊 So sánh và đánh giá kết quả
+- 🚀 Triển khai suy luận và theo dõi độ lệch dữ liệu
 
-Nếu bạn muốn một research stack sạch sẽ, có cấu trúc, thay vì một đống notebook rời rạc hoặc một nền tảng cloud khó kiểm soát, MLFX được xây cho đúng nhu cầu đó.
+Nếu bạn cần một bộ khung nghiên cứu gọn gàng, có cấu trúc rõ ràng, thay vì một mớ notebook rời rạc hoặc một nền tảng đám mây khó kiểm soát, MLFX được tạo ra cho đúng mục đích đó.
 
-> ⭐ Nếu MLFX hữu ích với bạn, hãy star repo để nhiều builder khác tìm thấy dự án hơn.
+> ⭐ Nếu MLFX hữu ích với bạn, hãy tặng repo một ngôi sao để nhiều người khác biết đến dự án hơn.
 
 ## Mục lục
 
-- [Vì sao là MLFX?](#vì-sao-là-mlfx)
-- [Bạn có thể làm gì với MLFX](#bạn-có-thể-làm-gì-với-mlfx)
-- [Use cases](#use-cases)
-- [Luồng workflow cốt lõi](#luồng-workflow-cốt-lõi)
-- [Highlights](#highlights)
-- [Các backend hiện có](#các-backend-hiện-có)
-- [Quickstart](#quickstart)
-- [Các lệnh thường dùng](#các-lệnh-thường-dùng)
-- [Cấu trúc dự án](#cấu-trúc-dự-án)
-- [Artifacts được sinh ra](#artifacts-được-sinh-ra)
-- [Tài liệu](#tài-liệu)
-- [MLFX phù hợp với ai?](#mlfx-phù-hợp-với-ai)
-- [Định hướng hiện tại](#định-hướng-hiện-tại)
-- [Đóng góp](#đóng-góp)
-- [Tác giả](#tác-giả)
-- [Giấy phép](#giấy-phép)
+- [MLFX](#mlfx)
+  - [Mục lục](#mục-lục)
+  - [Vì sao nên dùng MLFX?](#vì-sao-nên-dùng-mlfx)
+  - [Bạn có thể làm gì với MLFX](#bạn-có-thể-làm-gì-với-mlfx)
+  - [Các tình huống sử dụng phù hợp](#các-tình-huống-sử-dụng-phù-hợp)
+  - [Luồng làm việc cốt lõi](#luồng-làm-việc-cốt-lõi)
+    - [Ý nghĩa từng bước](#ý-nghĩa-từng-bước)
+  - [Điểm nổi bật](#điểm-nổi-bật)
+  - [Các backend hiện có](#các-backend-hiện-có)
+  - [Bắt đầu nhanh](#bắt-đầu-nhanh)
+    - [Yêu cầu](#yêu-cầu)
+    - [Cài môi trường](#cài-môi-trường)
+    - [Chạy một luồng end-to-end tối thiểu](#chạy-một-luồng-end-to-end-tối-thiểu)
+  - [Các lệnh thường dùng](#các-lệnh-thường-dùng)
+    - [Giải thích nhanh](#giải-thích-nhanh)
+  - [Cấu trúc dự án](#cấu-trúc-dự-án)
+  - [Các đầu ra được tạo ra](#các-đầu-ra-được-tạo-ra)
+  - [Tài liệu](#tài-liệu)
+    - [Bắt đầu từ đây](#bắt-đầu-từ-đây)
+    - [Lộ trình đọc khuyến nghị](#lộ-trình-đọc-khuyến-nghị)
+  - [MLFX phù hợp với ai?](#mlfx-phù-hợp-với-ai)
+  - [Định hướng hiện tại](#định-hướng-hiện-tại)
+  - [Đóng góp](#đóng-góp)
+  - [Tác giả](#tác-giả)
+  - [Giấy phép](#giấy-phép)
 
 ---
 
-## Vì sao là MLFX?
+## Vì sao nên dùng MLFX?
 
-Phần lớn dự án trong mảng này buộc bạn phải chọn một trong ba hướng:
+Phần lớn dự án trong lĩnh vực này thường buộc bạn phải chọn một trong ba hướng:
 
-- **script nhanh / notebook nhanh** nhưng rất khó maintain
-- **framework trading** mạnh về execution nhưng ít opinionated về workflow ML
-- **nền tảng hosted MLOps** tiện lợi nhưng đánh đổi quyền kiểm soát
+- **Script hoặc notebook viết nhanh** nhưng rất khó bảo trì lâu dài
+- **Framework giao dịch** mạnh về khâu thực thi lệnh nhưng ít tập trung vào quy trình học máy
+- **Nền tảng MLOps chạy trên đám mây** tiện lợi nhưng phải đánh đổi quyền kiểm soát
 
-MLFX đứng ở điểm cân bằng hơn:
+MLFX chọn một điểm cân bằng hợp lý hơn:
 
-- 🏠 **Local-first** — dữ liệu, artifact và workflow nằm trong quyền kiểm soát của bạn
-- 🔁 **Tái lập được** — config-driven, quản lý môi trường bằng Pixi, chạy qua CLI thống nhất
-- 🧱 **Modular** — ingestion, pipeline, training, evaluation, serving, monitoring được tách rõ
-- 🔬 **Thân thiện cho nghiên cứu** — dễ benchmark backend, inspect artifact, lặp thí nghiệm
-- 🌍 **Dễ tiếp cận như một dự án open-source** — cấu trúc rõ ràng, có tài liệu, song ngữ Anh-Việt
+- 🏠 **Ưu tiên chạy cục bộ** — dữ liệu, mô hình, artifact và toàn bộ quy trình nằm trong tầm kiểm soát của bạn
+- 🔁 **Dễ tái lập** — cấu hình rõ ràng, môi trường được quản lý bằng Pixi, mọi thứ chạy qua CLI thống nhất
+- 🧱 **Tách lớp rõ ràng** — các phần ingest dữ liệu, pipeline, huấn luyện, đánh giá, phục vụ mô hình và giám sát được phân tách mạch lạc
+- 🔬 **Phù hợp cho nghiên cứu** — dễ benchmark backend, kiểm tra artifact và lặp lại thí nghiệm
+- 🌍 **Dễ tiếp cận như một dự án mã nguồn mở** — cấu trúc sáng sủa, có tài liệu và hỗ trợ song ngữ Anh - Việt
 
 ---
 
@@ -70,30 +79,30 @@ MLFX đứng ở điểm cân bằng hơn:
 
 Với MLFX, bạn có thể:
 
-- 📈 ingest dữ liệu thị trường lịch sử từ Dukascopy
-- ⏱️ resample dữ liệu tick thô thành OHLCV theo nhiều timeframe
-- 🛠️ xây feature kỹ thuật và feature ngữ cảnh
-- 🏷️ sinh label cho supervised learning
-- ⚙️ train và so sánh nhiều họ model khác nhau
-- 🧾 chạy backtest và xuất report
-- 🌐 serve inference qua API
-- 🚨 phát hiện drift trong workflow gần production
+- 📈 Thu thập dữ liệu thị trường lịch sử từ Dukascopy
+- ⏱️ Chuyển dữ liệu tick thô thành OHLCV theo nhiều khung thời gian
+- 🛠️ Xây dựng đặc trưng kỹ thuật và đặc trưng theo ngữ cảnh
+- 🏷️ Tạo nhãn cho các bài toán học có giám sát
+- ⚙️ Huấn luyện và so sánh nhiều họ mô hình khác nhau
+- 🧾 Chạy backtest và xuất báo cáo
+- 🌐 Cung cấp suy luận qua API
+- 🚨 Phát hiện độ lệch dữ liệu trong các quy trình gần với môi trường vận hành thực tế
 
 ---
 
-## Use cases
+## Các tình huống sử dụng phù hợp
 
-MLFX đặc biệt phù hợp cho các tình huống như:
+MLFX đặc biệt hữu ích trong những tình huống như:
 
-- 💱 **FX research pipeline** — xây thí nghiệm lặp lại được trên dữ liệu Dukascopy
-- 🥇 **Benchmark nhiều model** — so sánh ML cổ điển, deep learning và forecasting backend trong cùng một hệ thống
-- 🧪 **Feature engineering experiments** — thử indicator, label, transformation mà không phải dựng lại cả stack
-- 🌐 **Prototype inference API** — đi từ nghiên cứu offline sang serving với ít ma sát hơn
-- 📉 **Monitoring và drift checks** — theo dõi xem dữ liệu mới có lệch khỏi baseline huấn luyện hay không
+- 💱 **Xây pipeline nghiên cứu ngoại hối** — tạo các thí nghiệm có thể lặp lại trên dữ liệu Dukascopy
+- 🥇 **So sánh nhiều mô hình** — đặt các mô hình học máy cổ điển, học sâu và forecasting vào cùng một hệ thống để đối chiếu
+- 🧪 **Thử nghiệm đặc trưng** — kiểm tra indicator, nhãn và phép biến đổi dữ liệu mà không phải dựng lại toàn bộ hạ tầng
+- 🌐 **Tạo nguyên mẫu API suy luận** — chuyển từ nghiên cứu ngoại tuyến sang phục vụ mô hình thuận tiện hơn
+- 📉 **Giám sát và kiểm tra độ lệch dữ liệu** — theo dõi xem dữ liệu mới có đang lệch khỏi tập huấn luyện hay không
 
 ---
 
-## Luồng workflow cốt lõi
+## Luồng làm việc cốt lõi
 
 ```text
 download
@@ -108,29 +117,29 @@ download
 
 ### Ý nghĩa từng bước
 
-- `download` — tải raw tick data từ Dukascopy
-- `qa` — kiểm tra raw data để phát hiện gap và bất thường
-- `pipeline` — tạo OHLCV, feature và label
-- `train` — train backend đã chọn và lưu artifact
-- `evaluate` — backtest kết quả và sinh report
+- `download` — tải dữ liệu tick thô từ Dukascopy
+- `qa` — kiểm tra dữ liệu thô để phát hiện khoảng trống và bất thường
+- `pipeline` — tạo OHLCV, đặc trưng và nhãn
+- `train` — huấn luyện backend đã chọn và lưu artifact
+- `evaluate` — backtest kết quả và sinh báo cáo
 - `benchmark` — so sánh nhiều backend theo cùng một quy trình
-- `serve` — khởi động inference API
-- `batch-predict` — xuất prediction offline
-- `drift` — so sánh phân phối feature mới với baseline tham chiếu
+- `serve` — khởi động API suy luận
+- `batch-predict` — xuất kết quả dự đoán ngoại tuyến
+- `drift` — so sánh phân phối đặc trưng mới với mốc tham chiếu
 
 ---
 
-## Highlights
+## Điểm nổi bật
 
 - ✨ CLI thống nhất: `mlfx`
-- 🟣 Workflow phát triển theo hướng Pixi-first
-- 📥 Ingest dữ liệu tick lịch sử
-- 🧪 Pipeline QA + resampling + labeling
+- 🟣 Quy trình phát triển theo hướng Pixi-first
+- 📥 Thu thập dữ liệu tick lịch sử
+- 🧪 Pipeline kiểm tra chất lượng, chuyển đổi và gắn nhãn
 - 🤖 Nhiều backend huấn luyện
-- 📊 Evaluation + reporting + benchmark
-- ⚡ FastAPI serving layer
-- 👀 Drift monitoring workflow
-- 🌐 Tài liệu song ngữ: English + Vietnamese
+- 📊 Luồng đánh giá, báo cáo và benchmark
+- ⚡ Lớp phục vụ mô hình bằng FastAPI
+- 👀 Quy trình theo dõi độ lệch dữ liệu
+- 🌐 Hệ thống tài liệu song ngữ Anh - Việt
 
 ---
 
@@ -138,26 +147,26 @@ download
 
 | Backend | Mô tả |
 | --- | --- |
-| `mlf` | Baseline MLForecast + LightGBM |
-| `lstm` | PyTorch LSTM |
-| `bilstm` | Bidirectional LSTM |
-| `transformer` | Transformer encoder |
-| `cnn_lstm` | Hybrid CNN + LSTM |
-| `sgd` | Baseline `SGDClassifier` online |
-| `stats` | Các baseline forecasting thống kê |
-| `neuralforecast` | Họ model của NeuralForecast |
+| `mlf` | Mô hình nền MLForecast + LightGBM |
+| `lstm` | Mô hình PyTorch LSTM |
+| `bilstm` | Mô hình LSTM hai chiều |
+| `transformer` | Bộ mã hóa Transformer |
+| `cnn_lstm` | Mô hình lai CNN + LSTM |
+| `sgd` | Mô hình nền `SGDClassifier` dạng online |
+| `stats` | Các mô hình dự báo thống kê cơ sở |
+| `neuralforecast` | Nhóm mô hình của NeuralForecast |
 
-MLFX được thiết kế để bạn so sánh các hướng tiếp cận này trong cùng một cấu trúc thống nhất, thay vì phải dựng lại toàn bộ plumbing mỗi lần thử model mới.
+MLFX được thiết kế để bạn có thể so sánh các hướng tiếp cận này trong cùng một cấu trúc thống nhất, thay vì phải dựng lại toàn bộ phần hạ tầng mỗi khi thử một mô hình mới.
 
 ---
 
-## Quickstart
+## Bắt đầu nhanh
 
 ### Yêu cầu
 
 - Linux `x86_64` / `linux-64`
 - Đã cài [Pixi](https://pixi.sh/)
-- Không cần tự tạo `venv` hoặc `uv` cho workflow chuẩn
+- Không cần tự tạo `venv` hoặc `uv` cho quy trình chuẩn
 
 ### Cài môi trường
 
@@ -165,7 +174,7 @@ MLFX được thiết kế để bạn so sánh các hướng tiếp cận này 
 pixi install
 ```
 
-### Chạy một flow end-to-end tối thiểu
+### Chạy một luồng end-to-end tối thiểu
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
@@ -174,12 +183,12 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-Sau `evaluate`, MLFX sẽ in summary metrics và đường dẫn đến các report được sinh ra.
+Sau bước `evaluate`, MLFX sẽ in ra các chỉ số tổng hợp và đường dẫn đến những báo cáo được tạo.
 
-Để xem luồng onboarding đầy đủ:
+Để xem hướng dẫn bắt đầu đầy đủ:
 
-- English: [docs/en/getting-started/QUICKSTART.md](docs/en/getting-started/QUICKSTART.md)
-- Tiếng Việt: [docs/vi/getting-started/QUICKSTART.md](docs/vi/getting-started/QUICKSTART.md)
+- Bản tiếng Anh: [docs/en/getting-started/QUICKSTART.md](docs/en/getting-started/QUICKSTART.md)
+- Bản tiếng Việt: [docs/vi/getting-started/QUICKSTART.md](docs/vi/getting-started/QUICKSTART.md)
 
 ---
 
@@ -194,10 +203,10 @@ pixi run clean-generated
 
 ### Giải thích nhanh
 
-- `pixi run mlfx` — CLI entrypoint thống nhất
-- `pixi run test` — chạy toàn bộ test suite
-- `pixi run verify` — chạy smoke/contract checks quan trọng
-- `pixi run clean-generated` — dọn cache và artifact được sinh tự động
+- `pixi run mlfx` — điểm vào CLI thống nhất
+- `pixi run test` — chạy toàn bộ bộ kiểm thử
+- `pixi run verify` — chạy các kiểm thử smoke và contract quan trọng
+- `pixi run clean-generated` — dọn dẹp cache và các đầu ra được sinh tự động
 
 ---
 
@@ -206,21 +215,21 @@ pixi run clean-generated
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # CLI entrypoints
-│   ├── config/         # nạp config và policy đường dẫn
-│   ├── ingestion/      # tải dữ liệu lịch sử
-│   ├── pipeline/       # qa, resampling, features, labels
-│   ├── features/       # các module feature
-│   ├── training/       # hệ thống train backend
-│   ├── evaluation/     # backtesting và reports
-│   ├── tracking/       # experiment tracking
-│   ├── registry/       # model registry
-│   ├── serving/        # FastAPI inference layer
-│   └── monitoring/     # drift detection và monitoring
-├── docs/               # hub tài liệu song ngữ
-├── data/               # dữ liệu raw và processed
-├── outputs/            # models, reports, predictions, monitoring outputs
-├── tests/              # tests và integration coverage
+│   ├── app/            # Các điểm vào CLI
+│   ├── config/         # Nạp cấu hình và chính sách đường dẫn
+│   ├── ingestion/      # Tải dữ liệu lịch sử
+│   ├── pipeline/       # Kiểm tra chất lượng, chuyển đổi, đặc trưng, nhãn
+│   ├── features/       # Các mô-đun đặc trưng
+│   ├── training/       # Hệ thống huấn luyện backend
+│   ├── evaluation/     # Backtest và báo cáo
+│   ├── tracking/       # Theo dõi thí nghiệm
+│   ├── registry/       # Sổ đăng ký mô hình
+│   ├── serving/        # Lớp suy luận dùng FastAPI
+│   └── monitoring/     # Phát hiện độ lệch và giám sát
+├── docs/               # Cổng tài liệu song ngữ
+├── data/               # Dữ liệu thô và dữ liệu đã xử lý
+├── outputs/            # Mô hình, báo cáo, dự đoán, đầu ra giám sát
+├── tests/              # Kiểm thử và kiểm thử tích hợp
 ├── Dockerfile
 ├── docker-compose.yml
 ├── config.toml
@@ -229,18 +238,18 @@ MLFX/
 
 ---
 
-## Artifacts được sinh ra
+## Các đầu ra được tạo ra
 
-MLFX tổ chức output theo cách giúp thí nghiệm dễ kiểm tra và dễ tái sử dụng:
+MLFX tổ chức đầu ra theo cách giúp thí nghiệm dễ kiểm tra và dễ tái sử dụng:
 
-- `data/raw/{symbol}/` — raw tick data đã tải
-- `data/ohlcv/{symbol}/{tf}/` — file OHLCV parquet sau resample
-- `data/features/{symbol}/{tf}/` — dataset feature
-- `data/labels/{symbol}/{tf}/` — dataset đã gắn nhãn
-- `outputs/models/{symbol}/{tf}/` — model artifact và metadata
-- `outputs/reports/{symbol}/{tf}/` — report từ evaluation
-- `outputs/predictions/{symbol}/{tf}/` — kết quả batch prediction
-- `outputs/monitoring/{symbol}/{tf}/` — drift references và alerts
+- `data/raw/{symbol}/` — dữ liệu tick thô đã tải
+- `data/ohlcv/{symbol}/{tf}/` — tệp parquet OHLCV sau khi chuyển đổi
+- `data/features/{symbol}/{tf}/` — tập dữ liệu đặc trưng
+- `data/labels/{symbol}/{tf}/` — tập dữ liệu đã gắn nhãn
+- `outputs/models/{symbol}/{tf}/` — artifact mô hình và siêu dữ liệu
+- `outputs/reports/{symbol}/{tf}/` — báo cáo từ bước đánh giá
+- `outputs/predictions/{symbol}/{tf}/` — kết quả dự đoán theo lô
+- `outputs/monitoring/{symbol}/{tf}/` — mốc tham chiếu độ lệch và cảnh báo
 
 ---
 
@@ -248,37 +257,37 @@ MLFX tổ chức output theo cách giúp thí nghiệm dễ kiểm tra và dễ 
 
 ### Bắt đầu từ đây
 
-- Cổng docs: [docs/README.md](docs/README.md)
-- Docs tiếng Anh: [docs/en/README.md](docs/en/README.md)
-- Docs tiếng Việt: [docs/vi/README.md](docs/vi/README.md)
+- Cổng tài liệu: [docs/README.md](docs/README.md)
+- Tài liệu tiếng Anh: [docs/en/README.md](docs/en/README.md)
+- Tài liệu tiếng Việt: [docs/vi/README.md](docs/vi/README.md)
 
 ### Lộ trình đọc khuyến nghị
 
 **Nếu bạn mới vào repo**
-- [English Quickstart](docs/en/getting-started/QUICKSTART.md)
-- [Vietnamese Quickstart](docs/vi/getting-started/QUICKSTART.md)
-- [Beginner Guide (EN)](docs/en/getting-started/NOOB_GUIDE.md)
-- [Beginner Guide (VI)](docs/vi/getting-started/NOOB_GUIDE.md)
+- [Bắt đầu nhanh (EN)](docs/en/getting-started/QUICKSTART.md)
+- [Bắt đầu nhanh (VI)](docs/vi/getting-started/QUICKSTART.md)
+- [Hướng dẫn nhập môn (EN)](docs/en/getting-started/NOOB_GUIDE.md)
+- [Hướng dẫn nhập môn (VI)](docs/vi/getting-started/NOOB_GUIDE.md)
 
 **Nếu bạn muốn dùng CLI**
-- [Usage Guide (EN)](docs/en/guides/USAGE_GUIDE.md)
-- [Usage Guide (VI)](docs/vi/guides/USAGE_GUIDE.md)
+- [Hướng dẫn sử dụng (EN)](docs/en/guides/USAGE_GUIDE.md)
+- [Hướng dẫn sử dụng (VI)](docs/vi/guides/USAGE_GUIDE.md)
 
-**Nếu bạn muốn hiểu evaluation**
-- [Evaluation Guide (EN)](docs/en/guides/EVALUATION_GUIDE.md)
-- [Evaluation Guide (VI)](docs/vi/guides/EVALUATION_GUIDE.md)
+**Nếu bạn muốn hiểu phần đánh giá**
+- [Hướng dẫn đánh giá (EN)](docs/en/guides/EVALUATION_GUIDE.md)
+- [Hướng dẫn đánh giá (VI)](docs/vi/guides/EVALUATION_GUIDE.md)
 
 **Nếu bạn muốn xem kiến trúc**
-- [Architecture (EN)](docs/en/architecture/ARCHITECTURE.md)
-- [Architecture (VI)](docs/vi/architecture/ARCHITECTURE.md)
-- [Backend Comparison (EN)](docs/en/architecture/BACKEND_COMPARISON.md)
-- [Backend Comparison (VI)](docs/vi/architecture/BACKEND_COMPARISON.md)
+- [Kiến trúc (EN)](docs/en/architecture/ARCHITECTURE.md)
+- [Kiến trúc (VI)](docs/vi/architecture/ARCHITECTURE.md)
+- [So sánh backend (EN)](docs/en/architecture/BACKEND_COMPARISON.md)
+- [So sánh backend (VI)](docs/vi/architecture/BACKEND_COMPARISON.md)
 
 **Tài liệu kế hoạch**
-- [Roadmap (EN)](docs/en/meta/ROADMAP.md)
-- [Roadmap (VI)](docs/vi/meta/ROADMAP.md)
-- [TODO (EN)](docs/en/meta/TODO.md)
-- [TODO (VI)](docs/vi/meta/TODO.md)
+- [Lộ trình (EN)](docs/en/meta/ROADMAP.md)
+- [Lộ trình (VI)](docs/vi/meta/ROADMAP.md)
+- [Việc cần làm (EN)](docs/en/meta/TODO.md)
+- [Việc cần làm (VI)](docs/vi/meta/TODO.md)
 
 ---
 
@@ -286,16 +295,16 @@ MLFX tổ chức output theo cách giúp thí nghiệm dễ kiểm tra và dễ 
 
 MLFX phù hợp nếu bạn là:
 
-- một solo quant hoặc researcher muốn workflow local có cấu trúc
-- một engineer chán việc phải viết lại glue code cho data/training/evaluation
-- người đang muốn so sánh ML cổ điển, deep learning và forecasting backend
-- người dùng open-source coi trọng quyền kiểm soát, tính tái lập và artifact có thể inspect
+- Một nhà nghiên cứu định lượng hoặc người làm nghiên cứu cá nhân muốn có workflow cục bộ, có cấu trúc
+- Một kỹ sư không muốn liên tục viết lại glue code cho dữ liệu, huấn luyện và đánh giá
+- Người đang muốn so sánh các mô hình học máy cổ điển, học sâu và forecasting
+- Người dùng mã nguồn mở coi trọng quyền kiểm soát, khả năng tái lập và các artifact có thể kiểm tra được
 
-MLFX có thể không phải lựa chọn lý tưởng nếu bạn chỉ cần:
+MLFX có thể không phải lựa chọn phù hợp nhất nếu bạn chỉ cần:
 
-- một trading bot plug-and-play gần như không cần setup
-- một SaaS cloud-managed workflow
-- một framework chỉ tập trung execution mà không quan tâm đến ML experimentation
+- Một bot giao dịch cắm vào là chạy gần như không cần cấu hình
+- Một quy trình hoàn toàn quản lý trên đám mây
+- Một framework chỉ tập trung vào thực thi mà không quan tâm đến thí nghiệm học máy
 
 ---
 
@@ -305,17 +314,17 @@ MLFX hiện đã bao phủ khá tốt vòng lặp nghiên cứu cốt lõi.
 
 Các cải tiến lớn tiếp theo tập trung vào:
 
-- độ tin cậy của serving
-- inference contracts rõ ràng hơn
-- retry và failure isolation
-- observability tốt hơn
-- mở rộng backend experiments
-- benchmark consistency tốt hơn
+- Tăng độ tin cậy của lớp phục vụ mô hình
+- Làm rõ hợp đồng đầu vào/đầu ra cho suy luận
+- Bổ sung cơ chế thử lại và cô lập lỗi tốt hơn
+- Nâng cao khả năng quan sát hệ thống
+- Mở rộng không gian thử nghiệm backend
+- Cải thiện tính nhất quán của benchmark
 
-Xem roadmap để biết chi tiết:
+Xem roadmap để biết thêm chi tiết:
 
-- [English roadmap](docs/en/meta/ROADMAP.md)
-- [Vietnamese roadmap](docs/vi/meta/ROADMAP.md)
+- [Lộ trình tiếng Anh](docs/en/meta/ROADMAP.md)
+- [Lộ trình tiếng Việt](docs/vi/meta/ROADMAP.md)
 
 ---
 
@@ -327,13 +336,13 @@ Nếu bạn thích hướng đi của dự án, một ⭐ trên GitHub là cách
 
 Các hướng đóng góp phù hợp gồm:
 
-- backend model mới
-- cải tiến feature engineering
-- live data adapters
-- cải tiến evaluation/reporting
-- hardening serving layer
-- polish tài liệu
-- tests và cải thiện khả năng tái lập
+- Backend mô hình mới
+- Cải tiến phần xây dựng đặc trưng
+- Adapter dữ liệu thời gian thực
+- Cải tiến đánh giá và báo cáo
+- Tăng độ ổn định cho lớp phục vụ mô hình
+- Hoàn thiện tài liệu
+- Kiểm thử và nâng cao khả năng tái lập
 
 Nếu bạn mới bắt đầu khám phá repo, hãy đọc:
 
