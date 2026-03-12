@@ -6,21 +6,46 @@
 [![Pixi](https://img.shields.io/badge/workflow-pixi-7A4DFF)](#quickstart)
 [![Platform](https://img.shields.io/badge/platform-linux--64-1793D1?logo=linux&logoColor=white)](#requirements)
 [![Docs](https://img.shields.io/badge/docs-bilingual-brightgreen)](docs/README.md)
-[![License](https://img.shields.io/badge/license-open--source-blue)](#license)
+[![FastAPI](https://img.shields.io/badge/api-FastAPI-009688?logo=fastapi&logoColor=white)](#highlights)
+[![Polars](https://img.shields.io/badge/data-Polars-CD792C?logo=polars&logoColor=white)](#highlights)
+[![PyTorch](https://img.shields.io/badge/dl-PyTorch-EE4C2C?logo=pytorch&logoColor=white)](#available-backends)
+[![LightGBM](https://img.shields.io/badge/gbm-LightGBM-02569B)](#available-backends)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/ultimateBroK/MLFX?style=social)](https://github.com/ultimateBroK/MLFX/stargazers)
 
-MLFX helps you build an end-to-end market prediction workflow on your own machine:
+MLFX is an open-source, local-first framework for building market-data ML pipelines that are actually pleasant to run, debug, and extend.
 
-- 📥 download historical tick data
-- 🧪 validate and resample it into OHLCV
-- 🧩 engineer features and labels
-- 🤖 train multiple forecasting backends
-- 📊 benchmark and evaluate results
-- 🚀 serve predictions and monitor drift
+Build once, then iterate fast:
 
-If you want a clean, hackable research stack instead of a pile of notebooks or a black-box hosted platform, MLFX is built for that.
+- 📥 Ingest historical tick data
+- 🧪 Validate and resample it into OHLCV
+- 🧩 Engineer features and labels
+- 🤖 Train multiple forecasting backends
+- 📊 Benchmark and evaluate results
+- 🚀 Serve predictions and monitor drift
+
+Whether you're a solo quant, ML engineer, or systems-minded trader, MLFX gives you a reproducible workflow without forcing you into a cloud platform or a notebook-only mess.
 
 > ⭐ If MLFX is useful to you, give the repo a star — it helps more builders discover the project.
+
+## Table of contents
+
+- [Why MLFX?](#why-mlfx)
+- [What you can do with it](#what-you-can-do-with-it)
+- [Use cases](#use-cases)
+- [Core workflow](#core-workflow)
+- [Highlights](#highlights)
+- [Available backends](#available-backends)
+- [Quickstart](#quickstart)
+- [Common commands](#common-commands)
+- [Project structure](#project-structure)
+- [Generated artifacts](#generated-artifacts)
+- [Documentation](#documentation)
+- [Who is this for?](#who-is-this-for)
+- [Current direction](#current-direction)
+- [Contributing](#contributing)
+- [Author](#author)
+- [License](#license)
 
 ---
 
@@ -28,9 +53,9 @@ If you want a clean, hackable research stack instead of a pile of notebooks or a
 
 Most projects force you to choose between:
 
-- **quick scripts** that are hard to maintain
-- **trading frameworks** that are great at execution but less opinionated about ML workflows
-- **hosted MLOps tools** that are convenient but reduce control
+- **Quick scripts** that are hard to maintain
+- **Trading frameworks** that are great at execution but less opinionated about ML workflows
+- **Hosted MLOps tools** that are convenient but reduce control
 
 MLFX sits in the middle:
 
@@ -46,14 +71,26 @@ MLFX sits in the middle:
 
 With MLFX, you can:
 
-- 📈 ingest historical market data from Dukascopy
-- ⏱️ resample raw ticks into multi-timeframe OHLCV datasets
-- 🛠️ build technical and context-aware features
-- 🏷️ generate labels for supervised learning
-- ⚙️ train and compare multiple model families
-- 🧾 run backtests and export reports
-- 🌐 serve inference through an API
-- 🚨 detect feature drift in production-like workflows
+- 📈 Ingest historical market data from Dukascopy
+- ⏱️ Resample raw ticks into multi-timeframe OHLCV datasets
+- 🛠️ Build technical and context-aware features
+- 🏷️ Generate labels for supervised learning
+- ⚙️ Train and compare multiple model families
+- 🧾 Run backtests and export reports
+- 🌐 Serve inference through an API
+- 🚨 Detect feature drift in production-like workflows
+
+---
+
+## Use cases
+
+MLFX is especially useful for workflows like:
+
+- 💱 **FX research pipelines** — build repeatable experiments on Dukascopy data
+- 🥇 **Model benchmarking** — compare classical ML, deep learning, and forecasting backends in one place
+- 🧪 **Feature engineering experiments** — test indicators, labels, and transformations without rebuilding the stack
+- 🌐 **Inference API prototyping** — move from offline research to serving with less friction
+- 📉 **Monitoring and drift checks** — inspect whether live-like data is drifting away from your training baseline
 
 ---
 
@@ -121,7 +158,7 @@ MLFX is designed so you can compare these approaches inside one consistent proje
 
 - Linux `x86_64` / `linux-64`
 - [Pixi](https://pixi.sh/) installed
-- no separate `venv` or `uv` setup needed for the standard workflow
+- No separate `venv` or `uv` setup needed for the standard workflow
 
 ### Install environment
 
@@ -250,15 +287,15 @@ MLFX keeps outputs organized so experiments stay inspectable:
 
 MLFX is a good fit if you are:
 
-- a solo quant or researcher who wants a structured local workflow
-- an engineer tired of rewriting data/training/evaluation glue code
-- someone comparing classical ML, deep learning, and forecasting backends
-- an open-source user who values control, reproducibility, and inspectable artifacts
+- A solo quant or researcher who wants a structured local workflow
+- An engineer tired of rewriting data/training/evaluation glue code
+- Someone comparing classical ML, deep learning, and forecasting backends
+- An open-source user who values control, reproducibility, and inspectable artifacts
 
 MLFX may be less ideal if you only want:
-- a plug-and-play trading bot with zero setup
-- a cloud-managed SaaS workflow
-- an execution-only framework without ML experimentation needs
+- A plug-and-play trading bot with zero setup
+- A cloud-managed SaaS workflow
+- An execution-only framework without ML experimentation needs
 
 ---
 
@@ -268,12 +305,12 @@ MLFX already covers the core research loop well.
 
 The next major improvements are around:
 
-- serving reliability
-- cleaner inference contracts
-- retry and failure isolation
-- stronger observability
-- broader backend experimentation
-- improved benchmark consistency
+- Serving reliability
+- Cleaner inference contracts
+- Retry and failure isolation
+- Stronger observability
+- Broader backend experimentation
+- Improved benchmark consistency
 
 See the roadmap for details:
 - [English roadmap](docs/en/meta/ROADMAP.md)
@@ -289,13 +326,13 @@ If you like the direction of the project, a ⭐ on GitHub is one of the easiest 
 
 Good contribution areas include:
 
-- new model backends
-- feature engineering improvements
-- live data adapters
-- evaluation/reporting improvements
-- serving hardening
-- documentation polish
-- tests and reproducibility improvements
+- New model backends
+- Feature engineering improvements
+- Live data adapters
+- Evaluation/reporting improvements
+- Serving hardening
+- Documentation polish
+- Tests and reproducibility improvements
 
 If you're exploring the repo for the first time, start with:
 
@@ -314,4 +351,6 @@ GitHub: [@ultimateBroK](https://github.com/ultimateBroK)
 
 ## License
 
-Please add your project license here if it is not already defined in the repository metadata.
+This project is licensed under the Apache License 2.0.
+
+See [LICENSE](LICENSE) for details.
