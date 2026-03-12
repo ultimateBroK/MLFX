@@ -46,8 +46,8 @@ Tick data is dense. Resampling converts it into bars such as `1m`, `5m`, and `1H
 
 Feature engineering adds context such as:
 - ICT session features
-- support/resistance
-- pivot points
+- Support/resistance
+- Pivot points
 - RSI, MACD, ATR, EMA
 
 ### Features -> Labels
@@ -69,39 +69,41 @@ The CLI currently exposes these backends:
 ### Train -> Backtest
 
 Backtesting consumes a label column as a signal source and generates:
-- candlestick HTML
-- equity curve PNG
-- heatmap PNG
+- Candlestick HTML
+- Equity curve PNG
+- Heatmap PNG
 
 ## 4. Fastest way to start
 
-```bash
-pixi install
-pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
-pixi run mlfx qa --symbol XAUUSD --asset-class fx
-pixi run mlfx pipeline --symbol XAUUSD --tf 1H
-pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
-pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
-```
+For the canonical fast-start workflow, read:
+- [QUICKSTART.md](QUICKSTART.md)
+
+Use that document when you want the shortest runnable path from environment setup to first backtest output.
+
+This guide stays focused on:
+- What the project does
+- Why stage order matters
+- What artifacts you should expect after each stage
 
 ## 5. What you should see after each step
 
-- after `download`: parquet files under `data/raw/{symbol}/`
-- after `qa`: a markdown quality report under `data/raw/{symbol}/`
-- after `pipeline`: parquet files under `data/ohlcv/`, `data/features/`, and `data/labels/`
-- after `train`: artifacts under `outputs/models/{symbol}/{tf}/`
-- after `evaluate`: HTML and PNG files under `outputs/reports/{symbol}/{tf}/`
+- After `download`: parquet files under `data/raw/{symbol}/`
+- After `qa`: a markdown quality report under `data/raw/{symbol}/`
+- After `pipeline`: parquet files under `data/ohlcv/`, `data/features/`, and `data/labels/`
+- After `train`: artifacts under `outputs/models/{symbol}/{tf}/`
+- After `evaluate`: HTML and PNG files under `outputs/reports/{symbol}/{tf}/`
 
 ## 6. Things to remember
 
-- if training fails because files are missing, you usually skipped `mlfx pipeline`
+- If training fails because files are missing, you usually skipped `mlfx pipeline`
 - `outputs/models/{symbol}/{tf}/` stores model artifacts and metrics
 - `outputs/reports/{symbol}/{tf}/` stores backtest reports
 - `pixi run clean-generated` removes common caches and old outputs without touching `data/raw/`
 
 ## 7. What to read next
 
-- [USAGE_GUIDE.md](USAGE_GUIDE.md): command-by-command usage
-- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md): how to read backtest outputs
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md): environment and data issues
-- [GLOSSARY.md](GLOSSARY.md): common terms
+- [QUICKSTART.md](QUICKSTART.md): canonical fast-start workflow
+- [../guides/USAGE_GUIDE.md](../guides/USAGE_GUIDE.md): command-by-command usage
+- [../guides/EVALUATION_GUIDE.md](../guides/EVALUATION_GUIDE.md): how to read backtest outputs
+- [../guides/TROUBLESHOOTING.md](../guides/TROUBLESHOOTING.md): environment and data issues
+- [../reference/GLOSSARY.md](../reference/GLOSSARY.md): common terms

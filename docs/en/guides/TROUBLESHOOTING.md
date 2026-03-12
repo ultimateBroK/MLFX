@@ -5,11 +5,11 @@ This guide covers common environment and operational issues for the `mlfx` workf
 ## 1. Quick Diagnostic Checklist
 
 When a stage fails, check in this order:
-1. whether `pixi install` has been run
-2. whether the command is being executed through `pixi run`
-3. whether the current stage has its required input data
-4. whether the previous stage produced its expected output
-5. whether old caches or generated artifacts are polluting the workspace
+1. Whether `pixi install` has been run
+2. Whether the command is being executed through `pixi run`
+3. Whether the current stage has its required input data
+4. Whether the previous stage produced its expected output
+5. Whether old caches or generated artifacts are polluting the workspace
 
 ## 2. `pixi: command not found`
 
@@ -39,8 +39,8 @@ pixi install
 ```
 
 If it still fails:
-- confirm you are running commands with `pixi run`
-- try `pixi run python -c "import polars"` to verify the environment
+- Confirm you are running commands with `pixi run`
+- Try `pixi run python -c "import polars"` to verify the environment
 
 ## 4. Missing files during pipeline or training
 
@@ -101,10 +101,10 @@ pixi run mlfx train --help
 ## 7. Out-of-memory or killed processes
 
 Suggestions:
-- start with a larger timeframe such as `1H`
-- process one symbol at a time
-- reduce the time range for initial experiments
-- prefer `scan_parquet()` over `read_parquet()` in custom scripts
+- Start with a larger timeframe such as `1H`
+- Process one symbol at a time
+- Reduce the time range for initial experiments
+- Prefer `scan_parquet()` over `read_parquet()` in custom scripts
 
 ## 8. Clean caches and old outputs
 
@@ -121,8 +121,8 @@ This clears reproducible workspace state such as:
 - `.ruff_cache/`
 - `__pycache__/`
 - `lightning_logs/`
-- contents of `outputs/models/{symbol}/{tf}/`
-- contents of `outputs/reports/{symbol}/{tf}/`
+- Contents of `outputs/models/{symbol}/{tf}/`
+- Contents of `outputs/reports/{symbol}/{tf}/`
 
 It does not remove `data/raw/`.
 
@@ -140,10 +140,10 @@ Use this only when you explicitly want a full intermediate rebuild.
 ## 10. Backtest does not generate reports
 
 Check:
-- whether `data/labels/{symbol}/{tf}/` contains parquet files
-- whether the `--label` column exists
-- whether the `atr_14` column exists
-- whether `outputs/reports/{symbol}/{tf}/` is writable
+- Whether `data/labels/{symbol}/{tf}/` contains parquet files
+- Whether the `--label` column exists
+- Whether the `atr_14` column exists
+- Whether `outputs/reports/{symbol}/{tf}/` is writable
 
 Valid example:
 
@@ -152,8 +152,8 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 ```
 
 Notes:
-- the CLI does not currently expose an `--outdir` option
-- reports are written to `outputs/reports/{symbol}/{tf}/` by default
+- The CLI does not currently expose an `--outdir` option
+- Reports are written to `outputs/reports/{symbol}/{tf}/` by default
 
 ## 11. Verify the repo after config or docs changes
 
@@ -164,9 +164,9 @@ pixi run verify
 ```
 
 This is useful after:
-- changing Pixi configuration
-- updating docs or entrypoints
-- cleaning caches and outputs, then checking the main workflow still behaves correctly
+- Changing Pixi configuration
+- Updating docs or entrypoints
+- Cleaning caches and outputs, then checking the main workflow still behaves correctly
 
 ## 12. Drift keeps alerting but you do not want to retrain
 

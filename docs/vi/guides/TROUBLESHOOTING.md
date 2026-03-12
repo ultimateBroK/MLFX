@@ -6,16 +6,16 @@ Tài liệu này gom các lỗi thường gặp khi cài môi trường hoặc c
 
 Khi một bước thất bại, hãy kiểm tra theo thứ tự:
 1. `pixi install` đã chạy chưa
-2. đang chạy lệnh bằng `pixi run` hay không
-3. dữ liệu đầu vào của bước hiện tại có tồn tại không
-4. output của bước trước có sinh ra đúng thư mục không
-5. workspace có đang bị nhiễu bởi cache hoặc artifact cũ không
+2. Đang chạy lệnh bằng `pixi run` hay không
+3. Dữ liệu đầu vào của bước hiện tại có tồn tại không
+4. Output của bước trước có sinh ra đúng thư mục không
+5. Workspace có đang bị nhiễu bởi cache hoặc artifact cũ không
 
 ## 2. `pixi: command not found`
 
 Nguyên nhân thường gặp:
-- chưa cài Pixi
-- đã cài nhưng terminal hoặc IDE chưa được mở lại
+- Chưa cài Pixi
+- Đã cài nhưng terminal hoặc IDE chưa được mở lại
 
 Cách xử lý:
 
@@ -39,8 +39,8 @@ pixi install
 ```
 
 Nếu vẫn lỗi:
-- kiểm tra bạn có chạy bằng `pixi run ...` hay không
-- thử `pixi run python -c "import polars"` để xác nhận environment
+- Kiểm tra bạn có chạy bằng `pixi run ...` hay không
+- Thử `pixi run python -c "import polars"` để xác nhận environment
 
 ## 4. Thiếu file ở bước pipeline hoặc train
 
@@ -101,10 +101,10 @@ pixi run mlfx train --help
 ## 7. Hết RAM hoặc process bị kill
 
 Gợi ý:
-- bắt đầu với timeframe lớn hơn như `1H`
-- xử lý từng symbol một
-- giảm scope kiểm thử xuống một khoảng thời gian ngắn hơn
-- với script tự viết, ưu tiên `scan_parquet()` cho dữ liệu lớn
+- Bắt đầu với timeframe lớn hơn như `1H`
+- Xử lý từng symbol một
+- Giảm scope kiểm thử xuống một khoảng thời gian ngắn hơn
+- Với script tự viết, ưu tiên `scan_parquet()` cho dữ liệu lớn
 
 ## 8. Muốn dọn cache và output cũ
 
@@ -140,10 +140,10 @@ Chỉ dùng khi bạn chắc chắn muốn sinh lại toàn bộ parquet trung g
 ## 10. Backtest không tạo báo cáo
 
 Kiểm tra:
-- thư mục `data/labels/{symbol}/{tf}/` có parquet không
-- cột tín hiệu truyền qua `--label` có tồn tại không
-- cột `atr_14` có tồn tại không
-- thư mục `outputs/reports/{symbol}/{tf}/` có ghi được không
+- Thư mục `data/labels/{symbol}/{tf}/` có parquet không
+- Cột tín hiệu truyền qua `--label` có tồn tại không
+- Cột `atr_14` có tồn tại không
+- Thư mục `outputs/reports/{symbol}/{tf}/` có ghi được không
 
 Lệnh mẫu hợp lệ:
 
@@ -153,7 +153,7 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 Lưu ý:
 - CLI hiện không có tham số `--outdir`
-- report mặc định được ghi vào `outputs/reports/{symbol}/{tf}/`
+- Report mặc định được ghi vào `outputs/reports/{symbol}/{tf}/`
 
 ## 11. Cần kiểm tra repo có còn sạch không
 
@@ -164,9 +164,9 @@ pixi run verify
 ```
 
 Lệnh này phù hợp khi bạn vừa:
-- đổi cấu hình Pixi
-- chỉnh docs/entrypoints
-- dọn cache/output và muốn chắc workflow chính vẫn ổn
+- Đổi cấu hình Pixi
+- Chỉnh docs/entrypoints
+- Dọn cache/output và muốn chắc workflow chính vẫn ổn
 
 ## 12. Drift liên tục báo cảnh báo nhưng không muốn thay đổi model
 

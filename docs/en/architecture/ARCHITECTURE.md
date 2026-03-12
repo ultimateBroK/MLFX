@@ -1,17 +1,17 @@
 # MLFX Architecture
 
-Tài liệu này mô tả kiến trúc MLOps tổng thể của dự án MLFX, bao gồm các module, luồng dữ liệu, và quyết định thiết kế.
+This document describes the overall MLOps architecture of the MLFX project, including modules, data flows, and design decisions.
 
 ---
 
-## Tổng quan (C4 Context)
+## Overview (C4 Context)
 
 ```
 [User / Researcher]
         │
         ▼
 ┌─────────────────────────────────┐
-│          MLFX System           │
+│          MLFX System            │
 │   (ingestion → pipeline →       │
 │    training → evaluation →      │
 │    serving → monitoring)        │
@@ -26,7 +26,7 @@ Tài liệu này mô tả kiến trúc MLOps tổng thể của dự án MLFX, b
 
 ## Data Layer
 
-### Luồng dữ liệu
+### Data Flow
 
 ```
 Dukascopy API
@@ -54,12 +54,12 @@ data/labels/{symbol}/{tf}/
 
 ### Path Policy
 
-Tất cả đường dẫn được quản lý qua `mlfx.config.paths.ProjectPaths` (frozen dataclass).  Không có hard-coded paths nào bên ngoài module này.
+All paths are managed via `mlfx.config.paths.ProjectPaths` (frozen dataclass). No hard-coded paths exist outside this module.
 
 ```python
 from mlfx.config.paths import DEFAULT_PATHS
 
-paths = DEFAULT_PATHS                         # hoặc ProjectPaths(project_root=...)
+paths = DEFAULT_PATHS                         # or ProjectPaths(project_root=...)
 in_dir = paths.features_dir("XAUUSD", "1H")  # data/features/XAUUSD/1H/
 ```
 
@@ -67,11 +67,11 @@ in_dir = paths.features_dir("XAUUSD", "1H")  # data/features/XAUUSD/1H/
 
 ## Feature Engineering Layer
 
-Entry-point duy nhất: `mlfx.pipeline.feature_engineering.run_feature_pipeline()`.
+Single entry point: `mlfx.pipeline.feature_engineering.run_feature_pipeline()`.
 
-Các group feature được thêm vào:
+Feature groups added:
 
-| Group | Hàm | Output columns |
+| Group | Function | Output columns |
 |---|---|---|
 | TA Indicators | `add_ta_features()` | rsi_14, macd, macd_signal, atr_14, ema_* |
 | ICT Order Blocks | `add_order_block_features()` | ob_bull/bear_distance |
@@ -105,37 +105,37 @@ runner.run_training()
         └── registry.models   (register artifact)
 ```
 
-### Training module layout
+### Training Module Layout
 
 ```
 mlfx/training/
-├── backends/               ← implementations (canonical location)
+├── backends/               ← Implementations (canonical location)
 │   ├── __init__.py
-│   ├── _pytorch_common.py  ← shared PyTorch utilities for DL backends
-│   ├── _sequence_utils.py  ← sequence preparation helpers for DL backends
+│   ├── _pytorch_common.py  ← Shared PyTorch utilities for DL backends
+│   ├── _sequence_utils.py  ← Sequence preparation helpers for DL backends
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
 │   ├── mlforecast.py       ← LightGBM via MLForecast  (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
 │   ├── bilstm.py           ← PyTorch BiLSTM            (key: "bilstm")
 │   ├── transformer.py      ← PyTorch Transformer       (key: "transformer")
 │   ├── cnn_lstm.py         ← CNN + LSTM hybrid         (key: "cnn_lstm")
-│   ├── online_sgd.py       ← sklearn SGD               (key: "sgd")
+│   ├── online_sgd.py       ← Sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← StatsForecast baseline    (key: "stats")
 │   └── neuralforecast.py   ← NeuralForecast            (key: "neuralforecast")
-├── __init__.py             ← public re-exports from data/feature_selection/artifacts
-├── _utils.py               ← internal utilities
-├── artifacts.py            ← model persistence helpers (canonical)
-├── config.py               ← public TrainingConfig / TrainResult aliases
-├── data.py                 ← dataset loading helpers (canonical)
-├── evaluation.py           ← model evaluation helpers
-├── feature_selection.py    ← feature selection helpers (canonical)
+├── __init__.py             ← Public re-exports from data/feature_selection/artifacts
+├── _utils.py               ← Internal utilities
+├── artifacts.py            ← Model persistence helpers (canonical)
+├── config.py               ← Public TrainingConfig / TrainResult aliases
+├── data.py                 ← Dataset loading helpers (canonical)
+├── evaluation.py           ← Model evaluation helpers
+├── feature_selection.py    ← Feature selection helpers (canonical)
 ├── registry.py             ← BACKEND_REGISTRY: key → (module, function)
-└── runner.py               ← high-level orchestrator
+└── runner.py               ← High-level orchestrator
 ```
 
 ### Backend Interface
 
-Mọi backend phải triển khai signature tương thích với `BackendRunner`:
+Every backend must implement a signature compatible with `BackendRunner`:
 
 ```python
 def run_xxx(
@@ -148,7 +148,7 @@ def run_xxx(
     ...
 ```
 
-Backend được ánh xạ trong `mlfx.training.registry.BACKEND_REGISTRY`, import lazy để tránh kéo heavy deps khi chỉ dùng lightweight parts.
+Backends are mapped in `mlfx.training.registry.BACKEND_REGISTRY`, with lazy imports to avoid pulling heavy dependencies when only using lightweight parts.
 
 ### Training Config
 
@@ -168,14 +168,14 @@ cfg = TrainingConfig(
 
 ## Experiment Tracking
 
-`mlfx.tracking.tracker` cung cấp interface thống nhất với 2 backend:
+`mlfx.tracking.tracker` provides a unified interface with 2 backends:
 
-| Backend | Điều kiện | Storage |
+| Backend | Condition | Storage |
 |---|---|---|
-| `MlflowTracker` | `mlflow` đã cài | MLflow server hoặc `mlruns/` local |
-| `FileTracker` | Fallback mặc định | `outputs/runs/{symbol}/{tf}/*.json` |
+| `MlflowTracker` | `mlflow` installed | MLflow server or `mlruns/` local |
+| `FileTracker` | Default fallback | `outputs/runs/{symbol}/{tf}/*.json` |
 
-Tracking được gọi tự động trong `runner.run_training()`.  Để tắt:
+Tracking is called automatically within `runner.run_training()`. To disable:
 
 ```python
 run_training(cfg, enable_tracking=False)
@@ -185,7 +185,7 @@ run_training(cfg, enable_tracking=False)
 
 ## Model Registry
 
-`mlfx.registry.models.ModelRegistry` lưu metadata của mọi model đã train vào `outputs/models/registry.json`.
+`mlfx.registry.models.ModelRegistry` stores metadata for all trained models in `outputs/models/registry.json`.
 
 ```python
 from mlfx.registry import get_registry
@@ -203,7 +203,7 @@ best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
 load_labelled_dataset()
         │
         ▼
-simulate_trades()      ← signal → entry/exit với TP/SL/TIME
+simulate_trades()      ← signal → entry/exit with TP/SL/TIME
         │
         ▼
 compute_metrics()      ← win_rate, sharpe, sortino, calmar, profit_factor, ...
@@ -226,11 +226,11 @@ POST /predict
   → returns {prediction, confidence}
 ```
 
-Khởi động:
+Start:
 
 ```bash
 pixi run mlfx serve --port 8000
-# hoặc
+# or
 docker-compose up api
 ```
 
@@ -260,22 +260,161 @@ pixi run mlfx batch-predict --symbol XAUUSD --tf 1H
 
 ### Feature Drift
 
-1. Sau training: `save_reference(train_df, feature_cols, symbol, tf)` → `outputs/monitoring/{symbol}/{tf}/`
-2. Định kỳ: `DriftDetector.load(symbol, tf).detect(live_df)` → KS-test + PSI
+1. After training: `save_reference(train_df, feature_cols, symbol, tf)` → `outputs/monitoring/{symbol}/{tf}/`
+2. Periodically: `DriftDetector.load(symbol, tf).detect(live_df)` → KS-test + PSI
 
 ```bash
 pixi run mlfx drift --symbol XAUUSD --tf 1H
-# Tùy chỉnh ngưỡng:
+# Custom thresholds:
 pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
 ### Structured Logging
 
-Tất cả log được xuất ra JSON lines khi chạy qua CLI:
+All logs are output as JSON lines when running through CLI:
 
 ```json
 {"timestamp": "2025-01-01T10:00:00Z", "level": "INFO", "logger": "mlfx.training.runner",
  "message": "Training complete", "backend": "mlf", "elapsed_seconds": 45.2}
+```
+
+---
+
+## Configuration System
+
+### Config Loading Flow
+
+```
+config.toml
+    │
+    ▼
+mlfx.config.schema.ServingSettings
+    │
+    ▼
+CLI commands read defaults from config
+    │
+    ▼
+CLI flags override config values
+```
+
+The configuration system uses Pydantic for validation:
+
+```python
+from mlfx.config.schema import ServingSettings
+
+# Load from config.toml + env vars
+settings = ServingSettings()
+```
+
+Environment variable overrides:
+- `MLFX_DATA_ROOT` — override data directory
+- `MLFX_OUTPUTS_ROOT` — override outputs directory
+
+---
+
+## Deep Learning Backend Internals
+
+### Sequence Utilities (`_sequence_utils.py`)
+
+Shared helpers for PyTorch sequence-based backends:
+
+| Function | Purpose |
+|----------|---------|
+| `create_sequences()` | Convert feature matrix to sliding windows |
+| `train_sequence_model_once()` | Train with early stopping |
+
+Sequence creation example:
+```python
+from mlfx.training.backends._sequence_utils import create_sequences
+
+X_seq, y_seq = create_sequences(X, y, seq_len=60)
+# X_seq shape: (n_samples - seq_len, seq_len, n_features)
+# y_seq shape: (n_samples - seq_len,)
+```
+
+### PyTorch Common (`_pytorch_common.py`)
+
+Shared HPO scaffold for all DL backends:
+
+```python
+from mlfx.training.backends._pytorch_common import run_pytorch_hpo
+
+# Each backend provides:
+# - train_once_fn: single-fold trainer
+# - suggest_params_fn: Optuna hyperparameter sampler
+
+model, metrics = run_pytorch_hpo(
+    train_once_fn=train_lstm_once,
+    suggest_params_fn=_suggest_lstm_params,
+    X=X, y=y, feature_cols=feature_cols,
+    model_type="LSTM",
+    n_trials=10, n_splits=5,
+    seq_len=60, epochs=30, batch_size=128, patience=5,
+    top_k_features=20, seed=42,
+)
+```
+
+The scaffold handles:
+1. Feature selection (SelectKBest)
+2. Optuna HPO with time-series CV
+3. Out-of-sample evaluation
+4. Final model training
+
+---
+
+## Serving Architecture Details
+
+### Torch Adapters (`torch_adapters.py`)
+
+Rebuilding PyTorch models from persisted artifacts:
+
+```python
+from mlfx.serving.torch_adapters import rebuild_torch_model, predict_with_torch_model
+
+# Load model from registry payload
+model = rebuild_torch_model(payload)
+
+# Predict (handles sequence padding)
+preds = predict_with_torch_model(model, X, seq_len=60)
+```
+
+Supported model types:
+- `LSTM` — FXLstm
+- `BiLSTM` — FXBiLstm
+- `CNN_LSTM` — FXCnnLstm
+- `Transformer` — FXTransformer
+
+### Inference Chain
+
+```
+POST /predict
+    │
+    ▼
+resolve_and_predict()
+    │
+    ├── Load best model from registry
+    │   └── mlfx.registry.models.get_registry()
+    │
+    ├── Rebuild model (sklearn or torch)
+    │   └── mlfx.serving.torch_adapters.rebuild_torch_model()
+    │
+    ├── Preprocess features
+    │   └── mlfx.serving.features.prepare_features()
+    │
+    └── Run inference
+        └── model.predict() or predict_with_torch_model()
+```
+
+### Feature Preprocessing for Inference
+
+```python
+from mlfx.serving.features import prepare_features
+
+# Align input features with model's expected columns
+X_aligned = prepare_features(
+    features_dict={"rsi_14": 55.3, "atr_14": 2.1, ...},
+    feature_columns=model_feature_cols,
+)
 ```
 
 ---
@@ -292,6 +431,8 @@ docker-compose.yml
 ---
 
 ## Dependency Map
+
+### Module Dependencies
 
 ```
 mlfx.app.cli
@@ -312,4 +453,37 @@ mlfx.serving.batch
 
 mlfx.monitoring.drift
   └── scipy.stats (KS test)
+```
+
+### External Dependencies by Layer
+
+| Layer | Key Dependencies |
+|-------|------------------|
+| Data | `polars`, `pyarrow`, `aiohttp` |
+| Features | `ta-lib`, `numpy` |
+| Training | `sklearn`, `lightgbm`, `torch`, `optuna` |
+| DL Backends | `torch`, `pytorch-forecasting` |
+| Serving | `fastapi`, `uvicorn`, `cachetools` |
+| Tracking | `mlflow` (optional) |
+| Monitoring | `scipy` |
+
+---
+
+## Path Policy Reference
+
+All filesystem paths are managed through `mlfx.config.paths.ProjectPaths`:
+
+```python
+from mlfx.config.paths import DEFAULT_PATHS
+
+# Data paths
+DEFAULT_PATHS.raw_data_dir("XAUUSD")        # data/raw/XAUUSD/
+DEFAULT_PATHS.ohlcv_dir("XAUUSD", "1H")     # data/ohlcv/XAUUSD/1H/
+DEFAULT_PATHS.features_dir("XAUUSD", "1H")  # data/features/XAUUSD/1H/
+DEFAULT_PATHS.labels_dir("XAUUSD", "1H")    # data/labels/XAUUSD/1H/
+
+# Output paths
+DEFAULT_PATHS.models_dir("XAUUSD", "1H")    # outputs/models/XAUUSD/1H/
+DEFAULT_PATHS.reports_dir("XAUUSD", "1H")   # outputs/reports/XAUUSD/1H/
+DEFAULT_PATHS.runs_dir("XAUUSD", "1H")      # outputs/runs/XAUUSD/1H/
 ```
