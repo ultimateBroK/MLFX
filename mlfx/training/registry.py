@@ -94,6 +94,8 @@ def get_runner_kwargs(config: "TrainingConfig") -> dict[str, Any]:
         "label_col": config.label_col,
         "force": config.force,
         "seed": config.random_seed,
+        "train_start": config.extra.get("train_start"),
+        "train_end": config.extra.get("train_end"),
     }
     extra_fn = BACKEND_EXTRA_KWARGS.get(config.backend)
     if extra_fn is not None:

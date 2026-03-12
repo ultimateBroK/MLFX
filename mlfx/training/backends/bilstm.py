@@ -150,6 +150,8 @@ def run_bilstm(
     top_k_features: int = 20,
     force: bool = False,
     seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
     X: np.ndarray | None = None,
     y: np.ndarray | None = None,
     feature_cols: list[str] | None = None,
@@ -169,7 +171,13 @@ def run_bilstm(
         return {}
 
     if X is None or y is None or feature_cols is None:
-        prepared = prepare_tabular_data(symbol, tf, label_col)
+        prepared = prepare_tabular_data(
+            symbol,
+            tf,
+            label_col,
+            train_start=train_start,
+            train_end=train_end,
+        )
         if prepared is None:
             return {}
         X, y, feature_cols = prepared

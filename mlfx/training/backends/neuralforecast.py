@@ -138,6 +138,8 @@ def run_neural_forecast(
     max_samples: int = 5000,
     force: bool = False,
     seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
 ) -> dict:
     """Train NeuralForecast (N-HiTS + N-BEATS). Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -153,7 +155,12 @@ def run_neural_forecast(
         logger.info("NeuralForecast model exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None:
         logger.warning("No label files found for %s %s", symbol, tf)
         return {}

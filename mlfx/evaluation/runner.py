@@ -27,11 +27,19 @@ def get_baseline_metrics(
     tp_r: float = 1.5,
     sl_r: float = 1.0,
     slippage: float = 0.0,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, float] | None:
     """Run backtest on labels and return raw metrics (no report). For baseline comparison."""
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or df.is_empty() or label_col not in df.columns:
         return None
     df_mapped = df.with_columns(map_ordinal_to_signal(pl.col(label_col)).alias("_bt_signal"))
@@ -57,11 +65,19 @@ def run_full_eval(
     sl_r: float = 1.0,
     slippage: float = 0.0,
     out_dir: str | Path | None = None,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, str]:
     """Run backtest on all labeled parquet files for one symbol/timeframe."""
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or df.is_empty():
         logger.error("No labeled data found for %s %s", symbol, tf)
         return {}
@@ -155,6 +171,8 @@ def run_model_backtest(
     sl_r: float = 1.0,
     slippage: float = 0.0,
     out_dir: str | Path | None = None,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, str] | None:
@@ -163,7 +181,13 @@ def run_model_backtest(
     Loads the best registered model, predicts on the dataset, then backtests.
     Returns None if no model is registered or inference fails.
     """
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or df.is_empty():
         logger.error("No labeled data found for %s %s", symbol, tf)
         return None

@@ -204,6 +204,8 @@ def run_ml_models(
     n_splits: int = 5,
     force: bool = False,
     seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
 ) -> dict:
     """Train MLForecast + LightGBM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -219,7 +221,12 @@ def run_ml_models(
         logger.info("MLForecast model exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or label_col not in df.columns:
         logger.warning("No labelled data or missing column %s", label_col)
         return {}

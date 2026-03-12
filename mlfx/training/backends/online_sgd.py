@@ -91,6 +91,8 @@ def run_online_sgd(
     batch_size: int = 500,
     force: bool = False,
     seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
 ) -> dict:
     """Train online SGDClassifier with chunked partial_fit. Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -106,7 +108,13 @@ def run_online_sgd(
         logger.info("Online SGD model exists at %s", out_path)
         return {}
 
-    prepared = prepare_tabular_data(symbol, tf, label_col)
+    prepared = prepare_tabular_data(
+        symbol,
+        tf,
+        label_col,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if prepared is None:
         return {}
 

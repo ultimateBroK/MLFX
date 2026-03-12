@@ -66,10 +66,19 @@ def run_training(
     runner = get_backend_runner(config.backend)
     kwargs = get_runner_kwargs(config)
 
+    train_start = config.extra.get("train_start")
+    train_end = config.extra.get("train_end")
+
     _DL_BACKENDS = frozenset({"lstm", "bilstm", "transformer", "cnn_lstm"})
     if config.backend in _DL_BACKENDS:
         from mlfx.training.data import prepare_tabular_data
-        prepared = prepare_tabular_data(config.symbol, config.tf, config.label_col)
+        prepared = prepare_tabular_data(
+            config.symbol,
+            config.tf,
+            config.label_col,
+            train_start=train_start,
+            train_end=train_end,
+        )
         if prepared is not None:
             X, y, feature_cols = prepared
             kwargs.update({"X": X, "y": y, "feature_cols": feature_cols})

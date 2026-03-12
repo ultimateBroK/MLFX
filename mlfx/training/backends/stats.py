@@ -124,6 +124,8 @@ def run_stats(
     season_length: int = 24,
     force: bool = False,
     seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
 ) -> dict:
     """Train StatsForecast baseline (AutoARIMA, SeasonalNaive, MSTL). Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -139,7 +141,12 @@ def run_stats(
         logger.info("StatsForecast baseline exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or label_col not in df.columns:
         return {}
 

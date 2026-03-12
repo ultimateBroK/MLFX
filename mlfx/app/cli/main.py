@@ -107,6 +107,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     train.add_argument("--n-trials", type=int, default=15, help="Optuna trials for HPO (default: 15)")
     train.add_argument("--n-splits", type=int, default=5, help="TimeSeriesSplit folds (default: 5)")
+    train.add_argument("--train-start", default=None, help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101")
+    train.add_argument("--train-end", default=None, help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231")
     train.add_argument("--force", action=argparse.BooleanOptionalAction, default=True, help="Force retrain (overwrite saved model)")
 
     evaluate = subparsers.add_parser(
@@ -123,6 +125,8 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--tp", type=float, default=1.5, help="Take-profit in R multiples (default: 1.5)")
     evaluate.add_argument("--sl", type=float, default=1.0, help="Stop-loss in R multiples (default: 1.0)")
     evaluate.add_argument("--slippage", type=float, default=0.0, help="Slippage in pips (default: 0.0)")
+    evaluate.add_argument("--eval-start", default=None, help="Inclusive evaluation start date in compact format YYYYMMDD, e.g. 20240101")
+    evaluate.add_argument("--eval-end", default=None, help="Inclusive evaluation end date in compact format YYYYMMDD, e.g. 20241231")
     evaluate.add_argument(
         "--use-labels",
         action="store_true",
@@ -184,6 +188,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark.add_argument("--n-trials", type=int, default=5, help="Optuna trials per backend (default: 5)")
     benchmark.add_argument("--n-splits", type=int, default=3, help="CV folds (default: 3)")
+    benchmark.add_argument("--train-start", default=None, help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101")
+    benchmark.add_argument("--train-end", default=None, help="Inclusive training end date in compact format YYYYMMDD, e.g. 20241231")
     benchmark.add_argument("--force", action=argparse.BooleanOptionalAction, default=False, help="Force retrain all backends")
 
     return parser
@@ -246,6 +252,10 @@ def main() -> None:
             n_trials=args.n_trials,
             n_splits=args.n_splits,
             force=args.force,
+            extra={
+                "train_start": args.train_start,
+                "train_end": args.train_end,
+            },
         )
         run_training(cfg)
         return
@@ -272,6 +282,8 @@ def main() -> None:
             tp_r=args.tp,
             sl_r=args.sl,
             slippage=args.slippage,
+            train_start=args.eval_start,
+            train_end=args.eval_end,
         )
         if args.use_labels:
             results = run_full_eval(**eval_kw)
@@ -436,6 +448,10 @@ def _run_benchmark(args: argparse.Namespace) -> None:
                 n_trials=args.n_trials,
                 n_splits=args.n_splits,
                 force=args.force,
+                extra={
+                    "train_start": args.train_start,
+                    "train_end": args.train_end,
+                },
             )
             metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
             elapsed = time.perf_counter() - t0
@@ -498,6 +514,8 @@ def _run_benchmark(args: argparse.Namespace) -> None:
         "label": args.label,
         "n_trials": args.n_trials,
         "n_splits": args.n_splits,
+        "train_start": args.train_start,
+        "train_end": args.train_end,
         "timestamp": ts,
         "results": results,
     }
