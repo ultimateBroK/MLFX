@@ -253,7 +253,7 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--tf", default=None, help="Timeframe")
     evaluate.add_argument("--label", default=None, help="Label column")
     evaluate.add_argument("--capital", type=float, default=None, help="Initial capital in USD")
-    evaluate.add_argument("--risk", type=float, default=None, help="Risk per trade %")
+    evaluate.add_argument("--risk", type=float, default=None, help="Risk per trade %%")
     evaluate.add_argument("--commission", type=float, default=None, help="Commission in pips")
     evaluate.add_argument("--tp", type=float, default=None, help="Take-profit in R multiples")
     evaluate.add_argument("--sl", type=float, default=None, help="Stop-loss in R multiples")
