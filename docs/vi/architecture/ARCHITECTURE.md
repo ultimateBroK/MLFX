@@ -311,6 +311,141 @@ Biến môi trường có thể ghi đè:
 
 ---
 
+## Điều phối quy trình làm việc
+
+### Mô-đun Workflow
+
+Mô-đun `mlfx.workflow/` cung cấp khả năng điều phối từ đầu đến cuối:
+
+```text
+mlfx/workflow/
+├── __init__.py           ← Các xuất public
+├── run_all.py            ← Điều phối pipeline đầy đủ (download → evaluate)
+├── run_profile.py        ← Train + evaluate dựa trên hồ sơ
+└── types.py              ← Các kiểu kết quả quy trình
+```
+
+### Các giai đoạn quy trình
+
+Lệnh `run-all` thực thi các giai đoạn theo trình tự:
+
+```text
+Giai đoạn 1: download    → data/raw/{symbol}/
+Giai đoạn 2: pipeline    → data/ohlcv/, data/features/, data/labels/
+Giai đoạn 3: train       → outputs/models/{symbol}/{tf}/{label}/
+Giai đoạn 4: evaluate    → outputs/reports/{symbol}/{tf}/{label}/
+```
+
+Mỗi giai đoạn có thể bỏ qua độc lập qua các cờ:
+- `--skip-download`
+- `--skip-pipeline`
+- `--skip-train`
+- `--skip-evaluate`
+
+### Hệ thống hồ sơ
+
+Hồ sơ quy trình cho phép định nghĩa cấu hình đặt trước cho các thí nghiệm có thể tái tạo:
+
+```toml
+[profiles.research.train]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backend     = "mlf"
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+
+[profiles.research.evaluate]
+symbol          = "XAUUSD"
+tf              = "1H"
+label           = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250331"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+```
+
+Cách sử dụng hồ sơ:
+
+```bash
+# Liệt kê các hồ sơ có sẵn
+pixi run mlfx profiles
+
+# Chạy train + evaluate từ hồ sơ
+pixi run mlfx run-profile --profile research
+
+# Dùng hồ sơ cho từng lệnh riêng lẻ
+pixi run mlfx train --profile research
+pixi run mlfx evaluate --profile research
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+### Giải quyết hồ sơ
+
+Khi một hồ sơ được chỉ định, hệ thống:
+
+1. Nạp hồ sơ từ `config.toml` qua `WorkflowProfileConfig`
+2. Gộp cài đặt hồ sơ với cấu hình cụ thể cho lệnh
+3. Cờ CLI ghi đè cả cài đặt hồ sơ và mặc định từ config
+
+```text
+Cờ CLI (ưu tiên cao nhất)
+    │
+    ▼
+Cài đặt hồ sơ
+    │
+    ▼
+Mặc định từ config.toml
+    │
+    ▼
+Mặc định tích hợp sẵn (ưu tiên thấp nhất)
+```
+
+---
+
+## Kiến trúc CLI
+
+### Cấu trúc lệnh
+
+```text
+mlfx
+├── download          # Nạp dữ liệu tick
+├── pipeline          # Xây dựng đặc trưng
+├── train             # Huấn luyện mô hình
+├── evaluate          # Backtesting & báo cáo
+├── benchmark         # So sánh nhiều bộ máy
+├── serve             # Máy chủ suy luận FastAPI
+├── batch-predict     # Suy luận theo lô
+├── drift             # Phát hiện độ lệch đặc trưng
+├── drift-retrain     # Phát hiện độ lệch với tự động huấn luyện lại
+├── models            # Liệt kê sổ đăng ký mô hình
+├── profiles          # Liệt kê các hồ sơ quy trình
+├── run-profile       # Train + evaluate từ hồ sơ
+└── run-all           # Pipeline từ đầu đến cuối
+```
+
+### Triển khai lệnh
+
+Mỗi lệnh CLI tuân theo một mẫu nhất quán:
+
+```python
+# mlfx/cli/main.py
+@app.command("train")
+def train_cmd(
+    symbol: str = None,
+    tf: str = None,
+    label: str = None,
+    profile: str = None,
+    ...
+):
+    config = resolve_config("train", profile=profile)
+    # Thực thi logic huấn luyện
+```
+
+---
+
 ## Nội bộ bộ máy học sâu
 
 ### Tiện ích chuỗi (`_sequence_utils.py`)

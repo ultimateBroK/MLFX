@@ -14,13 +14,13 @@ API phục vụ mô hình của MLFX cung cấp khả năng suy luận thời gi
 
 ### Khởi động máy chủ
 
-```/dev/null/api-reference-start.sh#L1-1
+```bash
 pixi run mlfx serve --port 8000
 ```
 
 ### Hoặc chạy qua Docker
 
-```/dev/null/api-reference-docker.sh#L1-1
+```bash
 docker-compose up api
 ```
 
@@ -34,13 +34,13 @@ docker-compose up api
 
 ### Yêu cầu
 
-```/dev/null/api-reference-health-request.sh#L1-1
+```bash
 curl http://localhost:8000/health
 ```
 
 ### Phản hồi
 
-```/dev/null/api-reference-health-response.json#L1-3
+```json
 {
   "status": "ok"
 }
@@ -58,7 +58,7 @@ Liệt kê toàn bộ mô hình đã được đăng ký trong sổ đăng ký, 
 
 ### Yêu cầu
 
-```/dev/null/api-reference-models-request.sh#L1-10
+```bash
 # Tất cả mô hình
 curl http://localhost:8000/models
 
@@ -82,7 +82,7 @@ curl "http://localhost:8000/models?backend=mlf"
 
 ### Phản hồi
 
-```/dev/null/api-reference-models-response.json#L1-15
+```json
 [
   {
     "run_id": "20250301_120000",
@@ -113,7 +113,7 @@ Chạy suy luận cho một bộ đặc trưng đầu vào. Máy chủ sẽ tự
 
 ### Yêu cầu
 
-```/dev/null/api-reference-predict-request.sh#L1-13
+```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8000/predict \
 
 ### Phản hồi
 
-```/dev/null/api-reference-predict-response.json#L1-7
+```json
 {
   "symbol": "XAUUSD",
   "tf": "1H",
@@ -198,7 +198,7 @@ Trường `prediction` trả về nhãn thứ bậc:
 
 ### Phản hồi
 
-```/dev/null/api-reference-404-response.json#L1-3
+```json
 {
   "detail": "No registered model for XAUUSD/1H/label_10"
 }
@@ -208,7 +208,7 @@ Trường `prediction` trả về nhãn thứ bậc:
 
 Hãy huấn luyện mô hình trước:
 
-```/dev/null/api-reference-train-before-predict.sh#L1-1
+```bash
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 ```
 
@@ -218,7 +218,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
 ### Phản hồi
 
-```/dev/null/api-reference-422-response.json#L1-3
+```json
 {
   "detail": "Missing required feature(s): ['rsi_14', 'atr_14']"
 }
@@ -238,7 +238,7 @@ Máy chủ duy trì bộ nhớ đệm LRU với tối đa `32` mô hình để t
 
 ## Ví dụ bằng Python
 
-```/dev/null/api-reference-python-client.py#L1-26
+```python
 import requests
 
 # Kiểm tra sức khỏe

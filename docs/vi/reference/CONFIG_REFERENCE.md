@@ -42,7 +42,7 @@ Giao diện dòng lệnh sẽ tự động đọc `config.toml` trong thư mục
 
 ### Ví dụ
 
-```/dev/null/config-reference-download.toml#L1-7
+```toml
 [download]
 symbol = "XAUUSD"
 asset_class = "fx"
@@ -93,7 +93,7 @@ concurrency = 20
 
 ### Ví dụ
 
-```/dev/null/config-reference-pipeline.toml#L1-6
+```toml
 [pipeline]
 symbol = "XAUUSD"
 tf = "1H"
@@ -114,6 +114,10 @@ atr_mult = 0.5
 | `backend` | string | `"mlf"` | `--backend` | Bộ máy huấn luyện |
 | `n_trials` | integer | `30` | `--n-trials` | Số lần thử siêu tham số, chủ yếu áp dụng cho `mlf` |
 | `n_splits` | integer | `5` | `--n-splits` | Số phần chia trong kiểm định chéo |
+| `random_seed` | integer | `42` | — | Hạt giống ngẫu nhiên để tái tạo kết quả |
+| `train_start` | string | `null` | `--train-start` | Ngày bắt đầu huấn luyện (định dạng YYYYMMDD) |
+| `train_end` | string | `null` | `--train-end` | Ngày kết thúc huấn luyện (định dạng YYYYMMDD) |
+| `force` | boolean | `false` | `--force` | Huấn luyện lại ngay cả khi mô hình đã tồn tại |
 
 ### Các bộ máy được hỗ trợ
 
@@ -130,7 +134,7 @@ atr_mult = 0.5
 
 ### Ví dụ
 
-```/dev/null/config-reference-train.toml#L1-7
+```toml
 [train]
 symbol = "XAUUSD"
 tf = "1H"
@@ -138,11 +142,41 @@ label = "label_10"
 backend = "mlf"
 n_trials = 15
 n_splits = 5
+train_start = "20240101"
+train_end = "20241231"
 ```
 
 ---
 
-## 2.4. `[features]` — Cấu hình xây dựng đặc trưng
+## 2.4. `[benchmark]` — So sánh nhiều bộ máy
+
+| Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
+|---|---|---|---|---|
+| `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian |
+| `label` | string | `"label_10"` | `--label` | Cột nhãn mục tiêu |
+| `backends` | list | `["mlf", "sgd", "stats"]` | `--backends` | Danh sách bộ máy cần so sánh |
+| `n_trials` | integer | `5` | `--n-trials` | Số lần thử siêu tham số cho mỗi bộ máy |
+| `n_splits` | integer | `3` | `--n-splits` | Số phần chia trong kiểm định chéo |
+| `train_start` | string | `null` | `--train-start` | Ngày bắt đầu huấn luyện (định dạng YYYYMMDD) |
+| `train_end` | string | `null` | `--train-end` | Ngày kết thúc huấn luyện (định dạng YYYYMMDD) |
+| `force` | boolean | `false` | `--force` | Huấn luyện lại tất cả bộ máy |
+
+### Ví dụ
+
+```toml
+[benchmark]
+symbol = "XAUUSD"
+tf = "1H"
+label = "label_10"
+backends = ["mlf", "lstm", "sgd", "stats"]
+n_trials = 10
+n_splits = 5
+```
+
+---
+
+## 2.5. `[features]` — Cấu hình xây dựng đặc trưng
 
 | Khóa | Kiểu | Mặc định | Mô tả |
 |---|---|---|---|
@@ -156,7 +190,7 @@ n_splits = 5
 
 ### Ví dụ
 
-```/dev/null/config-reference-features.toml#L1-8
+```toml
 [features]
 rsi_period = 14
 atr_period = 14
@@ -169,7 +203,87 @@ avg_range_n = 5
 
 ---
 
-## 2.5. `[backtest]` — Cấu hình đánh giá và mô phỏng giao dịch
+## 2.6. `[qa]` — Kiểm tra chất lượng dữ liệu
+
+| Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
+|---|---|---|---|---|
+| `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính cần kiểm tra |
+| `asset_class` | string | `"fx"` | `--asset-class` | Nhóm tài sản: `"fx"`, `"crypto"` |
+
+### Ví dụ
+
+```toml
+[qa]
+symbol = "XAUUSD"
+asset_class = "fx"
+```
+
+---
+
+## 2.7. `[serve]` — Máy chủ suy luận FastAPI
+
+| Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
+|---|---|---|---|---|
+| `host` | string | `"0.0.0.0"` | `--host` | Địa chỉ kết nối cho máy chủ API |
+| `port` | integer | `8000` | `--port` | Cổng cho máy chủ API |
+| `reload` | boolean | `false` | `--reload` | Bật tự động tải lại cho phát triển |
+
+### Ví dụ
+
+```toml
+[serve]
+host = "0.0.0.0"
+port = 8000
+reload = false
+```
+
+---
+
+## 2.8. `[batch_predict]` — Cấu hình suy luận hàng loạt
+
+| Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
+|---|---|---|---|---|
+| `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian |
+| `label` | string | `"label_10"` | `--label` | Cột nhãn tương ứng với mô hình |
+
+### Ví dụ
+
+```toml
+[batch_predict]
+symbol = "XAUUSD"
+tf = "1H"
+label = "label_10"
+```
+
+---
+
+## 2.9. `[drift]` — Phát hiện độ lệch đặc trưng
+
+| Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
+|---|---|---|---|---|
+| `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian |
+| `label` | string | `"label_10"` | `--label` | Cột nhãn |
+| `threshold_ks` | float | `0.1` | `--threshold-ks` | Ngưỡng kiểm định Kolmogorov-Smirnov |
+| `threshold_psi` | float | `0.2` | `--threshold-psi` | Ngưỡng PSI (Population Stability Index) |
+| `min_samples` | integer | `30` | `--min-samples` | Số mẫu tối thiểu cho mỗi đặc trưng khi kiểm tra độ lệch |
+
+### Ví dụ
+
+```toml
+[drift]
+symbol = "XAUUSD"
+tf = "1H"
+label = "label_10"
+threshold_ks = 0.1
+threshold_psi = 0.2
+min_samples = 30
+```
+
+---
+
+## 2.10. `[backtest]` — Cấu hình đánh giá và mô phỏng giao dịch
 
 | Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
 |---|---|---|---|---|
@@ -182,10 +296,13 @@ avg_range_n = 5
 | `risk_pct` | float | `1.0` | `--risk` | Phần trăm vốn rủi ro mỗi lệnh |
 | `commission` | float | `0.1` | `--commission` | Chi phí hoa hồng mỗi lệnh |
 | `slippage` | float | `0.0` | `--slippage` | Trượt giá giả lập |
+| `eval_start` | string | `null` | `--eval-start` | Ngày bắt đầu đánh giá (định dạng YYYYMMDD) |
+| `eval_end` | string | `null` | `--eval-end` | Ngày kết thúc đánh giá (định dạng YYYYMMDD) |
+| `use_labels` | boolean | `false` | `--use-labels` | Backtest trực tiếp trên nhãn, bỏ qua mô hình |
 
 ### Ví dụ
 
-```/dev/null/config-reference-backtest.toml#L1-9
+```toml
 [backtest]
 symbol = "XAUUSD"
 tf = "1H"
@@ -196,13 +313,134 @@ initial_capital = 10000.0
 risk_pct = 1.0
 commission = 0.1
 slippage = 0.0
+eval_start = "20250101"
+eval_end = "20250331"
+```
+
+---
+
+## 2.11. `[profiles]` — Hồ sơ quy trình
+
+Hồ sơ quy trình cho phép bạn xác định các cấu hình đặt trước cho các lệnh train, evaluate và benchmark. Mỗi hồ sơ có thể chứa các phần con cho từng loại lệnh.
+
+### Cấu trúc hồ sơ
+
+```toml
+[profiles.{tên}.train]      # Cấu hình đặt trước cho huấn luyện
+[profiles.{tên}.evaluate]   # Cấu hình đặt trước cho đánh giá
+[profiles.{tên}.benchmark]  # Cấu hình đặt trước cho benchmark
+```
+
+### Phần train của hồ sơ
+
+| Khóa | Kiểu | Mô tả |
+|---|---|---|
+| `symbol` | string | Mã công cụ tài chính |
+| `tf` | string | Khung thời gian |
+| `label` | string | Cột nhãn mục tiêu |
+| `backend` | string | Bộ máy huấn luyện |
+| `n_trials` | integer | Số lần thử siêu tham số |
+| `n_splits` | integer | Số phần chia trong kiểm định chéo |
+| `train_start` | string | Ngày bắt đầu huấn luyện (YYYYMMDD) |
+| `train_end` | string | Ngày kết thúc huấn luyện (YYYYMMDD) |
+
+### Phần evaluate của hồ sơ
+
+| Khóa | Kiểu | Mô tả |
+|---|---|---|
+| `symbol` | string | Mã công cụ tài chính |
+| `tf` | string | Khung thời gian |
+| `label` | string | Cột tín hiệu |
+| `tp_r` | float | Mức chốt lời theo R |
+| `sl_r` | float | Mức dừng lỗ theo R |
+| `initial_capital` | float | Vốn ban đầu |
+| `risk_pct` | float | Phần trăm rủi ro mỗi lệnh |
+| `commission` | float | Hoa hồng mỗi lệnh |
+| `slippage` | float | Trượt giá giả lập |
+| `eval_start` | string | Ngày bắt đầu đánh giá (YYYYMMDD) |
+| `eval_end` | string | Ngày kết thúc đánh giá (YYYYMMDD) |
+
+### Phần benchmark của hồ sơ
+
+| Khóa | Kiểu | Mô tả |
+|---|---|---|
+| `symbol` | string | Mã công cụ tài chính |
+| `tf` | string | Khung thời gian |
+| `label` | string | Cột nhãn mục tiêu |
+| `backends` | list | Danh sách bộ máy cần so sánh |
+| `n_trials` | integer | Số lần thử cho mỗi bộ máy |
+| `n_splits` | integer | Số phần chia trong kiểm định chéo |
+| `train_start` | string | Ngày bắt đầu huấn luyện (YYYYMMDD) |
+| `train_end` | string | Ngày kết thúc huấn luyện (YYYYMMDD) |
+
+### Ví dụ
+
+```toml
+[profiles.research.train]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backend     = "mlf"
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+
+[profiles.research.evaluate]
+symbol          = "XAUUSD"
+tf              = "1H"
+label           = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250331"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
+slippage        = 0.0
+
+[profiles.research.benchmark]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+
+[profiles.benchmark_fast.benchmark]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20230101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+```
+
+### Sử dụng hồ sơ
+
+```bash
+# Huấn luyện sử dụng hồ sơ
+pixi run mlfx train --profile research
+
+# Đánh giá sử dụng hồ sơ
+pixi run mlfx evaluate --profile research
+
+# Benchmark sử dụng hồ sơ
+pixi run mlfx benchmark --profile benchmark_fast
+
+# Chạy train + evaluate từ hồ sơ
+pixi run mlfx run-profile --profile research
 ```
 
 ---
 
 ## 3. Ví dụ `config.toml` hoàn chỉnh
 
-```/dev/null/config-reference-full.toml#L1-38
+```toml
 # Cấu hình MLFX
 # File này được CLI `mlfx` tự động đọc.
 # Hãy chỉnh các giá trị mặc định để phù hợp quy trình của bạn.
@@ -216,19 +454,34 @@ concurrency = 20
 
 [pipeline]
 symbol       = "XAUUSD"
-tf    = "1H"
+tf           = "1H"
 pivot_type   = "traditional"
 pivot_anchor = "daily"
 atr_period   = 14
 atr_mult     = 0.5
 
 [train]
-symbol     = "XAUUSD"
-tf  = "1H"
-label  = "label_10"
-backend    = "mlf"
-n_trials   = 15
-n_splits   = 5
+symbol       = "XAUUSD"
+tf           = "1H"
+label        = "label_10"
+backend      = "mlf"
+n_trials     = 15
+n_splits     = 5
+random_seed  = 42
+train_start  = null
+train_end    = null
+force        = false
+
+[benchmark]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+n_trials    = 5
+n_splits    = 3
+train_start = null
+train_end   = null
+force       = false
 
 [features]
 rsi_period  = 14
@@ -239,16 +492,74 @@ macd_slow   = 26
 macd_signal = 9
 avg_range_n = 5
 
+[qa]
+symbol      = "XAUUSD"
+asset_class = "fx"
+
+[serve]
+host   = "0.0.0.0"
+port   = 8000
+reload = false
+
+[batch_predict]
+symbol = "XAUUSD"
+tf     = "1H"
+label  = "label_10"
+
+[drift]
+symbol        = "XAUUSD"
+tf            = "1H"
+label         = "label_10"
+threshold_ks  = 0.1
+threshold_psi = 0.2
+min_samples   = 30
+
 [backtest]
 symbol          = "XAUUSD"
-tf       = "1H"
-label       = "label_10"
+tf              = "1H"
+label           = "label_10"
 tp_r            = 1.5
 sl_r            = 1.0
 initial_capital = 10000.0
 risk_pct        = 1.0
 commission      = 0.1
 slippage        = 0.0
+eval_start      = null
+eval_end        = null
+use_labels      = false
+
+[profiles.research.train]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backend     = "mlf"
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
+
+[profiles.research.evaluate]
+symbol          = "XAUUSD"
+tf              = "1H"
+label           = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250331"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+risk_pct        = 1.0
+commission      = 0.1
+slippage        = 0.0
+
+[profiles.benchmark_fast.benchmark]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backends    = ["mlf", "sgd", "stats"]
+train_start = "20230101"
+train_end   = "20241231"
+n_trials    = 5
+n_splits    = 3
 ```
 
 ---
@@ -309,6 +620,9 @@ Các lệnh chính đều hỗ trợ:
 | `--backend` | từ cấu hình | Bộ máy huấn luyện |
 | `--n-trials` | từ cấu hình | Số lần thử siêu tham số |
 | `--n-splits` | từ cấu hình | Số phần chia trong kiểm định chéo |
+| `--train-start` | từ cấu hình | Ngày bắt đầu huấn luyện (YYYYMMDD) |
+| `--train-end` | từ cấu hình | Ngày kết thúc huấn luyện (YYYYMMDD) |
+| `--profile` | không có | Tên hồ sơ cấu hình để sử dụng |
 | `--force` | `false` | Huấn luyện lại dù tệp đầu ra đã tồn tại |
 
 ---
@@ -326,6 +640,9 @@ Các lệnh chính đều hỗ trợ:
 | `--tp` | từ cấu hình | Mức chốt lời theo `R` |
 | `--sl` | từ cấu hình | Mức dừng lỗ theo `R` |
 | `--slippage` | từ cấu hình | Mức trượt giá giả lập |
+| `--eval-start` | từ cấu hình | Ngày bắt đầu đánh giá (YYYYMMDD) |
+| `--eval-end` | từ cấu hình | Ngày kết thúc đánh giá (YYYYMMDD) |
+| `--profile` | không có | Tên hồ sơ cấu hình để sử dụng |
 | `--use-labels` | `false` | Chỉ kiểm định trực tiếp trên nhãn, bỏ qua mô hình |
 
 ---
@@ -334,7 +651,9 @@ Các lệnh chính đều hỗ trợ:
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
+| `--host` | `0.0.0.0` | Địa chỉ kết nối cho máy chủ API |
 | `--port` | `8000` | Cổng chạy API suy luận |
+| `--reload` | `false` | Bật tự động tải lại cho phát triển |
 
 ---
 
@@ -354,8 +673,10 @@ Các lệnh chính đều hỗ trợ:
 |---|---|---|
 | `--symbol` | từ cấu hình | Mã cần kiểm tra độ lệch |
 | `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn |
 | `--threshold-ks` | `0.1` | Ngưỡng kiểm định KS |
 | `--threshold-psi` | `0.2` | Ngưỡng PSI |
+| `--min-samples` | `30` | Số mẫu tối thiểu cho mỗi đặc trưng |
 
 ---
 
@@ -365,6 +686,80 @@ Các lệnh chính đều hỗ trợ:
 |---|---|---|
 | `--symbol` | không có | Lọc theo mã |
 | `--tf` | không có | Lọc theo khung thời gian |
+| `--backend` | không có | Lọc theo bộ máy |
+| `--label` | không có | Lọc theo nhãn |
+
+---
+
+## 4.10. `benchmark`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | từ cấu hình | Mã công cụ tài chính |
+| `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn mục tiêu |
+| `--backends` | từ cấu hình | Danh sách bộ máy cần so sánh |
+| `--n-trials` | từ cấu hình | Số lần thử cho mỗi bộ máy |
+| `--n-splits` | từ cấu hình | Số phần chia trong kiểm định chéo |
+| `--train-start` | từ cấu hình | Ngày bắt đầu huấn luyện (YYYYMMDD) |
+| `--train-end` | từ cấu hình | Ngày kết thúc huấn luyện (YYYYMMDD) |
+| `--profile` | không có | Tên hồ sơ cấu hình để sử dụng |
+| `--force` | `false` | Huấn luyện lại tất cả bộ máy |
+
+---
+
+## 4.11. `drift-retrain`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | từ cấu hình | Mã công cụ tài chính |
+| `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn |
+| `--threshold-ks` | `0.1` | Ngưỡng kiểm định KS |
+| `--threshold-psi` | `0.2` | Ngưỡng PSI |
+| `--min-samples` | `30` | Số mẫu tối thiểu cho mỗi đặc trưng |
+
+---
+
+## 4.12. `profiles`
+
+Liệt kê tất cả hồ sơ quy trình có sẵn trong cấu hình.
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| (không có) | — | Hiển thị danh sách hồ sơ |
+
+---
+
+## 4.13. `run-profile`
+
+Chạy train + evaluate từ một hồ sơ cấu hình.
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--profile` | bắt buộc | Tên hồ sơ cấu hình để sử dụng |
+| `--skip-train` | `false` | Bỏ qua bước huấn luyện |
+| `--skip-evaluate` | `false` | Bỏ qua bước đánh giá |
+| `--skip-benchmark` | `false` | Bỏ qua bước benchmark (nếu có trong hồ sơ) |
+
+---
+
+## 4.14. `run-all`
+
+Chạy toàn bộ quy trình từ đầu đến cuối: download → pipeline → train → evaluate.
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | từ cấu hình | Mã công cụ tài chính |
+| `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn |
+| `--backend` | từ cấu hình | Bộ máy huấn luyện |
+| `--skip-download` | `false` | Bỏ qua bước tải dữ liệu |
+| `--skip-pipeline` | `false` | Bỏ qua bước xử lý dữ liệu |
+| `--skip-train` | `false` | Bỏ qua bước huấn luyện |
+| `--skip-evaluate` | `false` | Bỏ qua bước đánh giá |
+| `--continue-on-error` | `false` | Tiếp tục chạy ngay cả khi có bước thất bại |
+| `--json` | `false` | Xuất kết quả dưới dạng JSON |
 
 ---
 
@@ -440,7 +835,7 @@ Lý do:
 
 ### 8.1. Muốn chạy nhanh lần đầu
 
-```/dev/null/config-reference-starter.toml#L1-9
+```toml
 [download]
 symbol = "XAUUSD"
 asset_class = "fx"
@@ -456,7 +851,7 @@ label = "label_10"
 
 ### 8.2. Muốn so sánh nhiều mô hình
 
-```/dev/null/config-reference-benchmark.toml#L1-8
+```toml
 [train]
 symbol = "XAUUSD"
 tf = "1H"
@@ -468,7 +863,7 @@ n_splits = 5
 
 ### 8.3. Muốn thử khung thời gian lớn hơn
 
-```/dev/null/config-reference-higher-tf.toml#L1-4
+```toml
 [pipeline]
 symbol = "XAUUSD"
 tf = "4H"

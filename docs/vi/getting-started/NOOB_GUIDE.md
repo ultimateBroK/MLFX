@@ -58,6 +58,16 @@ Các phần mã nguồn tương ứng nằm ở:
 - `mlfx.training`
 - `mlfx.evaluation`
 
+### Một lệnh thay thế
+
+Bạn cũng có thể chạy toàn bộ pipeline chỉ với một lệnh:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+Lệnh này thực thi tất cả các bước theo trình tự: download → pipeline → train → evaluate.
+
 ---
 
 ## 3. Vì sao phải chạy đúng thứ tự?

@@ -14,13 +14,13 @@ The MLFX serving API provides real-time inference through FastAPI. The server au
 
 ### Start the server
 
-```/dev/null/api-reference-start.sh#L1-1
+```bash
 pixi run mlfx serve --port 8000
 ```
 
 ### Or run via Docker
 
-```/dev/null/api-reference-docker.sh#L1-1
+```bash
 docker-compose up api
 ```
 
@@ -34,13 +34,13 @@ A liveness endpoint for the service. Suitable for load balancers, orchestrators,
 
 ### Request
 
-```/dev/null/api-reference-health-request.sh#L1-1
+```bash
 curl http://localhost:8000/health
 ```
 
 ### Response
 
-```/dev/null/api-reference-health-response.json#L1-3
+```json
 {
   "status": "ok"
 }
@@ -58,7 +58,7 @@ List all models registered in the model registry, with optional filtering.
 
 ### Request
 
-```/dev/null/api-reference-models-request.sh#L1-10
+```bash
 # All models
 curl http://localhost:8000/models
 
@@ -82,7 +82,7 @@ curl "http://localhost:8000/models?backend=mlf"
 
 ### Response
 
-```/dev/null/api-reference-models-response.json#L1-15
+```json
 [
   {
     "run_id": "20250301_120000",
@@ -113,7 +113,7 @@ Run inference for an input feature vector. The server automatically loads the be
 
 ### Request
 
-```/dev/null/api-reference-predict-request.sh#L1-13
+```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
@@ -141,7 +141,7 @@ curl -X POST http://localhost:8000/predict \
 
 ### Response
 
-```/dev/null/api-reference-predict-response.json#L1-7
+```json
 {
   "symbol": "XAUUSD",
   "tf": "1H",
@@ -198,7 +198,7 @@ The `prediction` field returns ordinal labels:
 
 ### Response
 
-```/dev/null/api-reference-404-response.json#L1-3
+```json
 {
   "detail": "No registered model for XAUUSD/1H/label_10"
 }
@@ -208,7 +208,7 @@ The `prediction` field returns ordinal labels:
 
 Train a model first:
 
-```/dev/null/api-reference-train-before-predict.sh#L1-1
+```bash
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 ```
 
@@ -218,7 +218,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 
 ### Response
 
-```/dev/null/api-reference-422-response.json#L1-3
+```json
 {
   "detail": "Missing required feature(s): ['rsi_14', 'atr_14']"
 }
@@ -238,7 +238,7 @@ The server maintains an LRU cache of up to `32` models to avoid reloading the mo
 
 ## Python example
 
-```/dev/null/api-reference-python-client.py#L1-26
+```python
 import requests
 
 # Health check

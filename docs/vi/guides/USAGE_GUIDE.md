@@ -209,6 +209,18 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
 ```
 
+#### Sử dụng khoảng ngày
+
+```bash
+pixi run mlfx train --symbol XAUUSD --tf 1H --train-start 20240101 --train-end 20241231
+```
+
+#### Sử dụng hồ sơ
+
+```bash
+pixi run mlfx train --profile research
+```
+
 #### Các bộ máy hiện hỗ trợ qua dòng lệnh
 
 - `mlf`
@@ -224,6 +236,9 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 - `--backend`
 - `--n-trials`
 - `--n-splits`
+- `--train-start` — ngày bắt đầu huấn luyện (định dạng YYYYMMDD)
+- `--train-end` — ngày kết thúc huấn luyện (định dạng YYYYMMDD)
+- `--profile` — sử dụng hồ sơ cấu hình
 - `--force`
 
 #### Đầu ra
@@ -254,6 +269,18 @@ pixi run mlfx evaluate \
   --slippage 0.0
 ```
 
+#### Sử dụng khoảng ngày
+
+```bash
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --eval-start 20250101 --eval-end 20250331
+```
+
+#### Sử dụng hồ sơ
+
+```bash
+pixi run mlfx evaluate --profile research
+```
+
 #### Mặc định hoạt động như thế nào
 
 - Nếu đã có mô hình phù hợp: backtest **mô hình**
@@ -271,6 +298,9 @@ pixi run mlfx evaluate \
 - `--tp`
 - `--sl`
 - `--slippage`
+- `--eval-start` — ngày bắt đầu đánh giá (định dạng YYYYMMDD)
+- `--eval-end` — ngày kết thúc đánh giá (định dạng YYYYMMDD)
+- `--profile` — sử dụng hồ sơ cấu hình
 - `--use-labels`
 
 #### Đầu ra mặc định
@@ -366,7 +396,128 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0
 ```bash
 pixi run mlfx models
 pixi run mlfx models --symbol XAUUSD --tf 1H
+pixi run mlfx models --backend mlf --label label_10
 ```
+
+---
+
+### 4.10. So sánh nhiều bộ máy
+
+So sánh hiệu năng giữa nhiều bộ máy trong một lần chạy:
+
+```bash
+pixi run mlfx benchmark --symbol XAUUSD --tf 1H --backends mlf sgd stats --n-trials 10
+```
+
+#### Sử dụng hồ sơ
+
+```bash
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+#### Tham số chính
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--backends` — danh sách bộ máy cần so sánh
+- `--n-trials` — số lần thử cho mỗi bộ máy
+- `--n-splits`
+- `--train-start` / `--train-end` — khoảng ngày huấn luyện
+- `--profile` — sử dụng hồ sơ cấu hình
+- `--force`
+
+---
+
+### 4.11. Phát hiện độ lệch với tự động huấn luyện lại
+
+Kiểm tra độ lệch đặc trưng và tự động huấn luyện lại nếu phát hiện:
+
+```bash
+pixi run mlfx drift-retrain --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
+```
+
+#### Tham số chính
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--threshold-ks` — ngưỡng kiểm định KS
+- `--threshold-psi` — ngưỡng PSI
+- `--min-samples` — số mẫu tối thiểu cho mỗi đặc trưng
+
+---
+
+### 4.12. Liệt kê hồ sơ quy trình
+
+Xem tất cả hồ sơ quy trình có sẵn trong `config.toml`:
+
+```bash
+pixi run mlfx profiles
+```
+
+---
+
+### 4.13. Chạy train + evaluate từ hồ sơ
+
+Thực thi luồng train + evaluate hoàn chỉnh sử dụng hồ sơ đã định nghĩa:
+
+```bash
+pixi run mlfx run-profile --profile research
+```
+
+#### Bỏ qua bước
+
+```bash
+pixi run mlfx run-profile --profile research --skip-train
+pixi run mlfx run-profile --profile research --skip-evaluate
+pixi run mlfx run-profile --profile research --skip-benchmark
+```
+
+#### Tham số chính
+
+- `--profile` — **bắt buộc**, tên hồ sơ cần sử dụng
+- `--skip-train` — bỏ qua bước huấn luyện
+- `--skip-evaluate` — bỏ qua bước đánh giá
+- `--skip-benchmark` — bỏ qua bước benchmark (nếu có trong hồ sơ)
+
+---
+
+### 4.14. Chạy toàn bộ quy trình từ đầu đến cuối
+
+Thực thi pipeline hoàn chỉnh từ download đến đánh giá:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+#### Bỏ qua bước
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-download
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-pipeline
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-train
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-evaluate
+```
+
+#### Tiếp tục khi có lỗi
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
+```
+
+#### Tham số chính
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--backend`
+- `--skip-download` — bỏ qua tải dữ liệu
+- `--skip-pipeline` — bỏ qua xử lý đặc trưng
+- `--skip-train` — bỏ qua huấn luyện mô hình
+- `--skip-evaluate` — bỏ qua đánh giá
+- `--continue-on-error` — tiếp tục ngay cả khi có bước thất bại
+- `--json` — xuất kết quả dạng JSON
 
 ---
 
@@ -402,7 +553,36 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-### 5.2. Luồng nâng cao
+### 5.2. Một lệnh từ đầu đến cuối
+
+Dùng `run-all` cho pipeline hoàn chỉnh:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+### 5.3. Luồng dựa trên hồ sơ
+
+Định nghĩa hồ sơ trong `config.toml` và dùng cho các thí nghiệm có thể tái tạo:
+
+```bash
+# Liệt kê các hồ sơ có sẵn
+pixi run mlfx profiles
+
+# Chạy train + evaluate sử dụng hồ sơ
+pixi run mlfx run-profile --profile research
+
+# Huấn luyện sử dụng hồ sơ
+pixi run mlfx train --profile research
+
+# Đánh giá sử dụng hồ sơ
+pixi run mlfx evaluate --profile research
+
+# Benchmark sử dụng hồ sơ
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+### 5.4. Luồng nâng cao
 
 ```bash
 # Kiểm tra dữ liệu thô
@@ -419,6 +599,9 @@ pixi run mlfx serve --port 8000
 
 # Kiểm tra độ lệch dữ liệu
 pixi run mlfx drift --symbol XAUUSD --tf 1H
+
+# Phát hiện độ lệch với tự động huấn luyện lại
+pixi run mlfx drift-retrain --symbol XAUUSD --tf 1H
 ```
 
 ---

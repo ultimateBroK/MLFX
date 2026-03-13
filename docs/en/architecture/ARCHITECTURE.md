@@ -306,6 +306,141 @@ Environment variable overrides:
 
 ---
 
+## Workflow Orchestration
+
+### Workflow Module
+
+The `mlfx.workflow/` module provides end-to-end orchestration capabilities:
+
+```
+mlfx/workflow/
+├── __init__.py           ← Public exports
+├── run_all.py            ← Full pipeline orchestration (download → evaluate)
+├── run_profile.py        ← Profile-based train + evaluate
+└── types.py              ← Workflow result types
+```
+
+### Workflow Stages
+
+The `run-all` command executes stages sequentially:
+
+```
+Stage 1: download    → data/raw/{symbol}/
+Stage 2: pipeline    → data/ohlcv/, data/features/, data/labels/
+Stage 3: train       → outputs/models/{symbol}/{tf}/{label}/
+Stage 4: evaluate    → outputs/reports/{symbol}/{tf}/{label}/
+```
+
+Each stage can be skipped independently via flags:
+- `--skip-download`
+- `--skip-pipeline`
+- `--skip-train`
+- `--skip-evaluate`
+
+### Profiles System
+
+Workflow profiles allow predefined configurations for reproducible experiments:
+
+```toml
+[profiles.research.train]
+symbol      = "XAUUSD"
+tf          = "1H"
+label       = "label_10"
+backend     = "mlf"
+train_start = "20240101"
+train_end   = "20241231"
+n_trials    = 5
+
+[profiles.research.evaluate]
+symbol          = "XAUUSD"
+tf              = "1H"
+label           = "label_10"
+eval_start      = "20250101"
+eval_end        = "20250331"
+tp_r            = 1.5
+sl_r            = 1.0
+initial_capital = 10000.0
+```
+
+Profile usage:
+
+```bash
+# List available profiles
+pixi run mlfx profiles
+
+# Run train + evaluate from profile
+pixi run mlfx run-profile --profile research
+
+# Use profile for individual commands
+pixi run mlfx train --profile research
+pixi run mlfx evaluate --profile research
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+### Profile Resolution
+
+When a profile is specified, the system:
+
+1. Loads profile from `config.toml` via `WorkflowProfileConfig`
+2. Merges profile settings with command-specific config
+3. CLI flags override both profile and config defaults
+
+```
+CLI flags (highest priority)
+    │
+    ▼
+Profile settings
+    │
+    ▼
+config.toml defaults
+    │
+    ▼
+Built-in defaults (lowest priority)
+```
+
+---
+
+## CLI Architecture
+
+### Command Structure
+
+```
+mlfx
+├── download          # Tick data ingestion
+├── pipeline          # Feature engineering
+├── train             # Model training
+├── evaluate          # Backtesting & reports
+├── benchmark         # Multi-backend comparison
+├── serve             # FastAPI inference server
+├── batch-predict     # Batch inference
+├── drift             # Feature drift detection
+├── drift-retrain     # Drift detection with auto-retrain
+├── models            # Model registry listing
+├── profiles          # List workflow profiles
+├── run-profile       # Train + evaluate from profile
+└── run-all           # Full end-to-end pipeline
+```
+
+### Command Implementation
+
+Each CLI command follows a consistent pattern:
+
+```python
+# mlfx/cli/main.py
+@app.command("train")
+def train_cmd(
+    symbol: str = None,
+    tf: str = None,
+    label: str = None,
+    profile: str = None,
+    ...
+):
+    config = resolve_config("train", profile=profile)
+    # Execute training logic
+```
+
+---
+
 ## Deep Learning Backend Internals
 
 ### Sequence Utilities (`_sequence_utils.py`)

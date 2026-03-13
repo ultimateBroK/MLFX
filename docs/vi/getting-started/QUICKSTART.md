@@ -208,6 +208,56 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 ---
 
+## Một lệnh thay thế: `run-all`
+
+Để nhanh hơn nữa, dùng `run-all` để chạy toàn bộ pipeline chỉ với một lệnh:
+
+```bash
+pixi install
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+Lệnh này chạy cả 4 bước theo trình tự: download → pipeline → train → evaluate.
+
+### Bỏ qua bước
+
+Nếu bạn đã có dữ liệu tải sẵn:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf --skip-download
+```
+
+Các cờ bỏ qua khác:
+- `--skip-pipeline` — bỏ qua xử lý đặc trưng
+- `--skip-train` — bỏ qua huấn luyện mô hình
+- `--skip-evaluate` — bỏ qua đánh giá
+
+### Tiếp tục khi có lỗi
+
+Để tiếp tục chạy ngay cả khi có bước thất bại:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
+```
+
+---
+
+## Luồng dựa trên hồ sơ
+
+Để các thí nghiệm có thể tái tạo, hãy định nghĩa hồ sơ trong `config.toml` và sử dụng:
+
+```bash
+# Liệt kê các hồ sơ có sẵn
+pixi run mlfx profiles
+
+# Chạy train + evaluate từ hồ sơ
+pixi run mlfx run-profile --profile research
+```
+
+Xem [../reference/CONFIG_REFERENCE.md](../reference/CONFIG_REFERENCE.md) để biết chi tiết cấu hình hồ sơ.
+
+---
+
 ## Sau bước bắt đầu nhanh, nên đọc gì tiếp
 
 ### Nếu bạn là người mới hoàn toàn

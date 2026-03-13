@@ -109,9 +109,14 @@ download
 - `pipeline` — tạo OHLCV, đặc trưng và nhãn
 - `train` — huấn luyện bộ máy đã chọn và đăng ký tệp đầu ra
 - `evaluate` — backtest tín hiệu và sinh báo cáo
+- `benchmark` — so sánh nhiều bộ máy
 - `serve` — khởi động API suy luận
 - `batch-predict` — chạy dự đoán ngoại tuyến và xuất tệp
 - `drift` — so sánh phân phối mới với dữ liệu tham chiếu
+- `drift-retrain` — phát hiện độ lệch với tự động huấn luyện lại
+- `profiles` — liệt kê các hồ sơ quy trình
+- `run-profile` — train + evaluate từ hồ sơ
+- `run-all` — chạy toàn bộ pipeline trong một lệnh
 
 Để xem lệnh chạy thực tế, hãy đọc:
 - [Bắt đầu nhanh](getting-started/QUICKSTART.md)

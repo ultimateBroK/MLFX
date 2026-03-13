@@ -109,9 +109,14 @@ What each stage does:
 - `pipeline` — build OHLCV, features, and labels
 - `train` — fit the selected backend and register artifacts
 - `evaluate` — backtest signals and generate reports
+- `benchmark` — compare multiple backends
 - `serve` — start the inference API
 - `batch-predict` — run offline prediction exports
 - `drift` — compare recent distributions against reference data
+- `drift-retrain` — drift detection with automatic retraining
+- `profiles` — list workflow profiles
+- `run-profile` — train + evaluate from a profile
+- `run-all` — full end-to-end pipeline in one command
 
 For runnable commands, see [Quickstart](getting-started/QUICKSTART.md) and [Usage Guide](guides/USAGE_GUIDE.md).
 

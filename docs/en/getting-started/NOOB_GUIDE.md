@@ -58,6 +58,16 @@ The corresponding code areas live in:
 - `mlfx.training`
 - `mlfx.evaluation`
 
+### One-command alternative
+
+You can also run the entire pipeline with a single command:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+This executes all stages sequentially: download → pipeline → train → evaluate.
+
 ---
 
 ## 3. Why the order matters

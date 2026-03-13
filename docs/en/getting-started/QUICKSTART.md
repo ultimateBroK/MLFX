@@ -209,6 +209,56 @@ pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.
 
 ---
 
+## One-command alternative: `run-all`
+
+For an even faster path, use `run-all` to execute the entire pipeline in one command:
+
+```bash
+pixi install
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+This runs all four stages sequentially: download → pipeline → train → evaluate.
+
+### Skipping stages
+
+If you already have data downloaded:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf --skip-download
+```
+
+Other skip flags:
+- `--skip-pipeline` — skip feature pipeline
+- `--skip-train` — skip model training
+- `--skip-evaluate` — skip evaluation
+
+### Continue on error
+
+To continue running even if a stage fails:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
+```
+
+---
+
+## Profile-based workflow
+
+For reproducible experiments, define profiles in `config.toml` and use them:
+
+```bash
+# List available profiles
+pixi run mlfx profiles
+
+# Run train + evaluate from a profile
+pixi run mlfx run-profile --profile research
+```
+
+See [../reference/CONFIG_REFERENCE.md](../reference/CONFIG_REFERENCE.md) for profile configuration details.
+
+---
+
 ## What to read next after quickstart
 
 ### If you are completely new

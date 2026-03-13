@@ -207,6 +207,18 @@ pixi run mlfx pipeline --symbol XAUUSD --tf 1H --skip-labels
 pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-trials 15 --n-splits 5
 ```
 
+#### Using Date Ranges
+
+```bash
+pixi run mlfx train --symbol XAUUSD --tf 1H --train-start 20240101 --train-end 20241231
+```
+
+#### Using Profiles
+
+```bash
+pixi run mlfx train --profile research
+```
+
 #### Backends Currently Exposed Through the CLI
 
 - `mlf`
@@ -222,6 +234,9 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 - `--backend`
 - `--n-trials`
 - `--n-splits`
+- `--train-start` — start date for training (YYYYMMDD format)
+- `--train-end` — end date for training (YYYYMMDD format)
+- `--profile` — use a workflow profile from config
 - `--force`
 
 #### Artifacts
@@ -252,6 +267,18 @@ pixi run mlfx evaluate \
   --slippage 0.0
 ```
 
+#### Using Date Ranges
+
+```bash
+pixi run mlfx evaluate --symbol XAUUSD --tf 1H --eval-start 20250101 --eval-end 20250331
+```
+
+#### Using Profiles
+
+```bash
+pixi run mlfx evaluate --profile research
+```
+
 #### Default Behavior
 
 - If a suitable model exists: backtest the **model**
@@ -269,6 +296,9 @@ pixi run mlfx evaluate \
 - `--tp`
 - `--sl`
 - `--slippage`
+- `--eval-start` — start date for evaluation (YYYYMMDD format)
+- `--eval-end` — end date for evaluation (YYYYMMDD format)
+- `--profile` — use a workflow profile from config
 - `--use-labels`
 
 #### Default Artifacts
@@ -364,7 +394,128 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0
 ```bash
 pixi run mlfx models
 pixi run mlfx models --symbol XAUUSD --tf 1H
+pixi run mlfx models --backend mlf --label label_10
 ```
+
+---
+
+### 4.10. Benchmark Multiple Backends
+
+Compare performance across multiple backends in a single run:
+
+```bash
+pixi run mlfx benchmark --symbol XAUUSD --tf 1H --backends mlf sgd stats --n-trials 10
+```
+
+#### Using Profiles
+
+```bash
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+#### Key Arguments
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--backends` — list of backends to compare
+- `--n-trials` — trials per backend
+- `--n-splits`
+- `--train-start` / `--train-end` — training date range
+- `--profile` — use a workflow profile
+- `--force`
+
+---
+
+### 4.11. Drift Detection with Auto-Retrain
+
+Check for feature drift and automatically retrain if detected:
+
+```bash
+pixi run mlfx drift-retrain --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
+```
+
+#### Key Arguments
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--threshold-ks` — KS test threshold
+- `--threshold-psi` — PSI threshold
+- `--min-samples` — minimum samples per feature
+
+---
+
+### 4.12. List Workflow Profiles
+
+View all available workflow profiles defined in `config.toml`:
+
+```bash
+pixi run mlfx profiles
+```
+
+---
+
+### 4.13. Run Train + Evaluate from Profile
+
+Execute a complete train + evaluate workflow using a predefined profile:
+
+```bash
+pixi run mlfx run-profile --profile research
+```
+
+#### Skipping Steps
+
+```bash
+pixi run mlfx run-profile --profile research --skip-train
+pixi run mlfx run-profile --profile research --skip-evaluate
+pixi run mlfx run-profile --profile research --skip-benchmark
+```
+
+#### Key Arguments
+
+- `--profile` — **required**, name of the profile to use
+- `--skip-train` — skip training step
+- `--skip-evaluate` — skip evaluation step
+- `--skip-benchmark` — skip benchmark step (if defined in profile)
+
+---
+
+### 4.14. Run Full End-to-End Workflow
+
+Execute the complete pipeline from download to evaluation:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+#### Skipping Steps
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-download
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-pipeline
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-train
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --skip-evaluate
+```
+
+#### Continue on Error
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
+```
+
+#### Key Arguments
+
+- `--symbol`
+- `--tf`
+- `--label`
+- `--backend`
+- `--skip-download` — skip data download
+- `--skip-pipeline` — skip feature pipeline
+- `--skip-train` — skip model training
+- `--skip-evaluate` — skip evaluation
+- `--continue-on-error` — continue even if a step fails
+- `--json` — output results as JSON
 
 ---
 
@@ -400,7 +551,36 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-### 5.2. Advanced Workflow
+### 5.2. One-Command End-to-End
+
+Use `run-all` for the complete pipeline:
+
+```bash
+pixi run mlfx run-all --symbol XAUUSD --tf 1H --label label_10 --backend mlf
+```
+
+### 5.3. Profile-Based Workflow
+
+Define profiles in `config.toml` and use them for reproducible experiments:
+
+```bash
+# List available profiles
+pixi run mlfx profiles
+
+# Run train + evaluate using a profile
+pixi run mlfx run-profile --profile research
+
+# Train using a profile
+pixi run mlfx train --profile research
+
+# Evaluate using a profile
+pixi run mlfx evaluate --profile research
+
+# Benchmark using a profile
+pixi run mlfx benchmark --profile benchmark_fast
+```
+
+### 5.4. Advanced Workflow
 
 ```bash
 # Audit raw data
@@ -417,6 +597,9 @@ pixi run mlfx serve --port 8000
 
 # Check feature drift
 pixi run mlfx drift --symbol XAUUSD --tf 1H
+
+# Drift detection with auto-retrain
+pixi run mlfx drift-retrain --symbol XAUUSD --tf 1H
 ```
 
 ---
