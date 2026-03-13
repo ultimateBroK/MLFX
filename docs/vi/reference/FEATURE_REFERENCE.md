@@ -131,16 +131,7 @@ Khóa `avg_range_n` trong `[features]` điều khiển số phiên dùng để t
 
 ---
 
-## 7. Nhóm đặc trưng đã loại khỏi pipeline mặc định
-
-Pipeline đặc trưng mặc định hiện không còn tạo các cột ICT Order Block và Fair Value Gap.
-
-- Đã loại khỏi quá trình tạo đặc trưng mặc định: `ob_*`, `price_in_*_ob`, `fvg_*`, `price_in_*_fvg`
-- Vẫn giữ trong pipeline mặc định: killzone, SR/pivots, RSI/MACD/ATR/EMA, khoảng cách chuẩn hóa ATR
-
----
-
-## 8. Các cột nhãn
+## 7. Các cột nhãn
 
 Các nhãn được thêm bởi bước gắn nhãn trong quy trình xử lý, trừ khi dùng `--skip-labels`.
 
@@ -177,7 +168,7 @@ Khóa `atr_mult` được điều khiển bởi `--atr-mult` trên dòng lệnh 
 
 ---
 
-## 9. Tổng kết về số lượng cột
+## 8. Tổng kết về số lượng cột
 
 Một lần chạy với cấu hình mặc định thường tạo ra khoảng **70 cột trở lên** cho mỗi cây nến, bao gồm:
 
@@ -198,7 +189,7 @@ Số lượng cột chính xác sẽ phụ thuộc vào:
 
 ---
 
-## 10. Cách đọc tài liệu này
+## 9. Cách đọc tài liệu này
 
 Bạn nên dùng tài liệu này khi cần trả lời các câu hỏi như:
 

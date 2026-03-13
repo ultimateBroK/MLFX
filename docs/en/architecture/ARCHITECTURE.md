@@ -186,7 +186,12 @@ from mlfx.registry import get_registry
 
 reg = get_registry()
 best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
-# → {"backend": "mlf", "artifact_path": "...", "metrics": {...}}
+```
+
+Returns:
+
+```json
+{"backend": "mlf", "artifact_path": "...", "metrics": {...}}
 ```
 
 ---

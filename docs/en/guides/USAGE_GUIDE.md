@@ -519,7 +519,7 @@ pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
 
 ---
 
-### 4.10. MLflow Tracking (Optional)
+### 4.15. MLflow Tracking (Optional)
 
 Start the MLflow server through Docker:
 

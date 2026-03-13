@@ -131,16 +131,7 @@ The `avg_range_n` key in `[features]` controls how many sessions are used for th
 
 ---
 
-## 7. Removed Feature Groups
-
-The default feature pipeline no longer adds ICT Order Block or Fair Value Gap columns.
-
-- Removed from active generation: `ob_*`, `price_in_*_ob`, `fvg_*`, `price_in_*_fvg`
-- Kept in active generation: killzone, SR/pivots, RSI/MACD/ATR/EMA, ATR-normalized distances
-
----
-
-## 8. Label Columns
+## 7. Label Columns
 
 Labels are added by the labeling stage in the pipeline, unless `--skip-labels` is used.
 
@@ -177,7 +168,7 @@ The `atr_mult` key is controlled by `--atr-mult` in the CLI and `atr_mult` in th
 
 ---
 
-## 9. Summary of Column Count
+## 8. Summary of Column Count
 
 A run with default settings typically produces **70+ columns** per candle, including:
 
@@ -198,7 +189,7 @@ The exact number of columns depends on:
 
 ---
 
-## 10. How to Use This Document
+## 9. How to Use This Document
 
 Use this reference when you need to answer questions such as:
 

@@ -647,51 +647,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.6. `serve`
-
-| Cờ | Mặc định | Mô tả |
-|---|---|---|
-| `--host` | `0.0.0.0` | Địa chỉ kết nối cho máy chủ API |
-| `--port` | `8000` | Cổng chạy API suy luận |
-| `--reload` | `false` | Bật tự động tải lại cho phát triển |
-
----
-
-## 4.7. `batch-predict`
-
-| Cờ | Mặc định | Mô tả |
-|---|---|---|
-| `--symbol` | từ cấu hình | Mã cần dự đoán |
-| `--tf` | từ cấu hình | Khung thời gian |
-| `--label` | từ cấu hình | Cột nhãn tương ứng với mô hình |
-
----
-
-## 4.8. `drift`
-
-| Cờ | Mặc định | Mô tả |
-|---|---|---|
-| `--symbol` | từ cấu hình | Mã cần kiểm tra độ lệch |
-| `--tf` | từ cấu hình | Khung thời gian |
-| `--label` | từ cấu hình | Cột nhãn |
-| `--threshold-ks` | `0.1` | Ngưỡng kiểm định KS |
-| `--threshold-psi` | `0.2` | Ngưỡng PSI |
-| `--min-samples` | `30` | Số mẫu tối thiểu cho mỗi đặc trưng |
-
----
-
-## 4.9. `models`
-
-| Cờ | Mặc định | Mô tả |
-|---|---|---|
-| `--symbol` | không có | Lọc theo mã |
-| `--tf` | không có | Lọc theo khung thời gian |
-| `--backend` | không có | Lọc theo bộ máy |
-| `--label` | không có | Lọc theo nhãn |
-
----
-
-## 4.10. `benchmark`
+## 4.6. `benchmark`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -708,16 +664,66 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.11. `drift-retrain`
+## 4.7. `serve`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--host` | `0.0.0.0` | Địa chỉ kết nối cho máy chủ API |
+| `--port` | `8000` | Cổng chạy API suy luận |
+| `--reload` | `false` | Bật tự động tải lại cho phát triển |
+
+---
+
+## 4.8. `batch-predict`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | từ cấu hình | Mã cần dự đoán |
+| `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn tương ứng với mô hình |
+
+---
+
+## 4.9. `drift`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | từ cấu hình | Mã cần kiểm tra độ lệch |
+| `--tf` | từ cấu hình | Khung thời gian |
+| `--label` | từ cấu hình | Cột nhãn |
+| `--threshold-ks` | `0.1` | Ngưỡng kiểm định KS |
+| `--threshold-psi` | `0.2` | Ngưỡng PSI |
+| `--min-samples` | `30` | Số mẫu tối thiểu cho mỗi đặc trưng |
+
+---
+
+## 4.10. `drift-retrain`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
 | `--symbol` | từ cấu hình | Mã công cụ tài chính |
 | `--tf` | từ cấu hình | Khung thời gian |
 | `--label` | từ cấu hình | Cột nhãn |
+| `--backend` | từ cấu hình | Bộ máy huấn luyện |
+| `--n-trials` | từ cấu hình | Số lần thử siêu tham số |
+| `--n-splits` | từ cấu hình | Số phần chia trong kiểm định chéo |
+| `--train-start` | từ cấu hình | Ngày bắt đầu huấn luyện (YYYYMMDD) |
+| `--train-end` | từ cấu hình | Ngày kết thúc huấn luyện (YYYYMMDD) |
+| `--profile` | không có | Tên hồ sơ cấu hình để sử dụng |
+| `--force` | `false` | Huấn luyện lại nếu phát hiện độ lệch |
 | `--threshold-ks` | `0.1` | Ngưỡng kiểm định KS |
 | `--threshold-psi` | `0.2` | Ngưỡng PSI |
 | `--min-samples` | `30` | Số mẫu tối thiểu cho mỗi đặc trưng |
+
+---
+
+## 4.11. `models`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | không có | Lọc theo mã |
+| `--tf` | không có | Lọc theo khung thời gian |
+| `--backend` | không có | Lọc theo bộ máy |
 
 ---
 
@@ -727,7 +733,7 @@ Liệt kê tất cả hồ sơ quy trình có sẵn trong cấu hình.
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
-| (không có) | — | Hiển thị danh sách hồ sơ |
+| `--profile` | không có | Hiển thị chi tiết một hồ sơ cụ thể |
 
 ---
 
@@ -741,6 +747,7 @@ Chạy train + evaluate từ một hồ sơ cấu hình.
 | `--skip-train` | `false` | Bỏ qua bước huấn luyện |
 | `--skip-evaluate` | `false` | Bỏ qua bước đánh giá |
 | `--skip-benchmark` | `false` | Bỏ qua bước benchmark (nếu có trong hồ sơ) |
+| `--json` | `false` | Xuất tóm tắt chạy dạng JSON |
 
 ---
 
@@ -750,14 +757,16 @@ Chạy toàn bộ quy trình từ đầu đến cuối: download → pipeline �
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
-| `--symbol` | từ cấu hình | Mã công cụ tài chính |
-| `--tf` | từ cấu hình | Khung thời gian |
-| `--label` | từ cấu hình | Cột nhãn |
-| `--backend` | từ cấu hình | Bộ máy huấn luyện |
+| `--profile` | không có | Sử dụng hồ sơ cấu hình cho train/evaluate/benchmark |
 | `--skip-download` | `false` | Bỏ qua bước tải dữ liệu |
+| `--skip-qa` | `false` | Bỏ qua bước QA |
 | `--skip-pipeline` | `false` | Bỏ qua bước xử lý dữ liệu |
 | `--skip-train` | `false` | Bỏ qua bước huấn luyện |
 | `--skip-evaluate` | `false` | Bỏ qua bước đánh giá |
+| `--skip-benchmark` | `false` | Bỏ qua bước benchmark |
+| `--skip-serve` | `false` | Bỏ qua bước serve placeholder |
+| `--skip-batch` | `false` | Bỏ qua bước dự đoán theo lô |
+| `--skip-drift-retrain` | `false` | Bỏ qua bước phát hiện độ lệch và huấn luyện lại |
 | `--continue-on-error` | `false` | Tiếp tục chạy ngay cả khi có bước thất bại |
 | `--json` | `false` | Xuất kết quả dưới dạng JSON |
 
