@@ -147,12 +147,8 @@ download
 | --- | --- |
 | `mlf` | MLForecast + LightGBM baseline |
 | `lstm` | PyTorch LSTM |
-| `bilstm` | Bidirectional LSTM |
-| `transformer` | Transformer encoder |
-| `cnn_lstm` | CNN + LSTM hybrid |
 | `sgd` | Online `SGDClassifier` baseline |
 | `stats` | Statistical forecasting baselines |
-| `neuralforecast` | NeuralForecast family |
 
 MLFX is designed so you can compare these approaches inside one consistent project structure instead of rebuilding the same plumbing every time.
 

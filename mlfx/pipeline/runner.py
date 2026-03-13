@@ -47,9 +47,9 @@ def run_pipeline(
         raise ValueError("timeframes must be a non-empty list")
 
     # Lazily-imported here to avoid heavy TA-Lib import at module load time.
-    from mlfx.pipeline.feature_engineering import run_feature_pipeline
-    from mlfx.pipeline.labeling import run_label_pipeline
-    from mlfx.pipeline.resampling import resample_symbol_tf
+    from mlfx.pipeline.features import run_feature_pipeline
+    from mlfx.pipeline.labels import run_label_pipeline
+    from mlfx.pipeline.resample import resample_symbol_tf
 
     _feat_cfg = feature_cfg if feature_cfg is not None else FeatureConfig()
     _pipe_cfg = pipeline_cfg if pipeline_cfg is not None else PipelineConfig()

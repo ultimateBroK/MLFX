@@ -134,12 +134,8 @@ Bước này giúp phát hiện khoảng trống dữ liệu, tháng lỗi hoặ
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ### Cách kiểm tra nhanh
 

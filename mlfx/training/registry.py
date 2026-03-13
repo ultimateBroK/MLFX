@@ -12,14 +12,10 @@ if TYPE_CHECKING:
 
 # Backend key -> (module, symbol)
 BACKEND_REGISTRY: dict[str, tuple[str, str]] = {
-    "mlf":           ("mlfx.training.backends.mlforecast",    "run_ml_models"),
+    "mlf":           ("mlfx.training.backends.mlf",    "run_ml_models"),
     "lstm":          ("mlfx.training.backends.lstm",          "run_lstm"),
-    "bilstm":        ("mlfx.training.backends.bilstm",        "run_bilstm"),
-    "transformer":   ("mlfx.training.backends.transformer",   "run_transformer"),
-    "cnn_lstm":      ("mlfx.training.backends.cnn_lstm",      "run_cnn_lstm"),
-    "sgd":           ("mlfx.training.backends.online_sgd",    "run_online_sgd"),
+    "sgd":           ("mlfx.training.backends.sgd",    "run_online_sgd"),
     "stats":         ("mlfx.training.backends.stats",         "run_stats"),
-    "neuralforecast":("mlfx.training.backends.neuralforecast","run_neural_forecast"),
 }
 
 # Backend-specific extra kwargs (callable receives config, returns dict to merge)
@@ -27,10 +23,10 @@ def _extra_mlf(c: "TrainingConfig") -> dict[str, Any]:
     return {"n_trials": c.n_trials, "n_splits": c.n_splits}
 
 
-def _extra_dl(c: "TrainingConfig") -> dict[str, Any]:
-    """Defaults shared by all four deep-learning backends (LSTM / BiLSTM / Transformer / CNN-LSTM)."""
+def _extra_lstm(c: "TrainingConfig") -> dict[str, Any]:
+    """Defaults for the PyTorch LSTM backend."""
     return {
-        "n_trials": 10,
+        "n_trials": c.n_trials,
         "n_splits": c.n_splits,
         "seq_len": 60,
         "epochs": 30,
@@ -38,13 +34,6 @@ def _extra_dl(c: "TrainingConfig") -> dict[str, Any]:
         "patience": 5,
         "top_k_features": 20,
     }
-
-
-# DL backends share identical defaults; assign the same function to each key.
-_extra_lstm        = _extra_dl
-_extra_bilstm      = _extra_dl
-_extra_transformer = _extra_dl
-_extra_cnn_lstm    = _extra_dl
 
 
 def _extra_sgd(c: "TrainingConfig") -> dict[str, Any]:
@@ -55,19 +44,11 @@ def _extra_stats(c: "TrainingConfig") -> dict[str, Any]:
     return {"n_splits": c.n_splits, "season_length": 24}
 
 
-def _extra_neuralforecast(c: "TrainingConfig") -> dict[str, Any]:
-    return {"n_windows": c.n_splits, "input_size": 48, "max_steps": 200, "max_samples": 5000}
-
-
 BACKEND_EXTRA_KWARGS: dict[str, Any] = {
     "mlf":            _extra_mlf,
     "lstm":           _extra_lstm,
-    "bilstm":         _extra_bilstm,
-    "transformer":    _extra_transformer,
-    "cnn_lstm":       _extra_cnn_lstm,
     "sgd":            _extra_sgd,
     "stats":          _extra_stats,
-    "neuralforecast": _extra_neuralforecast,
 }
 
 
@@ -91,7 +72,7 @@ def get_runner_kwargs(config: "TrainingConfig") -> dict[str, Any]:
     base: dict[str, Any] = {
         "symbol": config.symbol,
         "tf": config.tf,
-        "label_col": config.label_col,
+        "label": config.label,
         "force": config.force,
         "seed": config.random_seed,
         "train_start": config.extra.get("train_start"),

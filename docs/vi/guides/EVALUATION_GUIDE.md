@@ -151,7 +151,7 @@ Khi đó bạn có thể so sánh:
 Bộ chạy sẽ tạo `out_name` theo công thức:
 
 ```text
-{label_col}_R{int(tp_r * 10)}
+{label}_R{int(tp_r * 10)}
 ```
 
 Sau đó mô-đun báo cáo tạo tiền tố đầy đủ:

@@ -1,8 +1,8 @@
 """Lightweight JSON-backed model registry.
 
 The registry file lives at ``outputs/models/registry.json`` by default.
-Each entry records the backend, symbol, timeframe, label column, trained
-artifact path, key metrics, and a timestamp.
+Each entry records the backend, symbol, timeframe, label name,
+trained artifact path, key metrics, and a timestamp.
 """
 
 from __future__ import annotations
@@ -18,6 +18,21 @@ from mlfx.config.paths import DEFAULT_PATHS
 logger = logging.getLogger(__name__)
 
 _REGISTRY_FILENAME = "registry.json"
+
+
+def _normalize_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    """Normalize one registry entry to the canonical key contract.
+
+    Older entries may still contain ``label_col``. Promote that value to
+    ``label`` once and drop the legacy key from persisted state.
+    """
+    normalized = dict(entry)
+    label = normalized.get("label")
+    legacy_label = normalized.get("label_col")
+    if label is None and legacy_label is not None:
+        normalized["label"] = legacy_label
+    normalized.pop("label_col", None)
+    return normalized
 
 
 class ModelRegistry:
@@ -41,10 +56,17 @@ class ModelRegistry:
         if not self._path.exists():
             return []
         try:
-            return json.loads(self._path.read_text())
+            raw = json.loads(self._path.read_text())
         except (json.JSONDecodeError, OSError):
             logger.warning("Registry file corrupt or unreadable; starting fresh.")
             return []
+        if not isinstance(raw, list):
+            logger.warning("Registry content must be a list; starting fresh.")
+            return []
+        normalized = [_normalize_entry(entry) for entry in raw if isinstance(entry, dict)]
+        if normalized != raw:
+            self._save(normalized)
+        return normalized
 
     def _save(self, entries: list[dict[str, Any]]) -> None:
         self._path.write_text(json.dumps(entries, indent=2, default=str))
@@ -58,7 +80,7 @@ class ModelRegistry:
         backend: str,
         symbol: str,
         tf: str,
-        label_col: str,
+        label: str,
         metrics: dict[str, Any],
         *,
         artifact_path: str | Path | None = None,
@@ -68,7 +90,7 @@ class ModelRegistry:
 
         Parameters
         ----------
-        backend, symbol, tf, label_col:
+        backend, symbol, tf, label:
             Identifiers for the trained model.
         metrics:
             Raw metrics dict returned by the backend ``run_*`` function.
@@ -82,11 +104,13 @@ class ModelRegistry:
         dict
             The newly created registry entry.
         """
+        if not label:
+            raise ValueError("Model registry requires a non-empty label")
         entry: dict[str, Any] = {
             "backend": backend,
             "symbol": symbol,
             "tf": tf,
-            "label_col": label_col,
+            "label": label,
             "registered_at": time.time(),
             "metrics": {
                 k: v
@@ -106,7 +130,10 @@ class ModelRegistry:
         self._save(entries)
         logger.info(
             "Registry: registered %s  %s/%s  %s  metrics=%s",
-            backend, symbol, tf, label_col,
+            backend,
+            symbol,
+            tf,
+            label,
             entry["metrics"],
         )
         return entry
@@ -133,7 +160,7 @@ class ModelRegistry:
         *,
         symbol: str,
         tf: str,
-        label_col: str | None = None,
+        label: str | None = None,
         metric: str = "best_cv_f1_macro",
         backend: str | None = None,
     ) -> dict[str, Any] | None:
@@ -142,8 +169,8 @@ class ModelRegistry:
         Returns ``None`` when no matching entry is found.
         """
         candidates = self.list_models(symbol=symbol, tf=tf, backend=backend)
-        if label_col:
-            candidates = [e for e in candidates if e.get("label_col") == label_col]
+        if label:
+            candidates = [e for e in candidates if e.get("label") == label]
         valid = [
             e for e in candidates if metric in e.get("metrics", {})
         ]

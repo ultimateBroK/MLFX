@@ -69,7 +69,7 @@ class PredictRequest(BaseModel):
 
     symbol: str = "XAUUSD"
     tf: str = "1H"
-    label_col: str = "label_10"
+    label: str = "label_10"
     features: dict[str, float]
 
 
@@ -116,7 +116,7 @@ def list_models(
 def predict(request: PredictRequest) -> PredictResponse:
     """Run inference for a single feature vector.
 
-    The *best* registered model for the requested symbol / tf / label_col is
+    The *best* registered model for the requested symbol / tf / label is
     loaded automatically.
     """
     from mlfx.registry.models import get_registry  # noqa: PLC0415
@@ -125,7 +125,7 @@ def predict(request: PredictRequest) -> PredictResponse:
     result = resolve_and_predict(
         request.symbol,
         request.tf,
-        request.label_col,
+        request.label,
         dict(request.features),
         registry=reg,
         model_cache=_MODEL_CACHE,
@@ -135,12 +135,12 @@ def predict(request: PredictRequest) -> PredictResponse:
         entry = reg.best_model(
             symbol=request.symbol,
             tf=request.tf,
-            label_col=request.label_col,
+            label=request.label,
         )
         if entry is None:
             raise HTTPException(
                 status_code=404,
-                detail=f"No registered model for {request.symbol}/{request.tf}/{request.label_col}",
+                detail=f"No registered model for {request.symbol}/{request.tf}/{request.label}",
             )
         artifact_path = entry.get("artifact_path", "")
         if not artifact_path:

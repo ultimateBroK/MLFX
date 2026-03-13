@@ -255,7 +255,7 @@ Check:
 
 - Whether parquet files exist under `data/labels/{symbol}/{tf}/`
 - Whether a model has been trained
-- Whether `label_col` is correct
+- Whether `label` is correct
 
 ### Want to clean old outputs
 

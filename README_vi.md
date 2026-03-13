@@ -147,12 +147,8 @@ download
 | --- | --- |
 | `mlf` | Mô hình nền MLForecast + LightGBM |
 | `lstm` | Mô hình PyTorch LSTM |
-| `bilstm` | Mô hình LSTM hai chiều |
-| `transformer` | Bộ mã hóa Transformer |
-| `cnn_lstm` | Mô hình lai CNN + LSTM |
 | `sgd` | Mô hình nền `SGDClassifier` dạng trực tuyến |
 | `stats` | Các mô hình dự báo thống kê cơ sở |
-| `neuralforecast` | Nhóm mô hình thuộc NeuralForecast |
 
 MLFX được thiết kế để bạn có thể so sánh các hướng tiếp cận này trong cùng một cấu trúc thống nhất, thay vì phải dựng lại cùng một phần hạ tầng mỗi lần.
 

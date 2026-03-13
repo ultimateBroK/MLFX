@@ -139,7 +139,7 @@ def load_model(path: Path, input_size: int, **model_kwargs: Any) -> FXLstm:
 def run_lstm(
     symbol: str = "XAUUSD",
     tf: str = "1H",
-    label_col: str = "label_10",
+    label: str = "label_10",
     seq_len: int = 60,
     epochs: int = 30,
     n_trials: int = 10,
@@ -157,7 +157,7 @@ def run_lstm(
 ) -> dict:
     """Train PyTorch LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
-    out_path = build_model_output_path(f"lstm_{label_col}", symbol, tf, label_col, suffix=".pt")
+    out_path = build_model_output_path(f"lstm_{label}", symbol, tf, label, suffix=".pt")
 
     if out_path.exists() and not force:
         logger.info("LSTM model exists at %s", out_path)
@@ -167,7 +167,7 @@ def run_lstm(
         prepared = prepare_tabular_data(
             symbol,
             tf,
-            label_col,
+            label,
             train_start=train_start,
             train_end=train_end,
         )
@@ -209,7 +209,7 @@ def main() -> None:
     run_lstm(
         symbol=args.symbol,
         tf=args.tf,
-        label_col=args.label,
+        label=args.label,
         seq_len=args.seq_len,
         epochs=args.epochs,
         force=args.force,

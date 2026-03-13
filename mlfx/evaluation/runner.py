@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def get_baseline_metrics(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -40,9 +40,9 @@ def get_baseline_metrics(
         train_start=train_start,
         train_end=train_end,
     )
-    if df is None or df.is_empty() or label_col not in df.columns:
+    if df is None or df.is_empty() or label not in df.columns:
         return None
-    df_mapped = df.with_columns(map_ordinal_to_signal(pl.col(label_col)).alias("_bt_signal"))
+    df_mapped = df.with_columns(map_ordinal_to_signal(pl.col(label)).alias("_bt_signal"))
     trades = simulate_trades(
         df_mapped,
         signal_col="_bt_signal",
@@ -57,7 +57,7 @@ def get_baseline_metrics(
 def run_full_eval(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -86,7 +86,7 @@ def run_full_eval(
         df,
         symbol=symbol,
         tf=tf,
-        label_col=label_col,
+        label=label,
         initial_capital=initial_capital,
         risk_pct=risk_pct,
         commission=commission,
@@ -103,7 +103,7 @@ def run_dataset_eval(
     *,
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -122,7 +122,7 @@ def run_dataset_eval(
         return {}
 
     df_mapped = df.with_columns(
-        map_ordinal_to_signal(pl.col(label_col)).alias("_bt_signal")
+        map_ordinal_to_signal(pl.col(label)).alias("_bt_signal")
     )
     trades = simulate_trades(
         df_mapped,
@@ -140,11 +140,11 @@ def run_dataset_eval(
 
     risk_dir = f"R{int(tp_r * 10)}"
     report_dir = (
-        Path(out_dir) / symbol / tf / label_col / "labels" / risk_dir
+        Path(out_dir) / symbol / tf / label / "labels" / risk_dir
         if out_dir is not None
-        else paths.reports_dir(symbol, tf) / label_col / "labels" / risk_dir
+        else paths.reports_dir(symbol, tf) / label / "labels" / risk_dir
     )
-    out_name = f"{label_col}_R{int(tp_r * 10)}"
+    out_name = f"{label}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
 
     return {
@@ -163,7 +163,7 @@ def run_dataset_eval(
 def run_model_backtest(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -194,9 +194,9 @@ def run_model_backtest(
 
     from mlfx.serving.core import resolve_and_predict
 
-    result = resolve_and_predict(symbol, tf, label_col, df)
+    result = resolve_and_predict(symbol, tf, label, df)
     if result is None:
-        logger.warning("No registered model for %s/%s/%s — run train first", symbol, tf, label_col)
+        logger.warning("No registered model for %s/%s/%s — run train first", symbol, tf, label)
         return None
 
     predictions: np.ndarray
@@ -220,11 +220,11 @@ def run_model_backtest(
 
     risk_dir = f"R{int(tp_r * 10)}"
     report_dir = (
-        Path(out_dir) / symbol / tf / label_col / "model" / risk_dir
+        Path(out_dir) / symbol / tf / label / "model" / risk_dir
         if out_dir
-        else paths.reports_dir(symbol, tf) / label_col / "model" / risk_dir
+        else paths.reports_dir(symbol, tf) / label / "model" / risk_dir
     )
-    out_name = f"model_{label_col}_R{int(tp_r * 10)}"
+    out_name = f"model_{label}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
 
     return {

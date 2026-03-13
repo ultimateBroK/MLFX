@@ -17,7 +17,7 @@ def cli_module(monkeypatch):
         "mlfx.monitoring.logging_config.configure_logging",
         lambda level="INFO": None,
     )
-    cli = importlib.import_module("mlfx.app.cli.main")
+    cli = importlib.import_module("mlfx.cli.main")
     return importlib.reload(cli)
 
 
@@ -26,21 +26,28 @@ def sample_app_config():
     return SimpleNamespace(
         train=SimpleNamespace(
             symbol="DEFAULT_SYMBOL",
-            timeframe="4H",
-            label_col="label_default",
+            tf="4H",
+            label="label_default",
             backend="sgd",
             n_trials=30,
             n_splits=5,
+            force=False,
+            train_start=None,
+            train_end=None,
         ),
         backtest=SimpleNamespace(
             symbol="DEFAULT_SYMBOL",
-            timeframe="4H",
-            label_col="label_default",
+            tf="4H",
+            label="label_default",
             initial_capital=20_000.0,
             risk_pct=2.0,
             commission=0.2,
             tp_r=2.0,
             sl_r=1.2,
+            slippage=0.0,
+            eval_start=None,
+            eval_end=None,
+            use_labels=False,
         ),
     )
 
@@ -50,18 +57,19 @@ def sample_profile():
     return {
         "train": {
             "symbol": "XAUUSD",
-            "timeframe": "1H",
-            "label_col": "label_10",
+            "tf": "1H",
+            "label": "label_10",
             "backend": "mlf",
             "train_start": "20240101",
             "train_end": "20241231",
             "n_trials": 5,
             "n_splits": 3,
+            "force": True,
         },
         "evaluate": {
             "symbol": "XAUUSD",
-            "timeframe": "1H",
-            "label_col": "label_10",
+            "tf": "1H",
+            "label": "label_10",
             "eval_start": "20250101",
             "eval_end": "20250331",
             "tp_r": 1.5,
@@ -73,8 +81,8 @@ def sample_profile():
         },
         "benchmark": {
             "symbol": "XAUUSD",
-            "timeframe": "1H",
-            "label_col": "label_10",
+            "tf": "1H",
+            "label": "label_10",
             "backends": ["mlf", "sgd", "stats"],
             "train_start": "20240101",
             "train_end": "20241231",
@@ -88,10 +96,10 @@ class TestResolveTrainCommandConfig:
     def test_profile_values_are_used_when_cli_values_are_missing(
         self, monkeypatch, cli_module, sample_app_config, sample_profile
     ) -> None:
-        monkeypatch.setattr("mlfx.config.settings.load_config", lambda: sample_app_config)
+        monkeypatch.setattr("mlfx.cli.resolve.load_config", lambda: sample_app_config)
         monkeypatch.setattr(
-            "mlfx.app.cli.resolve.resolve_profile_section",
-            lambda profile_name, section: sample_profile[section],
+            "mlfx.cli.resolve.resolve_profile_section",
+            lambda cfg, profile_name, section: sample_profile[section],
         )
 
         args = argparse.Namespace(
@@ -124,10 +132,10 @@ class TestResolveTrainCommandConfig:
     def test_cli_values_override_profile_values(
         self, monkeypatch, cli_module, sample_app_config, sample_profile
     ) -> None:
-        monkeypatch.setattr("mlfx.config.settings.load_config", lambda: sample_app_config)
+        monkeypatch.setattr("mlfx.cli.resolve.load_config", lambda: sample_app_config)
         monkeypatch.setattr(
-            "mlfx.app.cli.resolve.resolve_profile_section",
-            lambda profile_name, section: sample_profile[section],
+            "mlfx.cli.resolve.resolve_profile_section",
+            lambda cfg, profile_name, section: sample_profile[section],
         )
 
         args = argparse.Namespace(
@@ -162,10 +170,10 @@ class TestResolveEvaluateCommandConfig:
     def test_profile_values_are_used_for_evaluate(
         self, monkeypatch, cli_module, sample_app_config, sample_profile
     ) -> None:
-        monkeypatch.setattr("mlfx.config.settings.load_config", lambda: sample_app_config)
+        monkeypatch.setattr("mlfx.cli.resolve.load_config", lambda: sample_app_config)
         monkeypatch.setattr(
-            "mlfx.app.cli.resolve.resolve_profile_section",
-            lambda profile_name, section: sample_profile[section],
+            "mlfx.cli.resolve.resolve_profile_section",
+            lambda cfg, profile_name, section: sample_profile[section],
         )
 
         args = argparse.Namespace(
@@ -204,10 +212,10 @@ class TestResolveEvaluateCommandConfig:
     def test_cli_values_override_profile_for_evaluate(
         self, monkeypatch, cli_module, sample_app_config, sample_profile
     ) -> None:
-        monkeypatch.setattr("mlfx.config.settings.load_config", lambda: sample_app_config)
+        monkeypatch.setattr("mlfx.cli.resolve.load_config", lambda: sample_app_config)
         monkeypatch.setattr(
-            "mlfx.app.cli.resolve.resolve_profile_section",
-            lambda profile_name, section: sample_profile[section],
+            "mlfx.cli.resolve.resolve_profile_section",
+            lambda cfg, profile_name, section: sample_profile[section],
         )
 
         args = argparse.Namespace(
@@ -292,28 +300,28 @@ class TestRunProfileCommand:
         captured_training = {}
         benchmark_calls = []
 
-        monkeypatch.setattr("mlfx.app.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
-        monkeypatch.setattr("mlfx.app.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
+        monkeypatch.setattr("mlfx.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
+        monkeypatch.setattr("mlfx.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.run_model_backtest",
+            "mlfx.cli.workflows.run_model_backtest",
             lambda **kwargs: {"Net Profit (R)": "12.0R", "Win Rate": "55%"},
         )
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
+        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
 
         def _fake_run_training(config):
             captured_training["config"] = config
             return {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61}
 
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_training", _fake_run_training)
+        monkeypatch.setattr("mlfx.cli.workflows.run_training", _fake_run_training)
 
         def _fake_run_benchmark(args):
             benchmark_calls.append(args)
             return {"results": [{"backend": "mlf", "status": "OK"}]}
 
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_benchmark", _fake_run_benchmark)
+        monkeypatch.setattr("mlfx.cli.workflows.run_benchmark", _fake_run_benchmark)
 
         printed_json = {}
 
@@ -337,7 +345,7 @@ class TestRunProfileCommand:
         cfg = captured_training["config"]
         assert cfg.symbol == "XAUUSD"
         assert cfg.tf == "1H"
-        assert cfg.label_col == "label_10"
+        assert cfg.label == "label_10"
         assert cfg.backend == "mlf"
         assert cfg.n_trials == 5
         assert cfg.n_splits == 3
@@ -388,20 +396,20 @@ class TestRunProfileCommand:
 
         benchmark_called = {"value": False}
 
-        monkeypatch.setattr("mlfx.app.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
-        monkeypatch.setattr("mlfx.app.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_training", lambda config: {"artifact_path": "fake.pkl"})
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "9.0R"})
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_model_backtest", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.get_baseline_metrics", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
+        monkeypatch.setattr("mlfx.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.run_training", lambda config: {"artifact_path": "fake.pkl"})
+        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "9.0R"})
+        monkeypatch.setattr("mlfx.cli.workflows.run_model_backtest", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: None)
 
         def _unexpected_benchmark(args):
             benchmark_called["value"] = True
             return {}
 
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_benchmark", _unexpected_benchmark)
+        monkeypatch.setattr("mlfx.cli.workflows.run_benchmark", _unexpected_benchmark)
         monkeypatch.setattr(cli_module.console, "print", lambda *args, **kwargs: None)
         monkeypatch.setattr(cli_module.console, "rule", lambda *args, **kwargs: None)
 
@@ -469,7 +477,7 @@ class TestMainDispatchFlow:
         monkeypatch.setattr(cli_module, "build_parser", lambda: parser)
 
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.resolve_train_command_config",
+            "mlfx.cli.workflows.resolve_train_command_config",
             lambda args: {
                 "symbol": "XAUUSD",
                 "tf": "1H",
@@ -483,7 +491,7 @@ class TestMainDispatchFlow:
             },
         )
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.resolve_evaluate_command_config",
+            "mlfx.cli.workflows.resolve_evaluate_command_config",
             lambda args: {
                 "symbol": "XAUUSD",
                 "tf": "1H",
@@ -499,20 +507,20 @@ class TestMainDispatchFlow:
                 "use_labels": False,
             },
         )
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.app.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.run_training",
+            "mlfx.cli.workflows.run_training",
             lambda config: {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61},
         )
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.run_model_backtest",
+            "mlfx.cli.workflows.run_model_backtest",
             lambda **kwargs: {"Net Profit (R)": "12.0R", "Sharpe": "1.20"},
         )
-        monkeypatch.setattr("mlfx.app.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
-        monkeypatch.setattr("mlfx.app.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
+        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
+        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
         monkeypatch.setattr(
-            "mlfx.app.cli.workflows.run_benchmark",
+            "mlfx.cli.workflows.run_benchmark",
             lambda args: pytest.fail("benchmark should not run when --skip-benchmark is set"),
         )
 
@@ -617,47 +625,54 @@ class TestProfilesCommand:
         )
         monkeypatch.setattr(cli_module, "build_parser", lambda: parser)
         monkeypatch.setattr(
-            "mlfx.config.settings.load_config",
+            "mlfx.cli.resolve.load_config",
             lambda: SimpleNamespace(
                 train=SimpleNamespace(
                     symbol="DEFAULT_SYMBOL",
-                    timeframe="4H",
-                    label_col="label_default",
+                    tf="4H",
+                    label="label_default",
                     backend="sgd",
                     n_trials=30,
                     n_splits=5,
+                    force=False,
+                    train_start=None,
+                    train_end=None,
                 )
             ),
         )
         monkeypatch.setattr(
-            "mlfx.app.cli.resolve.resolve_profile_section",
-            lambda profile_name, section: {
+            "mlfx.cli.resolve.resolve_profile_section",
+            lambda cfg, profile_name, section: {
                 "symbol": "XAUUSD",
-                "timeframe": "1H",
-                "label_col": "label_10",
+                "tf": "1H",
+                "label": "label_10",
                 "backend": "mlf",
                 "n_trials": 5,
                 "n_splits": 3,
                 "train_start": "20240101",
                 "train_end": "20241231",
+                "force": True,
             },
         )
-        monkeypatch.setattr("mlfx.app.cli.render.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr(cli_module, "_persist_cli_workflow", lambda *args, **kwargs: None)
 
         captured = {}
 
-        def _fake_run_training(config):
-            captured["config"] = config
-            return {"artifact_path": "fake.pkl"}
+        def _fake_run_train(config):
+            from mlfx.workflow.results import StageResult
 
-        monkeypatch.setattr(cli_module, "run_training", _fake_run_training)
+            captured["config"] = config
+            return StageResult(stage="train", status="ok", metrics={"artifact_path": "fake.pkl"})
+
+        monkeypatch.setattr(cli_module, "run_train", _fake_run_train)
 
         cli_module.main()
 
         cfg = captured["config"]
         assert cfg.symbol == "XAUUSD"
         assert cfg.tf == "1H"
-        assert cfg.label_col == "label_10"
+        assert cfg.label == "label_10"
         assert cfg.backend == "mlf"
         assert cfg.n_trials == 5
         assert cfg.n_splits == 3

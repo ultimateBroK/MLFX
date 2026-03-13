@@ -87,7 +87,7 @@ def save_model(clf: SGDClassifier, scaler: StandardScaler, metrics: dict, path) 
 def run_online_sgd(
     symbol: str = "XAUUSD",
     tf: str = "1H",
-    label_col: str = "label_10",
+    label: str = "label_10",
     batch_size: int = 500,
     force: bool = False,
     seed: int = 42,
@@ -97,10 +97,10 @@ def run_online_sgd(
     """Train online SGDClassifier with chunked partial_fit. Returns metrics dict or {} if skipped."""
     set_seed(seed)
     out_path = build_model_output_path(
-        f"online_sgd_{label_col}",
+        f"online_sgd_{label}",
         symbol,
         tf,
-        label_col,
+        label,
         suffix=".pkl",
     )
 
@@ -111,7 +111,7 @@ def run_online_sgd(
     prepared = prepare_tabular_data(
         symbol,
         tf,
-        label_col,
+        label,
         train_start=train_start,
         train_end=train_end,
     )
@@ -140,7 +140,7 @@ def main() -> None:
     """CLI entrypoint for standalone online SGD training."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = build_parser().parse_args()
-    run_online_sgd(symbol=args.symbol, tf=args.tf, label_col=args.label, force=args.force)
+    run_online_sgd(symbol=args.symbol, tf=args.tf, label=args.label, force=args.force)
 
 
 if __name__ == "__main__":

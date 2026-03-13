@@ -72,10 +72,18 @@ class TestEvaluationRunnerContract:
             df,
             symbol="XAUUSD",
             tf="1H",
-            label_col="label_10",
+            label="label_10",
             out_dir=tmp_path,
         )
 
         assert "Total Trades" in summary
         assert "Win Rate (%)" in summary
-        assert (tmp_path / "XAUUSD" / "1H" / "label_10_R15_candlestick.html").exists()
+        assert (
+            tmp_path
+            / "XAUUSD"
+            / "1H"
+            / "label_10"
+            / "labels"
+            / "R15"
+            / "label_10_R15_candlestick.html"
+        ).exists()

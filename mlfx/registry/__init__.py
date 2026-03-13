@@ -10,7 +10,7 @@ Usage::
 
     reg = get_registry()
     reg.register(backend="mlf", symbol="XAUUSD", tf="1H",
-                 label_col="label_10", metrics={"best_cv_f1_macro": 0.62})
+                 label="label_10", metrics={"best_cv_f1_macro": 0.62})
     best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
 """
 

@@ -67,15 +67,13 @@ in_dir = paths.features_dir("XAUUSD", "1H")  # data/features/XAUUSD/1H/
 
 ## Feature Engineering Layer
 
-Single entry point: `mlfx.pipeline.feature_engineering.run_feature_pipeline()`.
+Single entry point: `mlfx.pipeline.features.run_feature_pipeline()`.
 
 Feature groups added:
 
 | Group | Function | Output columns |
 |---|---|---|
 | TA Indicators | `add_ta_features()` | rsi_14, macd, macd_signal, atr_14, ema_* |
-| ICT Order Blocks | `add_order_block_features()` | ob_bull/bear_distance |
-| ICT Fair Value Gaps | `add_fair_value_gap_features()` | fvg_bull/bear_distance |
 | Killzone sessions | `add_killzone_features()` | is_london, is_ny, is_asian |
 | SR / Pivot Points | `add_sr_pp_features()` | pp, r1–r4, s1–s4 (traditional/fibonacci) |
 | Normalization | `add_normalized_features()` | *_norm variants |
@@ -96,7 +94,7 @@ runner.run_training()
         │           │ (dynamic import via BACKEND_REGISTRY)
         │     ┌─────┴───────────────────────────────────────────┐
         │     │          mlfx.training.backends/                │
-        │     │  mlforecast.py  lstm.py  bilstm.py  ...         │
+        │     │  mlf.py  lstm.py  sgd.py  stats.py              │
         │     │  (each import data.py, feature_selection.py,    │
         │     │   artifacts.py for shared helpers)              │
         │     └─────────────────────────────────────────────────┘
@@ -116,12 +114,8 @@ mlfx/training/
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
 │   ├── mlforecast.py       ← LightGBM via MLForecast  (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
-│   ├── bilstm.py           ← PyTorch BiLSTM            (key: "bilstm")
-│   ├── transformer.py      ← PyTorch Transformer       (key: "transformer")
-│   ├── cnn_lstm.py         ← CNN + LSTM hybrid         (key: "cnn_lstm")
 │   ├── online_sgd.py       ← Sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← StatsForecast baseline    (key: "stats")
-│   └── neuralforecast.py   ← NeuralForecast            (key: "neuralforecast")
 ├── __init__.py             ← Public re-exports from data/feature_selection/artifacts
 ├── _utils.py               ← Internal utilities
 ├── artifacts.py            ← Model persistence helpers (canonical)
@@ -141,7 +135,7 @@ Every backend must implement a signature compatible with `BackendRunner`:
 def run_xxx(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     force: bool,
     **kwargs,
 ) -> dict:
@@ -220,7 +214,7 @@ generate_full_report() ← candlestick HTML + equity PNG + session heatmap PNG
 
 ```
 POST /predict
-  body: {symbol, tf, label_col, features: {col: value}}
+  body: {symbol, tf, label, features: {col: value}}
   → loads best model from registry
   → runs inference
   → returns {prediction, confidence}
@@ -380,9 +374,6 @@ preds = predict_with_torch_model(model, X, seq_len=60)
 
 Supported model types:
 - `LSTM` — FXLstm
-- `BiLSTM` — FXBiLstm
-- `CNN_LSTM` — FXCnnLstm
-- `Transformer` — FXTransformer
 
 ### Inference Chain
 
@@ -435,7 +426,7 @@ docker-compose.yml
 ### Module Dependencies
 
 ```
-mlfx.app.cli
+mlfx.cli
   └── mlfx.training.runner
         ├── mlfx.training.config        (TrainingConfig)
         ├── mlfx.training.registry      (get_backend_runner)

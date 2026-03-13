@@ -102,7 +102,7 @@ class TestProjectPaths:
 
 class TestSettingsLoader:
     def test_load_config_merges_file_over_defaults(self, tmp_path: Path):
-        from mlfx.config.settings import DEFAULT_CONFIG, load_config
+        from mlfx.config.settings import load_config
 
         config_file = tmp_path / "config.toml"
         config_file.write_text(
@@ -121,14 +121,14 @@ n_splits = 3
         assert config.download.symbol == "BTCUSD"
         assert config.train.backend == "stats"
         assert config.train.n_splits == 3
-        assert config.pipeline.timeframe == DEFAULT_CONFIG["pipeline"]["timeframe"]
+        assert config.pipeline.tf == ["1H"]
 
 
 class TestBackendRegistry:
     def test_registry_contains_all_backends(self):
         from mlfx.training.registry import BACKEND_REGISTRY
 
-        expected = {"mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"}
+        expected = {"mlf", "lstm", "sgd", "stats"}
         assert expected.issubset(BACKEND_REGISTRY.keys())
 
     def test_unknown_backend_raises_clear_error(self):

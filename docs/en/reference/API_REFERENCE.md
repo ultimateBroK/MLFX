@@ -88,7 +88,7 @@ curl "http://localhost:8000/models?backend=mlf"
     "run_id": "20250301_120000",
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "backend": "mlf",
     "artifact_path": "outputs/models/XAUUSD/1H/20250301_120000.pkl",
     "metrics": {
@@ -109,7 +109,7 @@ curl "http://localhost:8000/models?backend=mlf"
 
 ## `POST /predict`
 
-Run inference for an input feature vector. The server automatically loads the best registered model for the `symbol` / `tf` / `label_col` combination.
+Run inference for an input feature vector. The server automatically loads the best registered model for the `symbol` / `tf` / `label` combination.
 
 ### Request
 
@@ -119,7 +119,7 @@ curl -X POST http://localhost:8000/predict \
   -d '{
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "features": {
       "rsi_14": 55.3,
       "atr_14": 2.1,
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8000/predict \
 |---|---|---|---|
 | `symbol` | string | Yes | Instrument symbol |
 | `tf` | string | Yes | Timeframe |
-| `label_col` | string | Yes | Label column used during training |
+| `label` | string | Yes | Label column used during training |
 | `features` | object | Yes | Mapping of `feature name -> value` |
 
 ### Response
@@ -164,7 +164,7 @@ curl -X POST http://localhost:8000/predict \
 ### Status codes
 
 - `200` — Success
-- `404` — No registered model found for the `symbol/tf/label_col` combination
+- `404` — No registered model found for the `symbol/tf/label` combination
 - `422` — Missing required features or invalid request
 - `500` — Registry entry has no `artifact_path` or the server encountered an internal error
 
@@ -187,7 +187,7 @@ The `prediction` field returns ordinal labels:
 ## Confidence scores
 
 - `confidence` is only available when the backend supports `predict_proba()`, such as `mlf` or `sgd`
-- Deep-learning backends such as `lstm`, `bilstm`, `transformer`, `cnn_lstm`, and `neuralforecast` usually return `null`
+- The PyTorch `lstm` backend usually returns `null`
 - The `confidence` value represents the probability of the predicted class
 
 ---
@@ -256,7 +256,7 @@ print(response.json())
 payload = {
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "features": {
         "rsi_14": 55.3,
         "atr_14": 2.1,

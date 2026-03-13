@@ -1,4 +1,4 @@
-"""Shared sequence creation and training for PyTorch sequence-based backends (LSTM, BiLSTM, CNN-LSTM, Transformer)."""
+"""Shared sequence creation and training for PyTorch sequence-based backends (LSTM)."""
 
 from __future__ import annotations
 

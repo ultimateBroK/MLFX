@@ -82,20 +82,20 @@ concurrency = 20
 
 [pipeline]
 symbol = "XAUUSD"
-timeframe = "1H"
+tf = "1H"
 pivot_type = "traditional"
 pivot_anchor = "daily"
 
 [train]
 symbol = "XAUUSD"
-timeframe = "1H"
+tf = "1H"
 backend = "mlf"
 n_splits = 5
 
 [backtest]
 symbol          = "XAUUSD"
-timeframe       = "1H"
-label_col       = "label_10"
+tf       = "1H"
+label       = "label_10"
 tp_r            = 1.5
 sl_r            = 1.0
 initial_capital = 10000.0
@@ -106,11 +106,11 @@ commission      = 0.1
 ### Keys Worth Remembering
 
 - `asset_class`: `fx`, `crypto`
-- `timeframe`: `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
+- `tf`: `1m`, `5m`, `15m`, `30m`, `1H`, `2H`, `4H`, `1D`
 - `pivot_type`: `traditional`, `fibonacci`, `woodie`, `classic`, `demark`, `camarilla`
 - `pivot_anchor`: `daily`, `weekly`, `monthly`
-- `label_col`: `label_5`, `label_10`, `label_20`
-- `backend`: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`
+- `label`: `label_5`, `label_10`, `label_20`
+- `backend`: `mlf`, `lstm`, `sgd`, `stats`
 
 If you need the full mapping between `config.toml` and CLI flags, read:
 
@@ -211,12 +211,8 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 #### Key Arguments
 
@@ -234,7 +230,7 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf --n-t
 
 #### Notes
 
-- `n_trials` is currently most meaningful for the `mlf` backend
+- `n_trials` applies to `mlf` and `lstm`
 - `n_splits` is mapped differently depending on the backend in the codebase
 - To choose the right backend, read:
   - [Backend Comparison](../architecture/BACKEND_COMPARISON.md)
@@ -308,7 +304,7 @@ curl -X POST http://localhost:8000/predict \
   -d '{
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "features": {"rsi_14": 65.2, "atr_14": 0.003, "...": "..."}
   }'
 ```

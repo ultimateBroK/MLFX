@@ -131,53 +131,16 @@ Khóa `avg_range_n` trong `[features]` điều khiển số phiên dùng để t
 
 ---
 
-## 7. Khối lệnh (Order Block) theo ICT
+## 7. Nhóm đặc trưng đã loại khỏi pipeline mặc định
 
-Khối lệnh được dùng để xác định các vùng giá mang tính cấu trúc, thường xuất hiện ngay trước một chuyển động mạnh.
+Pipeline đặc trưng mặc định hiện không còn tạo các cột ICT Order Block và Fair Value Gap.
 
-### Logic phát hiện
-
-1. Tính trung bình thân nến của 5 cây gần nhất (`avg_body`)
-2. Một cây nến được coi là “nến lớn” nếu `body > avg_body × 1.5`
-3. **Khối lệnh tăng**: cây nến giảm ngay trước một cây nến tăng lớn
-4. **Khối lệnh giảm**: cây nến tăng ngay trước một cây nến giảm lớn
-
-| Cột | Kiểu | Mô tả |
-|---|---|---|
-| `ob_bullish` | boolean | Cây nến này là khối lệnh tăng |
-| `ob_bearish` | boolean | Cây nến này là khối lệnh giảm |
-| `ob_bull_high` | float | Giá cao của khối lệnh tăng gần nhất |
-| `ob_bull_low` | float | Giá thấp của khối lệnh tăng gần nhất |
-| `ob_bear_high` | float | Giá cao của khối lệnh giảm gần nhất |
-| `ob_bear_low` | float | Giá thấp của khối lệnh giảm gần nhất |
-| `price_in_bull_ob` | boolean | `close` nằm trong vùng khối lệnh tăng |
-| `price_in_bear_ob` | boolean | `close` nằm trong vùng khối lệnh giảm |
+- Đã loại khỏi quá trình tạo đặc trưng mặc định: `ob_*`, `price_in_*_ob`, `fvg_*`, `price_in_*_fvg`
+- Vẫn giữ trong pipeline mặc định: killzone, SR/pivots, RSI/MACD/ATR/EMA, khoảng cách chuẩn hóa ATR
 
 ---
 
-## 8. Vùng mất cân bằng giá trị hợp lý (Fair Value Gap — FVG)
-
-FVG là vùng mất cân bằng giá được xác định theo mẫu 3 cây nến.
-
-### Logic phát hiện
-
-- **FVG tăng**: `low` của cây hiện tại cao hơn `high` của cây cách đó 2 phiên
-- **FVG giảm**: `high` của cây hiện tại thấp hơn `low` của cây cách đó 2 phiên
-
-| Cột | Kiểu | Mô tả |
-|---|---|---|
-| `fvg_bullish` | boolean | Cây nến này tạo ra một FVG tăng |
-| `fvg_bearish` | boolean | Cây nến này tạo ra một FVG giảm |
-| `fvg_bull_top` | float | Đỉnh của FVG tăng gần nhất |
-| `fvg_bull_bot` | float | Đáy của FVG tăng gần nhất |
-| `fvg_bear_top` | float | Đỉnh của FVG giảm gần nhất |
-| `fvg_bear_bot` | float | Đáy của FVG giảm gần nhất |
-| `price_in_bull_fvg` | boolean | `close` nằm trong vùng FVG tăng |
-| `price_in_bear_fvg` | boolean | `close` nằm trong vùng FVG giảm |
-
----
-
-## 9. Các cột nhãn
+## 8. Các cột nhãn
 
 Các nhãn được thêm bởi bước gắn nhãn trong quy trình xử lý, trừ khi dùng `--skip-labels`.
 
@@ -214,9 +177,9 @@ Khóa `atr_mult` được điều khiển bởi `--atr-mult` trên dòng lệnh 
 
 ---
 
-## 10. Tổng kết về số lượng cột
+## 9. Tổng kết về số lượng cột
 
-Một lần chạy với cấu hình mặc định thường tạo ra khoảng **90 cột trở lên** cho mỗi cây nến, bao gồm:
+Một lần chạy với cấu hình mặc định thường tạo ra khoảng **70 cột trở lên** cho mỗi cây nến, bao gồm:
 
 - 6 cột OHLCV gốc
 - 4 cột chỉ báo động lượng
@@ -225,8 +188,6 @@ Một lần chạy với cấu hình mặc định thường tạo ra khoảng *
 - khoảng 15 cột điểm xoay (tùy phương pháp)
 - 5 cờ phiên và nhiều cột dẫn xuất theo phiên
 - 9 cột mức giá ngày / tuần / tháng
-- 8 cột khối lệnh
-- 8 cột FVG
 - 3 cột nhãn
 
 Số lượng cột chính xác sẽ phụ thuộc vào:
@@ -237,7 +198,7 @@ Số lượng cột chính xác sẽ phụ thuộc vào:
 
 ---
 
-## 11. Cách đọc tài liệu này
+## 10. Cách đọc tài liệu này
 
 Bạn nên dùng tài liệu này khi cần trả lời các câu hỏi như:
 

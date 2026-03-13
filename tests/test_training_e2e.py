@@ -24,8 +24,8 @@ def test_run_training_dl_backend_threads_data(monkeypatch, tmp_path: Path):
     # Track calls to prepare_tabular_data
     prepare_data_calls: list[tuple] = []
 
-    def _fake_prepare_tabular_data(symbol: str, tf: str, label_col: str) -> tuple:
-        prepare_data_calls.append((symbol, tf, label_col))
+    def _fake_prepare_tabular_data(symbol: str, tf: str, label: str) -> tuple:
+        prepare_data_calls.append((symbol, tf, label))
         import numpy as np
 
         X = np.random.randn(100, 10)
@@ -52,7 +52,7 @@ def test_run_training_dl_backend_threads_data(monkeypatch, tmp_path: Path):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="lstm", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="lstm", label="label_10")
     metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
 
     # Verify prepare_tabular_data was called with correct args
@@ -77,8 +77,8 @@ def test_run_training_non_dl_backend_no_data_threading(monkeypatch):
     # Track prepare_tabular_data calls
     prepare_calls: list[tuple] = []
 
-    def _fake_prepare_tabular_data(symbol: str, tf: str, label_col: str) -> tuple:
-        prepare_calls.append((symbol, tf, label_col))
+    def _fake_prepare_tabular_data(symbol: str, tf: str, label: str) -> tuple:
+        prepare_calls.append((symbol, tf, label))
         return None  # Should never be called for non-DL
 
     # Track what kwargs backend receives
@@ -99,7 +99,7 @@ def test_run_training_non_dl_backend_no_data_threading(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label="label_10")
     metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
 
     # Verify prepare_tabular_data was NOT called (non-DL backend)
@@ -127,7 +127,7 @@ def test_run_training_backend_returns_empty_metrics(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label="label_10")
     metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
 
     # Should still return elapsed_seconds even with empty backend result
@@ -147,7 +147,7 @@ def test_run_training_backend_returns_none(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label="label_10")
     metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
 
     # Should gracefully convert None to empty dict (or {})
@@ -175,7 +175,7 @@ def test_run_training_missing_artifact_path_logs_warning(monkeypatch, caplog):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: _FakeRegistry())
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="stats", label="label_10")
 
     # Should not raise, but should log warning
     metrics = run_training(cfg, enable_tracking=False, enable_registry=True)

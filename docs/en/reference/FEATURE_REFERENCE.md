@@ -131,53 +131,16 @@ The `avg_range_n` key in `[features]` controls how many sessions are used for th
 
 ---
 
-## 7. ICT Order Blocks
+## 7. Removed Feature Groups
 
-Order blocks are used to identify structural price zones that often appear before strong moves.
+The default feature pipeline no longer adds ICT Order Block or Fair Value Gap columns.
 
-### Detection Logic
-
-1. Compute the average body size over the last 5 candles (`avg_body`)
-2. A candle is considered “large” if `body > avg_body × 1.5`
-3. A **bullish order block** is: a bearish candle immediately followed by a large bullish candle
-4. A **bearish order block** is: a bullish candle immediately followed by a large bearish candle
-
-| Column | Type | Description |
-|---|---|---|
-| `ob_bullish` | boolean | This candle is a bullish order block |
-| `ob_bearish` | boolean | This candle is a bearish order block |
-| `ob_bull_high` | float | High of the most recent bullish order block |
-| `ob_bull_low` | float | Low of the most recent bullish order block |
-| `ob_bear_high` | float | High of the most recent bearish order block |
-| `ob_bear_low` | float | Low of the most recent bearish order block |
-| `price_in_bull_ob` | boolean | `close` is inside the bullish order-block zone |
-| `price_in_bear_ob` | boolean | `close` is inside the bearish order-block zone |
+- Removed from active generation: `ob_*`, `price_in_*_ob`, `fvg_*`, `price_in_*_fvg`
+- Kept in active generation: killzone, SR/pivots, RSI/MACD/ATR/EMA, ATR-normalized distances
 
 ---
 
-## 8. Fair Value Gap (FVG)
-
-An FVG is a price imbalance identified by a 3-candle pattern.
-
-### Detection Logic
-
-- **Bullish FVG**: the current bar’s `low` is higher than the `high` of the bar 2 periods ago
-- **Bearish FVG**: the current bar’s `high` is lower than the `low` of the bar 2 periods ago
-
-| Column | Type | Description |
-|---|---|---|
-| `fvg_bullish` | boolean | This candle creates a bullish FVG |
-| `fvg_bearish` | boolean | This candle creates a bearish FVG |
-| `fvg_bull_top` | float | Top of the most recent bullish FVG |
-| `fvg_bull_bot` | float | Bottom of the most recent bullish FVG |
-| `fvg_bear_top` | float | Top of the most recent bearish FVG |
-| `fvg_bear_bot` | float | Bottom of the most recent bearish FVG |
-| `price_in_bull_fvg` | boolean | `close` is inside the bullish FVG zone |
-| `price_in_bear_fvg` | boolean | `close` is inside the bearish FVG zone |
-
----
-
-## 9. Label Columns
+## 8. Label Columns
 
 Labels are added by the labeling stage in the pipeline, unless `--skip-labels` is used.
 
@@ -214,9 +177,9 @@ The `atr_mult` key is controlled by `--atr-mult` in the CLI and `atr_mult` in th
 
 ---
 
-## 10. Summary of Column Count
+## 9. Summary of Column Count
 
-A run with default settings typically produces **90+ columns** per candle, including:
+A run with default settings typically produces **70+ columns** per candle, including:
 
 - 6 base OHLCV columns
 - 4 momentum-indicator columns
@@ -225,8 +188,6 @@ A run with default settings typically produces **90+ columns** per candle, inclu
 - roughly 15 pivot-related columns (depending on method)
 - 5 session flags and many session-derived columns
 - 9 day / week / month level columns
-- 8 order-block columns
-- 8 FVG columns
 - 3 label columns
 
 The exact number of columns depends on:
@@ -237,7 +198,7 @@ The exact number of columns depends on:
 
 ---
 
-## 11. How to Use This Document
+## 10. How to Use This Document
 
 Use this reference when you need to answer questions such as:
 

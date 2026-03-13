@@ -16,7 +16,7 @@ Why is MLFX worth continuing to invest in and expand? This project sits at the i
 | **System organization** | **Low.** Code is often fragmented and hard to reuse. | **Medium to High.** Structured, but often focused more on execution logic. | **High.** Clear flow from data ingestion → validation → processing → training → evaluation → serving. |
 | **Reproducibility** | **Low.** Hard to standardize environment and execution flow. | **Medium.** Somewhat stable, but often tightly coupled to framework conventions. | **High.** Uses `pixi`, centralized configuration, and a unified CLI. |
 | **ML / MLOps depth** | **Low to Medium.** Often stops at notebooks or lightweight backtests. | **Medium.** Strong on rule-based systems or bots, but not always strong on ML pipelines. | **High.** Focused on data, feature engineering, training, model comparison, evaluation, drift detection, and serving. |
-| **Backend extensibility** | **Low.** Adding a new model often requires edits in many places. | **Medium.** Depends heavily on framework design. | **High.** Already includes multiple backends: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`. |
+| **Backend extensibility** | **Low.** Adding a new model often requires edits in many places. | **Medium.** Depends heavily on framework design. | **High.** Includes multiple backends: `mlf`, `lstm`, `sgd`, `stats`. |
 | **Evaluation capability** | **Medium.** May include backtests, but often without strong standardization. | **High.** Many frameworks include solid backtesting support. | **High.** Includes evaluation, reporting, multi-backend comparison, and summary metric logging. |
 | **Operational readiness** | **Low.** Scripts are hard to deploy reliably. | **Medium.** Often strong in execution, but not always strong in ML-serving concerns. | **Medium to High.** Already has `serve`, `batch-predict`, and `drift`, but still needs stronger serving reliability, retry logic, circuit breaking, and logging. |
 | **Long-term research fit** | **Low.** Structure tends to collapse as the project grows. | **Medium.** Can become limited by framework philosophy. | **High.** Well-suited for model research, backend comparison, data-adapter expansion, and gradual movement toward more stable operation. |
@@ -80,7 +80,7 @@ Observe → Validate → Transform → Train → Evaluate → Serve → Monitor 
 - **Core technology:** `mlfx.training`, optional MLflow, CLI-driven training configuration.
 - **Tasks:**
   1. Build the shared training module.
-  2. Integrate backends: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`.
+  2. Integrate backends: `mlf`, `lstm`, `sgd`, `stats`.
   3. Standardize train / validation / test splitting for time-series data.
   4. Avoid data leakage.
   5. Store training artifacts and metrics under `outputs/`.

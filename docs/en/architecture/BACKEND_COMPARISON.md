@@ -22,10 +22,6 @@ A practical order is:
 2. `sgd`
 3. `mlf`
 4. `lstm`
-5. `bilstm`
-6. `cnn_lstm`
-7. `transformer`
-8. `neuralforecast`
 
 ---
 
@@ -35,12 +31,8 @@ The CLI currently supports:
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ---
 
@@ -52,11 +44,6 @@ The CLI currently supports:
 | `sgd` | Linear / online ML | Fast, lightweight, scalable | Weaker on complex feature interactions | Low to medium | Low | Medium | Large tabular feature sets, cheap experiments |
 | `mlf` | Gradient boosting / tabular forecasting | Strong baseline, handles nonlinear patterns well | Less sequence-native than DL | Medium | Medium | Medium | Default production-style baseline |
 | `lstm` | Deep learning sequence model | Models temporal dependencies directly | Slower, more tuning-sensitive | Medium to high | High | Low | Sequential patterns over rolling windows |
-| `bilstm` | Bidirectional sequence model | Richer context than plain LSTM | More expensive, may be less realistic for strict causal inference if misused in setup | High | High | Low | Offline experiments with richer sequence encoding |
-| `cnn_lstm` | Hybrid DL | Good at local pattern extraction + sequence modeling | More architecture complexity | High | High | Low | Candlestick-like local motifs plus temporal context |
-| `transformer` | Attention-based DL | Flexible long-range dependency modeling | Compute-heavy, tuning-heavy, data-hungry | High | Very high | Low | Large datasets, longer-range pattern modeling |
-| `neuralforecast` | Forecasting DL ecosystem | Strong for time-series experimentation | Library complexity, tuning overhead | Medium to high | High | Low | Advanced forecasting experiments |
-| `mlf` | Boosted tabular forecasting | Balanced performance and usability | Not the best for all long-context sequence problems | Medium | Medium | Medium | First serious model to train |
 
 ---
 
@@ -172,113 +159,6 @@ The CLI currently supports:
 
 ---
 
-## 4.5 `bilstm`
-
-### What it is
-`bilstm` is a bidirectional LSTM variant that encodes sequence information in both directions within the training setup.
-
-### Strengths
-- Richer sequence representation than plain `lstm`
-- May capture context more effectively in offline experiments
-- Useful when local sequence context around each point matters
-
-### Weaknesses
-- More expensive than `lstm`
-- Added complexity may not translate into meaningful gains
-- Requires careful interpretation in time-series workflows
-
-### Use it when
-- You are doing offline modeling experiments
-- You want to test whether richer sequence encoding helps
-- You already established that sequence models are worthwhile
-
-### Avoid it when
-- You want the simplest deployable model
-- You are still establishing your first strong baseline
-
----
-
-## 4.6 `cnn_lstm`
-
-### What it is
-`cnn_lstm` combines convolutional feature extraction with recurrent sequence modeling.
-
-### Strengths
-- Can learn short-term local motifs before sequence aggregation
-- Useful for repeated local price-pattern structures
-- Often a good compromise between raw sequence modeling and hierarchical pattern extraction
-
-### Weaknesses
-- More complex than plain recurrent models
-- Tuning is harder
-- Training cost is still high
-- Model behavior is less interpretable
-
-### Use it when
-- You suspect local window patterns matter
-- You want to combine motif detection with temporal modeling
-- Plain `lstm` is not expressive enough
-
-### Avoid it when
-- You need a simple experimental baseline
-- Your compute budget is constrained
-
----
-
-## 4.7 `transformer`
-
-### What it is
-`transformer` is an attention-based deep learning backend for sequence modeling.
-
-### Strengths
-- Flexible architecture for long-range dependencies
-- Strong representation capacity
-- Attractive for larger datasets and longer contexts
-
-### Weaknesses
-- Highest tuning burden among common choices
-- Expensive in memory and compute
-- Can underperform simpler backends on modest datasets
-- Easy to use prematurely before strong baselines are established
-
-### Use it when
-- You have substantial data
-- You want to model longer-range context
-- You are explicitly researching attention-based sequence models
-
-### Avoid it when
-- You are early in the project
-- You need quick training cycles
-- You have not yet benchmarked `mlf` or `lstm`
-
----
-
-## 4.8 `neuralforecast`
-
-### What it is
-`neuralforecast` is a forecasting-oriented deep learning backend built around a specialized ecosystem for time-series models.
-
-### Strengths
-- Good for advanced forecasting experiments
-- Can provide access to architectures beyond a single custom model
-- Useful when your workflow is close to forecasting research
-
-### Weaknesses
-- Added library and integration complexity
-- Training and tuning overhead
-- Not always the simplest fit for classification-style decision workflows
-
-### Use it when
-- You want to explore forecasting-native neural methods
-- You are already comfortable with deeper experimentation
-- Your problem benefits from a forecasting-centric setup
-
-### Avoid it when
-- You just need a practical first model
-- Operational simplicity matters more than experimentation breadth
-
----
-
 ## 5. Selection Guide by Goal
 
 ## 5.1 I want the fastest useful baseline
@@ -302,19 +182,9 @@ This should usually be your first serious benchmark.
 ---
 
 ## 5.3 I want to model temporal sequences directly
-Choose from:
+Choose:
 
 - `lstm`
-- `bilstm`
-- `cnn_lstm`
-- `transformer`
-
-Recommended order:
-
-1. `lstm`
-2. `bilstm`
-3. `cnn_lstm`
-4. `transformer`
 
 ---
 
@@ -337,17 +207,6 @@ Deep learning backends are less transparent.
 
 ---
 
-## 5.6 I want advanced experimentation breadth
-Choose:
-
-- `transformer`
-- `neuralforecast`
-- `cnn_lstm`
-
-These are best once you already have solid simpler benchmarks.
-
----
-
 ## 6. Practical Benchmarking Strategy
 
 A sensible experiment ladder is:
@@ -361,12 +220,6 @@ A sensible experiment ladder is:
 
 ### Stage 3 — Sequence models
 - `lstm`
-- `bilstm`
-
-### Stage 4 — More complex deep learning
-- `cnn_lstm`
-- `transformer`
-- `neuralforecast`
 
 The point is not to train everything immediately. The point is to build confidence step by step.
 
@@ -381,10 +234,6 @@ The point is not to train everything immediately. The point is to build confiden
 | Need a cheap ML baseline | `sgd` |
 | Best balance of practicality and power | `mlf` |
 | Strong sequential dependency suspected | `lstm` |
-| Want richer sequence encoding | `bilstm` |
-| Want local motif extraction + sequence modeling | `cnn_lstm` |
-| Want long-range attention experiments | `transformer` |
-| Want forecasting-oriented neural experimentation | `neuralforecast` |
 
 ---
 
@@ -398,10 +247,6 @@ This is a practical heuristic, not a strict rule.
 | `sgd` | High | High | High | High |
 | `mlf` | High | High | Medium to High | High |
 | `lstm` | Medium | Medium | Medium | Medium |
-| `bilstm` | Medium | Medium | Medium | Medium |
-| `cnn_lstm` | Low to Medium | Medium | Medium | Medium |
-| `transformer` | Low | Low to Medium | Medium | Low to Medium |
-| `neuralforecast` | Medium | Medium | Medium | Medium |
 
 For most teams, `mlf` is the most realistic production-oriented starting point.
 
@@ -416,7 +261,7 @@ If you are unsure, do this:
 2. Run `sgd`
 3. Run `mlf`
 4. Compare evaluation metrics
-5. Only then test `lstm` or other DL backends
+5. Only then test `lstm`
 ```
 
 This prevents over-investing in complex models before proving they are necessary.
@@ -425,7 +270,7 @@ This prevents over-investing in complex models before proving they are necessary
 
 ## 10. Common Mistakes
 
-- Starting with `transformer` before establishing a baseline
+- Starting with `lstm` before establishing a baseline
 - Comparing deep learning results against nothing
 - Using expensive backends with too little data
 - Assuming complex models are automatically better
@@ -444,10 +289,7 @@ Use `mlf`.
 Use `stats` and `sgd`.
 
 ### For sequence research
-Start with `lstm`, then try `bilstm`.
-
-### For advanced deep learning exploration
-Try `cnn_lstm`, `transformer`, or `neuralforecast` only after you already understand how your simpler baselines behave.
+Start with `lstm`.
 
 ---
 

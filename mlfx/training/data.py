@@ -148,7 +148,7 @@ def load_labelled_dataset(
 def prepare_tabular_data(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
     train_start: str | dt.date | dt.datetime | None = None,
@@ -166,16 +166,16 @@ def prepare_tabular_data(
         train_start=train_start,
         train_end=train_end,
     )
-    if df is None or label_col not in df.columns:
+    if df is None or label not in df.columns:
         return None
 
     feature_cols = select_numeric_feature_columns(df)
-    subset = df.select(feature_cols + [label_col]).drop_nulls()
+    subset = df.select(feature_cols + [label]).drop_nulls()
     if subset.is_empty():
         return None
 
     X = subset.select(feature_cols).to_numpy().astype(np.float32)
-    y = (subset[label_col].to_numpy() + 2).astype(np.int64)
+    y = (subset[label].to_numpy() + 2).astype(np.int64)
     X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
 
     return X, y, feature_cols
@@ -185,10 +185,10 @@ def build_model_output_path(
     artifact_name: str,
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     *,
     suffix: str,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> Path:
     """Build a canonical model artifact path under a label-specific outputs directory."""
-    return paths.models_dir(symbol, tf) / label_col / f"{artifact_name}{suffix}"
+    return paths.models_dir(symbol, tf) / label / f"{artifact_name}{suffix}"

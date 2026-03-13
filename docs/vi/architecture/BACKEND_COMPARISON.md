@@ -22,10 +22,6 @@ Thứ tự thực tế nên đi là:
 2. `sgd`
 3. `mlf`
 4. `lstm`
-5. `bilstm`
-6. `cnn_lstm`
-7. `transformer`
-8. `neuralforecast`
 
 ---
 
@@ -35,12 +31,8 @@ CLI hiện hỗ trợ:
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ---
 
@@ -52,10 +44,6 @@ CLI hiện hỗ trợ:
 | `sgd` | ML tuyến tính / trực tuyến | Nhanh, nhẹ, mở rộng tốt | Yếu hơn với tương tác đặc trưng phức tạp | Thấp đến trung bình | Thấp | Trung bình | Dữ liệu bảng lớn, thí nghiệm rẻ |
 | `mlf` | Tăng cường độ dốc / dự báo dạng bảng | Mốc nền mạnh, xử lý tốt mẫu phi tuyến | Không “thuần chuỗi” như học sâu | Trung bình | Trung bình | Trung bình | Mốc nền mặc định theo hướng vận hành thực dụng |
 | `lstm` | Mô hình chuỗi học sâu | Mô hình hóa phụ thuộc thời gian trực tiếp | Chậm hơn, nhạy với tinh chỉnh | Trung bình đến cao | Cao | Thấp | Mẫu chuỗi theo rolling window |
-| `bilstm` | Mô hình chuỗi hai chiều | ngữ cảnh phong phú hơn `lstm` thường | tốn hơn, có thể kém thực tế cho suy luận nhân quả nghiêm ngặt nếu dùng sai thiết lập | Cao | Cao | Thấp | Thí nghiệm offline với biểu diễn chuỗi giàu ngữ cảnh |
-| `cnn_lstm` | DL lai | Tốt cho trích xuất mẫu cục bộ + mô hình chuỗi | kiến trúc phức tạp hơn | Cao | Cao | Thấp | Mẫu nến / motif cục bộ kết hợp ngữ cảnh thời gian |
-| `transformer` | DL dựa trên attention | Linh hoạt cho phụ thuộc dài hạn | Rất tốn tài nguyên, khó tinh chỉnh, cần nhiều dữ liệu | Cao | Rất cao | Thấp | Dữ liệu lớn, mô hình hóa ngữ cảnh dài |
-| `neuralforecast` | Hệ sinh thái dự báo học sâu | mạnh cho thí nghiệm dự báo chuỗi thời gian | Độ phức tạp thư viện và tinh chỉnh cao | Trung bình đến cao | Cao | Thấp | Thí nghiệm dự báo nâng cao |
 
 ---
 
@@ -171,113 +159,6 @@ CLI hiện hỗ trợ:
 
 ---
 
-## 4.5 `bilstm`
-
-### Bản chất
-`bilstm` là biến thể LSTM hai chiều, mã hóa thông tin chuỗi theo cả hai hướng trong thiết lập huấn luyện.
-
-### Điểm mạnh
-- Biểu diễn chuỗi phong phú hơn `lstm` thường
-- Có thể nắm bắt ngữ cảnh tốt hơn trong thí nghiệm offline
-- Hữu ích khi ngữ cảnh cục bộ quanh mỗi điểm dữ liệu là quan trọng
-
-### Điểm yếu
-- Tốn tài nguyên hơn `lstm`
-- Độ phức tạp tăng thêm có thể không mang lại cải thiện đáng kể
-- Cần diễn giải rất cẩn thận trong quy trình chuỗi thời gian
-
-### Nên dùng khi
-- Bạn đang làm thí nghiệm mô hình hóa offline
-- Bạn muốn kiểm tra xem mã hóa chuỗi phong phú hơn có giúp ích không
-- Bạn đã xác nhận rằng mô hình chuỗi là hướng đáng đầu tư
-
-### Tránh dùng khi
-- Bạn muốn mô hình đơn giản nhất để triển khai
-- Bạn vẫn đang xây mốc nền đầu tiên đủ mạnh
-
----
-
-## 4.6 `cnn_lstm`
-
-### Bản chất
-`cnn_lstm` kết hợp trích xuất đặc trưng bằng tích chập với mô hình hóa chuỗi bằng hồi tiếp.
-
-### Điểm mạnh
-- Có thể học các motif cục bộ ngắn hạn trước khi tổng hợp theo chuỗi
-- Hữu ích cho các cấu trúc giá lặp lại cục bộ
-- Thường là điểm cân bằng tốt giữa mô hình hóa chuỗi thô và trích xuất mẫu phân cấp
-
-### Điểm yếu
-- Phức tạp hơn mô hình hồi tiếp thuần
-- Khó tinh chỉnh hơn
-- Chi phí huấn luyện vẫn cao
-- Khả năng diễn giải thấp hơn
-
-### Nên dùng khi
-- Bạn nghi ngờ các mẫu cửa sổ cục bộ là quan trọng
-- Bạn muốn kết hợp phát hiện motif với mô hình hóa thời gian
-- `lstm` thuần không đủ biểu đạt
-
-### Tránh dùng khi
-- Bạn cần một mốc nền thí nghiệm đơn giản
-- Ngân sách tính toán của bạn bị hạn chế
-
----
-
-## 4.7 `transformer`
-
-### Bản chất
-`transformer` là bộ máy học sâu dựa trên cơ chế chú ý cho mô hình hóa chuỗi.
-
-### Điểm mạnh
-- Kiến trúc linh hoạt cho phụ thuộc dài hạn
-- Năng lực biểu diễn mạnh
-- Hấp dẫn với dữ liệu lớn và ngữ cảnh dài hơn
-
-### Điểm yếu
-- Gánh nặng tinh chỉnh cao nhất trong các lựa chọn phổ biến
-- Tốn bộ nhớ và tính toán
-- Có thể kém hơn bộ máy đơn giản trên tập dữ liệu vừa hoặc nhỏ
-- Rất dễ bị dùng quá sớm trước khi có mốc nền mạnh
-
-### Nên dùng khi
-- Bạn có nhiều dữ liệu
-- Bạn muốn mô hình hóa ngữ cảnh dài hạn hơn
-- Bạn đang nghiên cứu rõ ràng về mô hình chuỗi dựa trên attention
-
-### Tránh dùng khi
-- Bạn đang ở giai đoạn đầu dự án
-- Bạn cần chu kỳ huấn luyện nhanh
-- Bạn chưa so sánh chuẩn `mlf` hoặc `lstm`
-
----
-
-## 4.8 `neuralforecast`
-
-### Bản chất
-`neuralforecast` là bộ máy học sâu theo hướng dự báo, xây trên một hệ sinh thái chuyên biệt cho mô hình chuỗi thời gian.
-
-### Điểm mạnh
-- Tốt cho các thí nghiệm dự báo nâng cao
-- Có thể cho phép tiếp cận nhiều kiến trúc hơn thay vì một mô hình tự cài đặt duy nhất
-- Hữu ích khi quy trình của bạn gần với hướng nghiên cứu dự báo
-
-### Điểm yếu
-- Tăng độ phức tạp thư viện và tích hợp
-- Tốn chi phí huấn luyện và tinh chỉnh
-- Không phải lúc nào cũng là lựa chọn đơn giản nhất cho quy trình ra quyết định kiểu phân loại
-
-### Nên dùng khi
-- Bạn muốn khám phá các phương pháp nơ-ron được thiết kế sẵn cho bài toán dự báo
-- Bạn đã quen với các thí nghiệm sâu hơn
-- Bài toán của bạn hưởng lợi từ thiết lập thiên về dự báo
-
-### Tránh dùng khi
-- Bạn chỉ cần mô hình thực dụng đầu tiên
-- Sự đơn giản trong vận hành quan trọng hơn độ rộng thí nghiệm
-
----
-
 ## 5. Hướng dẫn chọn theo mục tiêu
 
 ## 5.1 Tôi muốn mốc nền hữu ích nhanh nhất
@@ -304,16 +185,6 @@ Hãy chọn:
 Hãy chọn trong:
 
 - `lstm`
-- `bilstm`
-- `cnn_lstm`
-- `transformer`
-
-Thứ tự khuyến nghị:
-
-1. `lstm`
-2. `bilstm`
-3. `cnn_lstm`
-4. `transformer`
 
 ---
 
@@ -336,17 +207,6 @@ Các bộ máy học sâu kém minh bạch hơn.
 
 ---
 
-## 5.6 Tôi muốn độ rộng thí nghiệm nâng cao
-Hãy chọn:
-
-- `transformer`
-- `neuralforecast`
-- `cnn_lstm`
-
-Những lựa chọn này phù hợp nhất khi bạn đã có các mốc so sánh chuẩn đơn giản hơn đủ chắc.
-
----
-
 ## 6. Chiến lược so sánh chuẩn thực tế
 
 Một bậc thang thí nghiệm hợp lý là:
@@ -360,12 +220,6 @@ Một bậc thang thí nghiệm hợp lý là:
 
 ### Giai đoạn 3 — Mô hình chuỗi
 - `lstm`
-- `bilstm`
-
-### Giai đoạn 4 — Học sâu phức tạp hơn
-- `cnn_lstm`
-- `transformer`
-- `neuralforecast`
 
 Mục tiêu không phải là huấn luyện tất cả ngay lập tức. Mục tiêu là xây niềm tin từng bước.
 
@@ -380,10 +234,6 @@ Mục tiêu không phải là huấn luyện tất cả ngay lập tức. Mục 
 | Cần mốc nền ML rẻ | `sgd` |
 | Muốn cân bằng tốt nhất giữa tính thực dụng và sức mạnh | `mlf` |
 | Nghi ngờ phụ thuộc chuỗi mạnh | `lstm` |
-| Muốn biểu diễn chuỗi giàu ngữ cảnh hơn | `bilstm` |
-| Muốn motif cục bộ + mô hình hóa chuỗi | `cnn_lstm` |
-| Muốn thí nghiệm attention dài hạn | `transformer` |
-| Muốn thí nghiệm nơ-ron theo hướng dự báo | `neuralforecast` |
 
 ---
 
@@ -397,10 +247,6 @@ Mục tiêu không phải là huấn luyện tất cả ngay lập tức. Mục 
 | `sgd` | Cao | Cao | Cao | Cao |
 | `mlf` | Cao | Cao | Trung bình đến Cao | Cao |
 | `lstm` | Trung bình | Trung bình | Trung bình | Trung bình |
-| `bilstm` | Trung bình | Trung bình | Trung bình | Trung bình |
-| `cnn_lstm` | Thấp đến Trung bình | Trung bình | Trung bình | Trung bình |
-| `transformer` | Thấp | Thấp đến Trung bình | Trung bình | Thấp đến Trung bình |
-| `neuralforecast` | Trung bình | Trung bình | Trung bình | Trung bình |
 
 Với phần lớn nhóm phát triển, `mlf` là điểm khởi đầu thực tế nhất theo định hướng vận hành thực dụng.
 
@@ -415,7 +261,7 @@ Nếu bạn chưa chắc, hãy làm như sau:
 2. Chạy `sgd`
 3. Chạy `mlf`
 4. So sánh các chỉ số đánh giá
-5. Chỉ sau đó mới thử `lstm` hoặc các bộ máy học sâu khác
+5. Chỉ sau đó mới thử `lstm`
 ```
 
 Điều này giúp tránh đầu tư quá nhiều vào mô hình phức tạp trước khi chứng minh rằng chúng thực sự cần thiết.
@@ -424,7 +270,7 @@ Nếu bạn chưa chắc, hãy làm như sau:
 
 ## 10. Những sai lầm thường gặp
 
-- Bắt đầu bằng `transformer` trước khi có mốc nền
+- Bắt đầu bằng `lstm` trước khi có mốc nền
 - So sánh kết quả học sâu mà không có đối chứng
 - Dùng bộ máy đắt đỏ khi dữ liệu quá ít
 - Cho rằng mô hình phức tạp mặc định tốt hơn
@@ -443,10 +289,7 @@ Hãy dùng `mlf`.
 Hãy dùng `stats` và `sgd`.
 
 ### Với nghiên cứu chuỗi
-Hãy bắt đầu bằng `lstm`, rồi thử `bilstm`.
-
-### Với khám phá học sâu nâng cao
-Hãy thử `cnn_lstm`, `transformer`, hoặc `neuralforecast` chỉ sau khi bạn đã hiểu rõ hành vi của các mốc nền đơn giản hơn.
+Hãy bắt đầu bằng `lstm`.
 
 ---
 

@@ -44,7 +44,7 @@ def test_predict_uses_registry_feature_columns(tmp_path: Path, monkeypatch: pyte
         PredictRequest(
             symbol="XAUUSD",
             tf="1H",
-            label_col="label_10",
+            label="label_10",
             features={"f1": 1.0, "f2": 2.0},
         )
     )
@@ -74,7 +74,7 @@ def test_predict_rejects_missing_required_features(monkeypatch: pytest.MonkeyPat
             PredictRequest(
                 symbol="XAUUSD",
                 tf="1H",
-                label_col="label_10",
+                label="label_10",
                 features={"f1": 1.0},
             )
         )

@@ -67,15 +67,13 @@ in_dir = paths.features_dir("XAUUSD", "1H")  # data/features/XAUUSD/1H/
 
 ## Tầng xây dựng đặc trưng
 
-Điểm vào duy nhất: `mlfx.pipeline.feature_engineering.run_feature_pipeline()`.
+Điểm vào duy nhất: `mlfx.pipeline.features.run_feature_pipeline()`.
 
 Các nhóm đặc trưng được bổ sung:
 
 | Nhóm | Hàm | Cột đầu ra |
 |---|---|---|
 | Chỉ báo kỹ thuật | `add_ta_features()` | `rsi_14`, `macd`, `macd_signal`, `atr_14`, `ema_*` |
-| ICT Order Blocks | `add_order_block_features()` | `ob_bull_distance`, `ob_bear_distance` |
-| ICT Fair Value Gaps | `add_fair_value_gap_features()` | `fvg_bull_distance`, `fvg_bear_distance` |
 | Phiên khung giờ trọng điểm | `add_killzone_features()` | `is_london`, `is_ny`, `is_asian` |
 | Hỗ trợ / kháng cự và các mức điểm xoay | `add_sr_pp_features()` | `pp`, `r1`–`r4`, `s1`–`s4` (traditional/fibonacci) |
 | Chuẩn hóa | `add_normalized_features()` | các biến thể `*_norm` |
@@ -96,7 +94,7 @@ runner.run_training()
         │           │ (nạp động qua BACKEND_REGISTRY)
         │     ┌─────┴───────────────────────────────────────────┐
         │     │          mlfx.training.backends/               │
-        │     │  mlforecast.py  lstm.py  bilstm.py  ...         │
+        │     │  mlf.py  lstm.py  sgd.py  stats.py              │
         │     │  (mỗi bộ máy import data.py,                    │
         │     │   feature_selection.py, artifacts.py để dùng    │
         │     │   lại các helper chung)                         │
@@ -117,12 +115,8 @@ mlfx/training/
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
 │   ├── mlforecast.py       ← LightGBM qua MLForecast   (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
-│   ├── bilstm.py           ← PyTorch BiLSTM            (key: "bilstm")
-│   ├── transformer.py      ← PyTorch Transformer       (key: "transformer")
-│   ├── cnn_lstm.py         ← Lai CNN + LSTM            (key: "cnn_lstm")
 │   ├── online_sgd.py       ← Sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← Baseline StatsForecast    (key: "stats")
-│   └── neuralforecast.py   ← NeuralForecast            (key: "neuralforecast")
 ├── __init__.py             ← Tái xuất public từ data/feature_selection/artifacts
 ├── _utils.py               ← Tiện ích nội bộ
 ├── artifacts.py            ← Helper lưu mô hình (chuẩn)
@@ -142,7 +136,7 @@ Mọi bộ máy phải triển khai chữ ký tương thích với `BackendRunne
 def run_xxx(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     force: bool,
     **kwargs,
 ) -> dict:
@@ -225,7 +219,7 @@ generate_full_report() ← HTML nến + PNG đường vốn + PNG heatmap theo p
 
 ```text
 POST /predict
-  body: {symbol, tf, label_col, features: {col: value}}
+  body: {symbol, tf, label, features: {col: value}}
   → nạp mô hình tốt nhất từ registry
   → chạy suy luận
   → trả về {prediction, confidence}
@@ -386,9 +380,6 @@ preds = predict_with_torch_model(model, X, seq_len=60)
 
 Các loại mô hình được hỗ trợ:
 - `LSTM` — `FXLstm`
-- `BiLSTM` — `FXBiLstm`
-- `CNN_LSTM` — `FXCnnLstm`
-- `Transformer` — `FXTransformer`
 
 ### Chuỗi suy luận
 
@@ -441,7 +432,7 @@ docker-compose.yml
 ### Phụ thuộc giữa các mô-đun
 
 ```text
-mlfx.app.cli
+mlfx.cli
   └── mlfx.training.runner
         ├── mlfx.training.config        (TrainingConfig)
         ├── mlfx.training.registry      (get_backend_runner)

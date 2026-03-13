@@ -102,12 +102,8 @@ Its goal is to help you read the documentation, use the CLI, and interpret outpu
 
 - `mlf`: `MLForecast + LightGBM` pipeline, usually the most practical default choice.
 - `lstm`: LSTM model implemented with PyTorch.
-- `bilstm`: Bidirectional LSTM model implemented with PyTorch.
-- `transformer`: Transformer-based time-series model.
-- `cnn_lstm`: Hybrid CNN + LSTM model.
 - `sgd`: Very lightweight baseline based on `SGDClassifier`.
 - `stats`: Statistical baseline models.
-- `neuralforecast`: Backend built on the NeuralForecast ecosystem.
 
 ---
 

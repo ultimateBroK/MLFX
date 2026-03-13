@@ -11,7 +11,7 @@ import polars as pl
 
 class TestMlfxResampling:
     def test_resampling_module_exposes_timeframes(self, sample_ticks):
-        from mlfx.pipeline.resampling import TIMEFRAMES, resample_to_ohlcv
+        from mlfx.pipeline.resample import TIMEFRAMES, resample_to_ohlcv
 
         assert "1H" in TIMEFRAMES
         result = resample_to_ohlcv(sample_ticks, period=TIMEFRAMES["1H"])
@@ -43,17 +43,17 @@ class TestMlfxIndicators:
 
 class TestMlfxFeatureEngineering:
     def test_feature_engineering_module_builds_full_feature_matrix(self, sample_ohlcv):
-        from mlfx.pipeline.feature_engineering import build_feature_pipeline
+        from mlfx.pipeline.features import build_feature_pipeline
 
         result = build_feature_pipeline(sample_ohlcv)
         assert "rsi_14" in result.columns
         assert "pp_p" in result.columns
-        assert "price_in_bull_ob" in result.columns
+        assert "ema_20" in result.columns
 
 
 class TestMlfxLabeling:
     def test_labeling_module_generates_labels(self, sample_ohlcv):
-        from mlfx.pipeline.labeling import add_labels
+        from mlfx.pipeline.labels import add_labels
 
         with_atr = sample_ohlcv.with_columns(pl.lit(2.5).alias("atr_14"))
         result = add_labels(with_atr, horizons=[5])

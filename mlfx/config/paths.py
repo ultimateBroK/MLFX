@@ -101,44 +101,44 @@ class ProjectPaths:
         """Path to model artifacts directory for symbol/timeframe."""
         return self.models_root / symbol / tf
 
-    def models_label_dir(self, symbol: str, tf: str, label_col: str) -> Path:
+    def models_label_dir(self, symbol: str, tf: str, label: str) -> Path:
         """Path to model artifacts directory for a specific label column."""
-        return self.models_dir(symbol, tf) / label_col
+        return self.models_dir(symbol, tf) / label
 
     def reports_dir(self, symbol: str, tf: str) -> Path:
         """Path to backtest reports directory for symbol/timeframe."""
         return self.reports_root / symbol / tf
 
-    def reports_label_dir(self, symbol: str, tf: str, label_col: str) -> Path:
+    def reports_label_dir(self, symbol: str, tf: str, label: str) -> Path:
         """Path to backtest reports directory for a specific label column."""
-        return self.reports_dir(symbol, tf) / label_col
+        return self.reports_dir(symbol, tf) / label
 
     def report_run_dir(
         self,
         symbol: str,
         tf: str,
-        label_col: str,
+        label: str,
         mode: str,
         run_name: str,
     ) -> Path:
         """Path to a specific report run bundle grouped by label and mode."""
-        return self.reports_label_dir(symbol, tf, label_col) / mode / run_name
+        return self.reports_label_dir(symbol, tf, label) / mode / run_name
 
     def runs_dir(self, symbol: str, tf: str) -> Path:
         """Path to experiment runs directory for symbol/timeframe."""
         return self.runs_root / symbol / tf
 
-    def runs_label_dir(self, symbol: str, tf: str, label_col: str) -> Path:
+    def runs_label_dir(self, symbol: str, tf: str, label: str) -> Path:
         """Path to experiment runs directory for a specific label column."""
-        return self.runs_dir(symbol, tf) / label_col
+        return self.runs_dir(symbol, tf) / label
 
     def predictions_dir(self, symbol: str, tf: str) -> Path:
         """Path to batch predictions directory for symbol/timeframe."""
         return self.predictions_root / symbol / tf
 
-    def predictions_label_dir(self, symbol: str, tf: str, label_col: str) -> Path:
+    def predictions_label_dir(self, symbol: str, tf: str, label: str) -> Path:
         """Path to batch predictions directory for a specific label column."""
-        return self.predictions_dir(symbol, tf) / label_col
+        return self.predictions_dir(symbol, tf) / label
 
     def monitoring_dir(self, symbol: str, tf: str) -> Path:
         """Path to drift monitoring directory for symbol/timeframe."""

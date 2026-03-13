@@ -119,12 +119,8 @@ Only after the data is ready should you move to training. The CLI currently supp
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 Each backend is a different way to learn from the same prepared dataset.
 

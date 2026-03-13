@@ -59,7 +59,7 @@ def run_training(
         config.backend,
         config.symbol,
         config.tf,
-        config.label_col,
+        config.label,
     )
     t0 = time.perf_counter()
 
@@ -69,16 +69,15 @@ def run_training(
     train_start = config.extra.get("train_start")
     train_end = config.extra.get("train_end")
 
-    _DL_BACKENDS = frozenset({"lstm", "bilstm", "transformer", "cnn_lstm"})
-    if config.backend in _DL_BACKENDS:
+    if config.backend == "lstm":
         from mlfx.training.data import prepare_tabular_data
-        prepared = prepare_tabular_data(
-            config.symbol,
-            config.tf,
-            config.label_col,
-            train_start=train_start,
-            train_end=train_end,
-        )
+        prepare_kwargs: dict[str, Any] = {}
+        if train_start is not None:
+            prepare_kwargs["train_start"] = train_start
+        if train_end is not None:
+            prepare_kwargs["train_end"] = train_end
+
+        prepared = prepare_tabular_data(config.symbol, config.tf, config.label, **prepare_kwargs)
         if prepared is not None:
             X, y, feature_cols = prepared
             kwargs.update({"X": X, "y": y, "feature_cols": feature_cols})
@@ -137,15 +136,15 @@ def _start_tracking_run(config: TrainingConfig) -> str | None:
         from mlfx.tracking.tracker import get_tracker
 
         tracker = get_tracker(
-            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label_col
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label
         )
         return tracker.start_run(
-            run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label_col}",
+            run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label}",
             params={
                 "backend": config.backend,
                 "symbol": config.symbol,
                 "tf": config.tf,
-                "label_col": config.label_col,
+                "label": config.label,
                 "n_trials": config.n_trials,
                 "n_splits": config.n_splits,
                 **config.extra,
@@ -180,7 +179,7 @@ def _end_tracking_run(
         from mlfx.tracking.tracker import get_tracker
 
         tracker = get_tracker(
-            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label_col
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label
         )
         tracker.log_metrics(run_id, metrics)
         tracker.end_run(run_id, status=status)
@@ -203,7 +202,7 @@ def _register_artifact(config: TrainingConfig, metrics: dict[str, Any]) -> None:
             backend=config.backend,
             symbol=config.symbol,
             tf=config.tf,
-            label_col=config.label_col,
+            label=config.label,
             metrics=metrics,
             artifact_path=artifact_path,
         )
@@ -222,7 +221,7 @@ def _append_metrics_log(config: TrainingConfig, summary: dict[str, Any]) -> None
 
         log_path: Path = (
             DEFAULT_PATHS.runs_dir(config.symbol, config.tf)
-            / config.label_col
+            / config.label
             / "metrics_log.jsonl"
         )
         log_path.parent.mkdir(parents=True, exist_ok=True)

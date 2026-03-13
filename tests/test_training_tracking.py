@@ -42,7 +42,7 @@ def test_run_training_calls_tracking_lifecycle(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label="label_10")
     metrics = run_training(cfg, enable_tracking=True, enable_registry=False)
 
     # Verify start_tracking called
@@ -85,7 +85,7 @@ def test_run_training_skip_tracking_when_disabled(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label="label_10")
 
     # Should not raise the AssertionError from tracking functions
     metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
@@ -128,7 +128,7 @@ def test_run_training_graceful_degradation_start_tracking_fails(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label="label_10")
 
     # Should NOT raise the AssertionError from _end_tracking_run
     metrics = run_training(cfg, enable_tracking=True, enable_registry=False)
@@ -174,7 +174,7 @@ def test_run_training_tracks_failed_status_on_exception(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label="label_10")
 
     # Should raise ValueError, but before that should have called end_tracking with FAILED
     with pytest.raises(ValueError, match="Training failed"):
@@ -223,7 +223,7 @@ def test_run_training_filters_metrics_for_logging(monkeypatch):
     monkeypatch.setattr("mlfx.training.runner.get_runner_kwargs", lambda config: {})
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label_col="label_10")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", backend="mlf", label="label_10")
     metrics = run_training(cfg, enable_tracking=True, enable_registry=False)
 
     # Verify what was passed to end_tracking (only numeric metrics, excluding n_samples)

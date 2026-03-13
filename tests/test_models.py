@@ -24,7 +24,7 @@ import pytest
 def tiny_label_df() -> pl.DataFrame:
     """
     200 synthetic 1H bars with pre-computed label_10 column.
-    Mirrors the schema produced by `mlfx.pipeline.labeling`.
+    Mirrors the schema produced by `mlfx.pipeline.labels`.
     """
     n = 200
     base = datetime(2024, 1, 8, 0, tzinfo=timezone.utc)
@@ -140,7 +140,7 @@ class TestMLForecastModels:
 
     def test_get_feature_columns_excludes_blacklist(self, tiny_label_df):
         """get_feature_columns must not include blacklisted columns."""
-        from mlfx.training.backends.mlforecast import FEATURE_BLACKLIST, get_feature_columns
+        from mlfx.training.backends.mlf import FEATURE_BLACKLIST, get_feature_columns
 
         cols = get_feature_columns(tiny_label_df)
         for bl in FEATURE_BLACKLIST:
@@ -148,7 +148,7 @@ class TestMLForecastModels:
 
     def test_get_feature_columns_only_numeric(self, tiny_label_df):
         """Feature columns must all be numeric dtype."""
-        from mlfx.training.backends.mlforecast import get_feature_columns
+        from mlfx.training.backends.mlf import get_feature_columns
 
         cols = get_feature_columns(tiny_label_df)
         for c in cols:
@@ -158,7 +158,7 @@ class TestMLForecastModels:
 
     def test_prepare_nixtla_df_schema(self, tiny_label_df):
         """Output must include [unique_id, ds, y] plus feature columns."""
-        from mlfx.training.backends.mlforecast import prepare_nixtla_df
+        from mlfx.training.backends.mlf import prepare_nixtla_df
 
         out, feat_cols = prepare_nixtla_df(tiny_label_df, "label_10")
         assert "unique_id" in out.columns
@@ -168,7 +168,7 @@ class TestMLForecastModels:
 
     def test_prepare_nixtla_df_y_dtype_int64(self, tiny_label_df):
         """y column must be Int64 (class indices)."""
-        from mlfx.training.backends.mlforecast import prepare_nixtla_df
+        from mlfx.training.backends.mlf import prepare_nixtla_df
 
         out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
         assert out["y"].dtype == pl.Int64
@@ -177,7 +177,7 @@ class TestMLForecastModels:
         """train_ml_models must return (MLForecast, dict)."""
         from mlforecast import MLForecast
 
-        from mlfx.training.backends.mlforecast import prepare_nixtla_df, train_ml_models
+        from mlfx.training.backends.mlf import prepare_nixtla_df, train_ml_models
 
         df_nixtla, feat_cols = prepare_nixtla_df(tiny_label_df, "label_10")
         # Use minimal trials and splits for speed
@@ -192,7 +192,7 @@ class TestMLForecastModels:
 
     def test_train_ml_models_f1_in_range(self, tiny_label_df):
         """CV F1 macro must be in [0, 1]."""
-        from mlfx.training.backends.mlforecast import prepare_nixtla_df, train_ml_models
+        from mlfx.training.backends.mlf import prepare_nixtla_df, train_ml_models
 
         df_nixtla, feat_cols = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_ml_models(df_nixtla, feat_cols, n_trials=2, n_splits=2)
@@ -201,7 +201,7 @@ class TestMLForecastModels:
 
     def test_train_ml_models_n_samples_correct(self, tiny_label_df):
         """n_samples in metrics should match preprocessed row count (> 0)."""
-        from mlfx.training.backends.mlforecast import prepare_nixtla_df, train_ml_models
+        from mlfx.training.backends.mlf import prepare_nixtla_df, train_ml_models
 
         df_nixtla, feat_cols = prepare_nixtla_df(tiny_label_df, "label_10")
         _, metrics = train_ml_models(df_nixtla, feat_cols, n_trials=2, n_splits=2)
@@ -209,91 +209,4 @@ class TestMLForecastModels:
         assert metrics["n_samples"] > 0
 
 
-# ── tests/backend_neural_forecast ───────────────────────────────────────────
 
-
-class TestNeuralForecast:
-    """Tests for `mlfx.training.backend_neural_forecast` using NeuralForecast."""
-
-    def test_prepare_nixtla_df_schema(self, tiny_label_df):
-        """Output must have exactly [unique_id, ds, y]."""
-        from mlfx.training.backends.neuralforecast import prepare_nixtla_df
-
-        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        assert list(out.columns) == ["unique_id", "ds", "y"]
-
-    def test_prepare_nixtla_df_y_float64(self, tiny_label_df):
-        """y must be Float64 for regression-style training."""
-        from mlfx.training.backends.neuralforecast import prepare_nixtla_df
-
-        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        assert out["y"].dtype == pl.Float64
-
-    def test_prepare_nixtla_df_y_range(self, tiny_label_df):
-        """y values must be in [0, 4] after remapping."""
-        from mlfx.training.backends.neuralforecast import prepare_nixtla_df
-
-        out, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        y = out["y"].drop_nulls()
-        assert float(y.min()) >= 0.0
-        assert float(y.max()) <= 4.0
-
-    def test_train_neural_forecast_returns_nf_and_metrics(self, tiny_label_df):
-        """train_neural_forecast must return (NeuralForecast, dict)."""
-        from neuralforecast import NeuralForecast
-
-        from mlfx.training.backends.neuralforecast import (
-            prepare_nixtla_df,
-            train_neural_forecast,
-        )
-
-        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        nf, metrics = train_neural_forecast(
-            df_nixtla,
-            n_windows=2,
-            freq="h",
-            input_size=12,
-            max_steps=5,  # minimal steps for test speed
-        )
-
-        assert isinstance(nf, NeuralForecast)
-        assert "cv_f1_macro" in metrics
-        assert "model_type" in metrics
-        assert metrics["model_type"] == "NeuralForecast_NHiTS_NBEATS"
-
-    def test_train_neural_forecast_f1_keys(self, tiny_label_df):
-        """cv_f1_macro must contain NHiTS and NBEATS entries."""
-        from mlfx.training.backends.neuralforecast import (
-            prepare_nixtla_df,
-            train_neural_forecast,
-        )
-
-        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        _, metrics = train_neural_forecast(
-            df_nixtla, n_windows=2, freq="h", input_size=12, max_steps=5
-        )
-
-        assert "NHITS" in metrics["cv_f1_macro"]
-        assert "NBEATS" in metrics["cv_f1_macro"]
-
-    def test_train_neural_forecast_f1_in_range(self, tiny_label_df):
-        """All CV F1 values must be floats in [0, 1]."""
-        from mlfx.training.backends.neuralforecast import (
-            prepare_nixtla_df,
-            train_neural_forecast,
-        )
-
-        df_nixtla, _ = prepare_nixtla_df(tiny_label_df, "label_10")
-        _, metrics = train_neural_forecast(
-            df_nixtla, n_windows=2, freq="h", input_size=12, max_steps=5
-        )
-
-        for k, v in metrics["cv_f1_macro"].items():
-            assert 0.0 <= v <= 1.0, f"{k} F1 out of range: {v}"
-
-    def test_freq_map_coverage(self):
-        """_TF_FREQ must map all standard timeframe keys."""
-        from mlfx.training.backends.neuralforecast import _TF_FREQ
-
-        for tf in ["1m", "5m", "15m", "30m", "1H", "2H", "4H", "1D"]:
-            assert tf in _TF_FREQ, f"Missing freq mapping for '{tf}'"

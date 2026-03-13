@@ -59,7 +59,7 @@ concurrency = 20
 | Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính cần xử lý |
-| `timeframe` | string | `"1H"` | `--tf` | Khung thời gian mục tiêu |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian mục tiêu |
 | `pivot_type` | string | `"traditional"` | `--pivot` | Phương pháp tính điểm xoay |
 | `pivot_anchor` | string | `"daily"` | `--anchor` | Chu kỳ neo điểm xoay |
 | `atr_period` | integer | `14` | `--atr-period` | Chu kỳ tính ATR |
@@ -96,7 +96,7 @@ concurrency = 20
 ```/dev/null/config-reference-pipeline.toml#L1-6
 [pipeline]
 symbol = "XAUUSD"
-timeframe = "1H"
+tf = "1H"
 pivot_type = "traditional"
 pivot_anchor = "daily"
 atr_mult = 0.5
@@ -109,8 +109,8 @@ atr_mult = 0.5
 | Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính dùng để huấn luyện |
-| `timeframe` | string | `"1H"` | `--tf` | Khung thời gian dùng để huấn luyện |
-| `label_col` | string | `"label_10"` | `--label` | Cột nhãn mục tiêu |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian dùng để huấn luyện |
+| `label` | string | `"label_10"` | `--label` | Cột nhãn mục tiêu |
 | `backend` | string | `"mlf"` | `--backend` | Bộ máy huấn luyện |
 | `n_trials` | integer | `30` | `--n-trials` | Số lần thử siêu tham số, chủ yếu áp dụng cho `mlf` |
 | `n_splits` | integer | `5` | `--n-splits` | Số phần chia trong kiểm định chéo |
@@ -119,12 +119,8 @@ atr_mult = 0.5
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ### Các nhãn được hỗ trợ
 
@@ -137,8 +133,8 @@ atr_mult = 0.5
 ```/dev/null/config-reference-train.toml#L1-7
 [train]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backend = "mlf"
 n_trials = 15
 n_splits = 5
@@ -178,8 +174,8 @@ avg_range_n = 5
 | Khóa | Kiểu | Mặc định | Cờ dòng lệnh tương ứng | Mô tả |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Mã công cụ tài chính cần đánh giá |
-| `timeframe` | string | `"1H"` | `--tf` | Khung thời gian backtest |
-| `label_col` | string | `"label_10"` | `--label` | Cột tín hiệu dùng để backtest |
+| `tf` | string | `"1H"` | `--tf` | Khung thời gian backtest |
+| `label` | string | `"label_10"` | `--label` | Cột tín hiệu dùng để backtest |
 | `tp_r` | float | `1.5` | `--tp` | Mức chốt lời theo đơn vị `R` |
 | `sl_r` | float | `1.0` | `--sl` | Mức dừng lỗ theo đơn vị `R` |
 | `initial_capital` | float | `10000.0` | `--capital` | Vốn ban đầu |
@@ -192,8 +188,8 @@ avg_range_n = 5
 ```/dev/null/config-reference-backtest.toml#L1-9
 [backtest]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 tp_r = 1.5
 sl_r = 1.0
 initial_capital = 10000.0
@@ -220,7 +216,7 @@ concurrency = 20
 
 [pipeline]
 symbol       = "XAUUSD"
-timeframe    = "1H"
+tf    = "1H"
 pivot_type   = "traditional"
 pivot_anchor = "daily"
 atr_period   = 14
@@ -228,8 +224,8 @@ atr_mult     = 0.5
 
 [train]
 symbol     = "XAUUSD"
-timeframe  = "1H"
-label_col  = "label_10"
+tf  = "1H"
+label  = "label_10"
 backend    = "mlf"
 n_trials   = 15
 n_splits   = 5
@@ -245,8 +241,8 @@ avg_range_n = 5
 
 [backtest]
 symbol          = "XAUUSD"
-timeframe       = "1H"
-label_col       = "label_10"
+tf       = "1H"
+label       = "label_10"
 tp_r            = 1.5
 sl_r            = 1.0
 initial_capital = 10000.0
@@ -382,7 +378,7 @@ Thứ tự ưu tiên từ cao xuống thấp:
 
 Ví dụ:
 
-- Trong `config.toml`, `timeframe = "1H"`
+- Trong `config.toml`, `tf = "1H"`
 - Nhưng bạn chạy:
   - `pixi run mlfx pipeline --symbol XAUUSD --tf 4H`
 
@@ -412,8 +408,8 @@ Nên ghi đè bằng cờ dòng lệnh khi:
 
 - Quên rằng giá trị trên dòng lệnh sẽ ghi đè cấu hình trong file
 - Chỉnh `config.toml` nhưng lại không chạy đúng lệnh mong muốn
-- Dùng nhầm `label_col`
-- Dùng nhầm `timeframe`
+- Dùng nhầm `label`
+- Dùng nhầm `tf`
 - Dùng bộ máy không phù hợp với mục tiêu thử nghiệm
 
 ---
@@ -423,8 +419,8 @@ Nên ghi đè bằng cờ dòng lệnh khi:
 Nếu bạn mới bắt đầu, đây là bộ giá trị an toàn và dễ chạy:
 
 - `symbol = "XAUUSD"`
-- `timeframe = "1H"`
-- `label_col = "label_10"`
+- `tf = "1H"`
+- `label = "label_10"`
 - `backend = "mlf"`
 - `pivot_type = "traditional"`
 - `pivot_anchor = "daily"`
@@ -451,11 +447,11 @@ asset_class = "fx"
 start_year = 2024
 
 [pipeline]
-timeframe = "1H"
+tf = "1H"
 
 [train]
 backend = "mlf"
-label_col = "label_10"
+label = "label_10"
 ```
 
 ### 8.2. Muốn so sánh nhiều mô hình
@@ -463,8 +459,8 @@ label_col = "label_10"
 ```/dev/null/config-reference-benchmark.toml#L1-8
 [train]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backend = "mlf"
 n_trials = 15
 n_splits = 5
@@ -475,7 +471,7 @@ n_splits = 5
 ```/dev/null/config-reference-higher-tf.toml#L1-4
 [pipeline]
 symbol = "XAUUSD"
-timeframe = "4H"
+tf = "4H"
 ```
 
 ---

@@ -1,8 +1,7 @@
-"""Shared HPO scaffold for all four PyTorch sequence-based backends.
+"""Shared HPO scaffold for PyTorch sequence-based backends.
 
-This module eliminates the ~480 LOC of near-identical boilerplate that was
-previously duplicated across ``lstm.py``, ``bilstm.py``, ``transformer.py``,
-and ``cnn_lstm.py``.
+This module eliminates the bulk of near-identical boilerplate that was
+previously duplicated across multiple sequence model implementations.
 
 Each backend supplies two callables:
 
@@ -93,7 +92,7 @@ def run_pytorch_hpo(
 
     suggest_params_fn:
         ``(trial) → dict | None``.  Return *None* to mark an invalid trial
-        (e.g. transformer ``d_model % nhead != 0``); the objective returns
+        (e.g. a hyperparameter constraint is violated); the objective returns
         ``0.0`` for that trial.
     X, y, feature_cols:
         Pre-loaded feature matrix, label array, and column names.

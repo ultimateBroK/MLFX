@@ -16,7 +16,7 @@ Vì sao MLFX đáng để tiếp tục đầu tư và mở rộng? Dự án này
 | **Tổ chức hệ thống** | **Thấp.** Mã nguồn thường rời rạc, khó tái sử dụng. | **Trung bình đến cao.** Có cấu trúc, nhưng thường nghiêng về khâu thực thi lệnh. | **Cao.** Luồng rõ ràng từ thu thập dữ liệu → kiểm tra → xử lý → huấn luyện → đánh giá → phục vụ mô hình. |
 | **Khả năng tái lập** | **Thấp.** Khó chuẩn hóa môi trường và quy trình chạy. | **Trung bình.** Có quy trình tương đối ổn định, nhưng hay phụ thuộc mạnh vào framework. | **Cao.** Dùng `pixi`, cấu hình tập trung và giao diện dòng lệnh thống nhất. |
 | **Chiều sâu học máy / MLOps** | **Thấp đến trung bình.** Thường dừng ở notebook hoặc backtest đơn giản. | **Trung bình.** Mạnh ở luật giao dịch hoặc bot, nhưng không phải lúc nào cũng mạnh về pipeline học máy. | **Cao.** Tập trung vào dữ liệu, xây dựng đặc trưng, huấn luyện, so sánh mô hình, đánh giá, phát hiện độ lệch dữ liệu và phục vụ mô hình. |
-| **Khả năng mở rộng bộ máy** | **Thấp.** Thêm mô hình mới thường phải sửa nhiều nơi. | **Trung bình.** Tùy thuộc vào thiết kế khung làm việc. | **Cao.** Đã có nhiều bộ máy: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`. |
+| **Khả năng mở rộng bộ máy** | **Thấp.** Thêm mô hình mới thường phải sửa nhiều nơi. | **Trung bình.** Tùy thuộc vào thiết kế khung làm việc. | **Cao.** Có nhiều bộ máy: `mlf`, `lstm`, `sgd`, `stats`. |
 | **Khả năng đánh giá** | **Trung bình.** Có thể có kiểm định nhưng thiếu chuẩn hóa. | **Cao.** Nhiều khung làm việc có kiểm định tốt. | **Cao.** Đã có đánh giá, báo cáo, so sánh đa bộ máy và ghi lại chỉ số tổng hợp. |
 | **Khả năng đưa vào vận hành** | **Thấp.** Script khó triển khai ổn định. | **Trung bình.** Thường tốt ở phần thực thi nhưng không phải lúc nào cũng tốt ở phần phục vụ mô hình học máy. | **Trung bình đến cao.** Đã có `serve`, `batch-predict`, `drift`, nhưng vẫn cần tăng độ ổn định ở tầng phục vụ, cơ chế thử lại, ngắt mạch và ghi nhật ký. |
 | **Phù hợp nghiên cứu dài hạn** | **Thấp.** Dễ vỡ cấu trúc khi dự án lớn lên. | **Trung bình.** Có thể bị giới hạn bởi triết lý của khung làm việc. | **Cao.** Phù hợp để nghiên cứu mô hình, so sánh bộ máy, mở rộng bộ kết nối dữ liệu và tiến tới vận hành ổn định hơn. |
@@ -80,7 +80,7 @@ Thu thập dữ liệu → Kiểm tra → Biến đổi → Huấn luyện → �
 - **Công nghệ chính:** `mlfx.training`, MLflow tùy chọn, cấu hình huấn luyện qua CLI.
 - **Nhiệm vụ:**
   1. Xây dựng mô-đun huấn luyện dùng chung.
-  2. Tích hợp các bộ máy: `mlf`, `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `sgd`, `stats`, `neuralforecast`.
+  2. Tích hợp các bộ máy: `mlf`, `lstm`, `sgd`, `stats`.
   3. Chuẩn hóa cách chia tập huấn luyện / xác thực / kiểm tra theo chuỗi thời gian.
   4. Tránh rò rỉ dữ liệu.
   5. Lưu tệp đầu ra và chỉ số huấn luyện vào `outputs/`.

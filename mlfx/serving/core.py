@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def resolve_and_predict(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     features: pl.DataFrame | dict[str, float],
     *,
     registry: ModelRegistry | None = None,
@@ -32,7 +32,7 @@ def resolve_and_predict(
 
         registry = get_registry()
 
-    entry = registry.best_model(symbol=symbol, tf=tf, label_col=label_col)
+    entry = registry.best_model(symbol=symbol, tf=tf, label=label)
     if entry is None:
         return None
 
@@ -77,13 +77,13 @@ def resolve_and_predict(
     if (
         isinstance(features, pl.DataFrame)
         and _is_mlforecast(model)
-        and label_col in features.columns
+        and label in features.columns
     ):
         raw_preds = predict_labels(
             model,
             X,
             df=features,
-            label_col=label_col,
+            label=label,
             feature_cols=feature_cols,
         )
     else:

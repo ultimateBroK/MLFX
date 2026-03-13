@@ -254,7 +254,7 @@ Hãy kiểm tra:
 
 - Đã có parquet trong `data/labels/{symbol}/{tf}/` chưa
 - Mô hình đã được huấn luyện chưa
-- `label_col` có đúng không
+- `label` có đúng không
 
 ### Muốn dọn đầu ra cũ
 

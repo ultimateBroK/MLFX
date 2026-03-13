@@ -43,7 +43,7 @@ class TrainingConfig:
 
     symbol: str = "XAUUSD"
     tf: str = "1H"
-    label_col: str = "label_10"
+    label: str = "label_10"
     backend: str = "mlf"
     n_trials: int = 15
     n_splits: int = 5
@@ -52,7 +52,7 @@ class TrainingConfig:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def to_runner_kwargs(self) -> dict[str, Any]:
-        """Return base kwargs (symbol, tf, label_col, force, seed) plus extra.
+        """Return base kwargs (symbol, tf, label, force, seed) plus extra.
 
         Backend-specific params (n_trials, n_splits, n_windows) are resolved
         by the registry via :func:`mlfx.training.registry.get_runner_kwargs`.
@@ -60,7 +60,7 @@ class TrainingConfig:
         base: dict[str, Any] = {
             "symbol": self.symbol,
             "tf": self.tf,
-            "label_col": self.label_col,
+            "label": self.label,
             "force": self.force,
             "seed": self.random_seed,
         }
@@ -80,7 +80,7 @@ class BackendRunner(Protocol):
         self,
         symbol: str,
         tf: str,
-        label_col: str,
+        label: str,
         force: bool,
         **kwargs: Any,
     ) -> dict[str, Any]: ...

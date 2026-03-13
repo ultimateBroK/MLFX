@@ -24,7 +24,7 @@ def test_runner_registers_artifact_path(monkeypatch, tmp_path: Path):
     monkeypatch.setattr("mlfx.training.runner.get_backend_runner", lambda backend: _fake_runner)
     monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: _FakeRegistry())
 
-    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", label_col="label_10", backend="mlf")
+    cfg = TrainingConfig(symbol="XAUUSD", tf="1H", label="label_10", backend="mlf")
     metrics = run_training(cfg, enable_tracking=False, enable_registry=True)
 
     assert "elapsed_seconds" in metrics

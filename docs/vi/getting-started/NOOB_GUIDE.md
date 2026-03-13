@@ -119,12 +119,8 @@ Sau khi dữ liệu đã sẵn sàng, bạn mới đến bước huấn luyện.
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 Mỗi bộ máy là một hướng tiếp cận khác nhau để học từ cùng một bộ dữ liệu.
 

@@ -58,7 +58,7 @@ def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
         backend="mlf",
         symbol="XAUUSD",
         tf="1H",
-        label_col="label_10",
+        label="label_10",
         metrics={"best_cv_f1_macro": 0.9, "selected_features": ["feat_b", "feat_a"]},
         artifact_path=artifact_path,
     )
@@ -74,7 +74,7 @@ def test_batch_inference_uses_registry_feature_order(tmp_path: Path):
 
 
 def test_predict_labels_handles_torch_state_dict_payload():
-    """predict_labels supports PyTorch LSTM/BiLSTM/CNN-LSTM/Transformer artifacts."""
+    """predict_labels supports PyTorch LSTM state_dict artifacts."""
     pytest.importorskip("torch")
 
     from mlfx.serving.inference import predict_labels

@@ -88,7 +88,7 @@ curl "http://localhost:8000/models?backend=mlf"
     "run_id": "20250301_120000",
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "backend": "mlf",
     "artifact_path": "outputs/models/XAUUSD/1H/20250301_120000.pkl",
     "metrics": {
@@ -109,7 +109,7 @@ curl "http://localhost:8000/models?backend=mlf"
 
 ## `POST /predict`
 
-Chạy suy luận cho một bộ đặc trưng đầu vào. Máy chủ sẽ tự động nạp mô hình tốt nhất đã đăng ký cho tổ hợp `symbol` / `tf` / `label_col`.
+Chạy suy luận cho một bộ đặc trưng đầu vào. Máy chủ sẽ tự động nạp mô hình tốt nhất đã đăng ký cho tổ hợp `symbol` / `tf` / `label`.
 
 ### Yêu cầu
 
@@ -119,7 +119,7 @@ curl -X POST http://localhost:8000/predict \
   -d '{
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "features": {
       "rsi_14": 55.3,
       "atr_14": 2.1,
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8000/predict \
 |---|---|---|---|
 | `symbol` | string | Có | Mã công cụ tài chính |
 | `tf` | string | Có | Khung thời gian |
-| `label_col` | string | Có | Cột nhãn đã dùng khi huấn luyện |
+| `label` | string | Có | Cột nhãn đã dùng khi huấn luyện |
 | `features` | object | Có | Ánh xạ `tên đặc trưng -> giá trị` |
 
 ### Phản hồi
@@ -164,7 +164,7 @@ curl -X POST http://localhost:8000/predict \
 ### Mã trạng thái
 
 - `200` — Thành công
-- `404` — Không tìm thấy mô hình đã đăng ký cho tổ hợp `symbol/tf/label_col`
+- `404` — Không tìm thấy mô hình đã đăng ký cho tổ hợp `symbol/tf/label`
 - `422` — Thiếu đặc trưng bắt buộc hoặc yêu cầu không hợp lệ
 - `500` — Bản ghi trong sổ đăng ký không có `artifact_path` hoặc máy chủ gặp lỗi nội bộ
 
@@ -187,7 +187,7 @@ Trường `prediction` trả về nhãn thứ bậc:
 ## Điểm tin cậy dự đoán
 
 - `confidence` chỉ có khi bộ máy hỗ trợ `predict_proba()`, ví dụ như `mlf` hoặc `sgd`
-- Các bộ máy học sâu như `lstm`, `bilstm`, `transformer`, `cnn_lstm`, `neuralforecast` thường trả về `null`
+- Bộ máy PyTorch `lstm` thường trả về `null`
 - Giá trị `confidence` đại diện cho xác suất của lớp được dự đoán
 
 ---
@@ -256,7 +256,7 @@ print(response.json())
 payload = {
     "symbol": "XAUUSD",
     "tf": "1H",
-    "label_col": "label_10",
+    "label": "label_10",
     "features": {
         "rsi_14": 55.3,
         "atr_14": 2.1,

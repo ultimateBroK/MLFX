@@ -134,12 +134,8 @@ This helps detect data gaps, damaged months, or abnormal records.
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ### Quick check
 

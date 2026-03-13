@@ -5,7 +5,7 @@ formats:
 - sklearn/nixtla objects exposing ``predict(X)``
 - MLForecast (uses underlying LGBMClassifier + preprocess)
 - dict payloads containing ``clf`` and ``scaler`` (online SGD backend)
-- PyTorch state_dict payloads (LSTM, BiLSTM, CNN-LSTM, Transformer)
+- PyTorch state_dict payloads (LSTM)
 
 Security
 --------
@@ -58,7 +58,7 @@ def _is_mlforecast(model: Any) -> bool:
 def _predict_mlforecast(
     model: Any,
     df: pl.DataFrame,
-    label_col: str,
+    label: str,
     feature_cols: list[str],
 ) -> tuple[np.ndarray, pl.Series]:
     """Run prediction for MLForecast using preprocess + underlying model.
@@ -69,9 +69,9 @@ def _predict_mlforecast(
     Returns (predictions, ds_series) where ds_series has timestamps for each
     prediction (preprocess may drop rows, so length matches preds).
     """
-    from mlfx.training.backends.mlforecast import prepare_nixtla_df
+    from mlfx.training.backends.mlf import prepare_nixtla_df
 
-    subset, _ = prepare_nixtla_df(df, label_col)
+    subset, _ = prepare_nixtla_df(df, label)
     if subset.is_empty():
         return np.array([], dtype=np.int64), pl.Series("ds", [])
     df_pd = subset.to_pandas()
@@ -88,20 +88,20 @@ def predict_labels(
     X: np.ndarray,
     *,
     df: pl.DataFrame | None = None,
-    label_col: str | None = None,
+    label: str | None = None,
     feature_cols: list[str] | None = None,
 ) -> np.ndarray:
     """Run prediction with best-effort adaptation by artifact type.
 
     Returns class labels in backend-native encoding (typically 0..4).
 
-    For MLForecast models, pass df, label_col, and feature_cols to use
+    For MLForecast models, pass df, label, and feature_cols to use
     preprocess + underlying model (MLForecast.predict is for forecasting only).
     """
     # MLForecast: use preprocess + underlying model, not predict(horizon).
     if _is_mlforecast(model):
-        if df is not None and label_col and feature_cols:
-            preds, ds_series = _predict_mlforecast(model, df, label_col, feature_cols)
+        if df is not None and label and feature_cols:
+            preds, ds_series = _predict_mlforecast(model, df, label, feature_cols)
             if len(preds) == 0:
                 return np.full(len(df), 2, dtype=np.int64)  # neutral for all
             pred_lookup = pl.DataFrame({"ds": ds_series, "_pred": preds})

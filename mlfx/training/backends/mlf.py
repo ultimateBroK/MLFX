@@ -38,7 +38,11 @@ def get_feature_columns(df: pl.DataFrame) -> list[str]:
 MLF_LAG_ORDER = 5
 
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") -> tuple[pl.DataFrame, list[str]]:
+def prepare_nixtla_df(
+    df: pl.DataFrame,
+    label: str,
+    symbol: str = "XAUUSD",
+) -> tuple[pl.DataFrame, list[str]]:
     """Format dataframe for Nixtla MLForecast (unique_id, ds, y).
 
     Drops rows with null in any feature/label, then trims the first MLF_LAG_ORDER
@@ -46,11 +50,11 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str, symbol: str = "XAUUSD") 
     mlforecast "Found null values" warnings.
     """
     feature_cols = get_feature_columns(df)
-    subset = df.select(["timestamp", label_col] + feature_cols).drop_nulls()
+    subset = df.select(["timestamp", label] + feature_cols).drop_nulls()
 
     unique_id_col = pl.lit(symbol).alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
-    y_col = (pl.col(label_col) + 2).cast(pl.Int64).alias("y")
+    y_col = (pl.col(label) + 2).cast(pl.Int64).alias("y")
     subset = subset.with_columns([unique_id_col, ds_col, y_col])
 
     # Trim first MLF_LAG_ORDER rows per series so lag features have no nulls.
@@ -199,7 +203,7 @@ def save_model(mlf: MLForecast, metrics: dict, path) -> None:
 def run_ml_models(
     symbol: str = "XAUUSD",
     tf: str = "1H",
-    label_col: str = "label_10",
+    label: str = "label_10",
     n_trials: int = 15,
     n_splits: int = 5,
     force: bool = False,
@@ -210,10 +214,10 @@ def run_ml_models(
     """Train MLForecast + LightGBM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
     out_path = build_model_output_path(
-        f"ml_models_{label_col}",
+        f"ml_models_{label}",
         symbol,
         tf,
-        label_col,
+        label,
         suffix=".pkl",
     )
 
@@ -227,12 +231,12 @@ def run_ml_models(
         train_start=train_start,
         train_end=train_end,
     )
-    if df is None or label_col not in df.columns:
-        logger.warning("No labelled data or missing column %s", label_col)
+    if df is None or label not in df.columns:
+        logger.warning("No labelled data or missing column %s", label)
         return {}
 
     n_raw = len(df)
-    df_nixtla, feature_cols = prepare_nixtla_df(df, label_col, symbol=symbol)
+    df_nixtla, feature_cols = prepare_nixtla_df(df, label, symbol=symbol)
     n_used = len(df_nixtla)
     logger.info(
         "Data: %d rows loaded → %d after drop_nulls + warmup trim (%d features)",
@@ -271,7 +275,7 @@ def main() -> None:
     run_ml_models(
         symbol=args.symbol,
         tf=args.tf,
-        label_col=args.label,
+        label=args.label,
         n_trials=args.n_trials,
         n_splits=args.n_splits,
         force=args.force,

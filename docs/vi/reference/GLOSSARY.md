@@ -102,12 +102,8 @@ Mục tiêu là giúp bạn đọc tài liệu, dùng giao diện dòng lệnh v
 
 - `mlf`: Quy trình `MLForecast + LightGBM`, thường là lựa chọn mặc định thực dụng.
 - `lstm`: Mô hình LSTM dùng PyTorch.
-- `bilstm`: Mô hình LSTM hai chiều dùng PyTorch.
-- `transformer`: Mô hình bộ biến đổi cho chuỗi thời gian.
-- `cnn_lstm`: Mô hình lai giữa CNN và LSTM.
 - `sgd`: Mốc nền rất nhẹ dựa trên `SGDClassifier`.
 - `stats`: Các mô hình thống kê cơ sở.
-- `neuralforecast`: Bộ máy thuộc hệ sinh thái NeuralForecast.
 
 ---
 

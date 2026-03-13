@@ -95,12 +95,8 @@
 - [x] Build the `mlfx.training` module
 - [x] Support the `mlf` backend
 - [x] Support the `lstm` backend
-- [x] Support the `bilstm` backend
-- [x] Support the `transformer` backend
-- [x] Support the `cnn_lstm` backend
 - [x] Support the `sgd` backend
 - [x] Support the `stats` backend
-- [x] Support the `neuralforecast` backend
 
 ### Training workflow
 
@@ -205,7 +201,6 @@
 
 ### High priority
 
-- [x] Expose `bilstm` through the CLI via `--backend bilstm`
 - [x] Add a unified benchmarking workflow (`mlfx benchmark`)
 - [x] Add end-to-end coverage for training and evaluation (`test_training_e2e.py`)
 - [x] Add summary metric export (`metrics_log.jsonl`)

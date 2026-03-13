@@ -3,7 +3,7 @@
 Covers:
   - ``create_sequences`` raises ``ValueError`` when dataset is too small
   - ``get_backend_runner`` raises ``ValueError`` for unknown backend key
-  - DL backends return ``{}`` when upstream data-loader returns ``None``
+    - LSTM backend returns ``{}`` when upstream data-loader returns ``None``
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ def test_get_backend_runner_unknown_mentions_backend_name() -> None:
 
 def test_get_backend_runner_known_backends() -> None:
     """All known backend keys must resolve without raising."""
-    known_backends = ["lstm", "bilstm", "transformer", "cnn_lstm", "sgd"]
+    known_backends = ["mlf", "lstm", "sgd", "stats"]
     for name in known_backends:
         runner = get_backend_runner(name)
         assert callable(runner), f"Backend '{name}' must return a callable"

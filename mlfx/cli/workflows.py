@@ -25,8 +25,8 @@ from .render import (
     print_resolved_train_summary,
 )
 from .resolve import (
+    resolve_benchmark_config,
     resolve_evaluate_command_config,
-    resolve_profile_section,
     resolve_train_command_config,
 )
 
@@ -81,7 +81,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
         cfg = TrainingConfig(
             symbol=train_cfg["symbol"],
             tf=train_cfg["tf"],
-            label_col=train_cfg["label"],
+            label=train_cfg["label"],
             backend=train_cfg["backend"],
             n_trials=train_cfg["n_trials"],
             n_splits=train_cfg["n_splits"],
@@ -136,7 +136,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
         eval_kw = dict(
             symbol=eval_cfg["symbol"],
             tf=eval_cfg["tf"],
-            label_col=eval_cfg["label"],
+            label=eval_cfg["label"],
             initial_capital=eval_cfg["capital"],
             risk_pct=eval_cfg["risk"],
             commission=eval_cfg["commission"],
@@ -228,7 +228,6 @@ def run_profile_command(args: argparse.Namespace) -> None:
 def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
     """Run multiple backends on the same dataset and print a comparison table."""
     from mlfx.config.paths import DEFAULT_PATHS
-    from mlfx.config.settings import load_config
 
     backends: list[str] = args.backends
     invalid = [backend for backend in backends if backend not in BACKEND_REGISTRY]
@@ -236,22 +235,16 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
         console.print(f"[red]Unknown backends: {invalid}. Available: {_ALL_BACKENDS}[/red]")
         return {}
 
-    app_cfg = load_config()
-    profile_data = resolve_profile_section(args.profile, "benchmark")
-
-    symbol = args.symbol if args.symbol is not None else profile_data.get("symbol", app_cfg.train.symbol)
-    tf = args.tf if args.tf is not None else profile_data.get("timeframe", app_cfg.train.timeframe)
-    label = args.label if args.label is not None else profile_data.get("label_col", app_cfg.train.label_col)
-    n_trials = args.n_trials if args.n_trials is not None else profile_data.get("n_trials", 5)
-    n_splits = args.n_splits if args.n_splits is not None else profile_data.get("n_splits", 3)
-    force = args.force if args.force is not None else profile_data.get("force", False)
-    train_start = (
-        args.train_start if args.train_start is not None else profile_data.get("train_start")
-    )
-    train_end = args.train_end if args.train_end is not None else profile_data.get("train_end")
-    backends = profile_data.get("backends", backends)
-    if isinstance(backends, str):
-        backends = [backends]
+    resolved = resolve_benchmark_config(args)
+    symbol = resolved["symbol"]
+    tf = resolved["tf"]
+    label = resolved["label"]
+    n_trials = resolved["n_trials"]
+    n_splits = resolved["n_splits"]
+    force = resolved["force"]
+    train_start = resolved["train_start"]
+    train_end = resolved["train_end"]
+    backends = resolved["backends"]
 
     print_resolved_benchmark_summary(
         profile=args.profile,
@@ -280,7 +273,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
             cfg = TrainingConfig(
                 symbol=symbol,
                 tf=tf,
-                label_col=label,
+                label=label,
                 backend=backend,
                 n_trials=n_trials,
                 n_splits=n_splits,

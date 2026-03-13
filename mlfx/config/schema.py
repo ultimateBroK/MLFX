@@ -28,20 +28,38 @@ class DownloadConfig(BaseModel):
     asset_class: Literal["fx", "crypto"] = "fx"
     start_year: int = Field(default=2015, ge=2000, le=2100)
     start_month: int = Field(default=1, ge=1, le=12)
+    end_year: int | None = Field(default=None, ge=2000, le=2100)
+    end_month: int | None = Field(default=None, ge=1, le=12)
     concurrency: int = Field(default=20, ge=1, le=100)
+    force: bool = True
+    skip_current_month: bool = False
 
 
 class PipelineConfig(BaseModel):
     """Configuration for the OHLCV resampling stage."""
 
     symbol: ValidSymbol = "XAUUSD"
-    timeframe: ValidTimeframe = "1H"
+    tf: list[ValidTimeframe] = Field(default_factory=lambda: ["1H"])
     pivot_type: Literal[
         "traditional", "fibonacci", "woodie", "camarilla", "demark"
     ] = "traditional"
     pivot_anchor: Literal["daily", "weekly", "monthly"] = "daily"
     atr_period: int = Field(default=14, ge=2, le=100)
     atr_mult: float = Field(default=0.5, gt=0)
+    force: bool = True
+    skip_resample: bool = False
+    skip_features: bool = False
+    skip_labels: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_tf_list(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+        tf = values.get("tf")
+        if isinstance(tf, str):
+            values = {**values, "tf": [tf]}
+        return values
 
 
 class FeatureConfig(BaseModel):
@@ -60,29 +78,31 @@ class TrainConfig(BaseModel):
     """Configuration for model-training runs."""
 
     symbol: ValidSymbol = "XAUUSD"
-    timeframe: ValidTimeframe = "1H"
-    label_col: str = Field(default="label_10", min_length=1)
-    backend: Literal[
-        "mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"
-    ] = "mlf"
+    tf: ValidTimeframe = "1H"
+    label: str = Field(default="label_10", min_length=1)
+    backend: Literal["mlf", "lstm", "sgd", "stats"] = "mlf"
     n_trials: int = Field(default=30, ge=1)
     n_splits: int = Field(default=5, ge=2)
     random_seed: int = Field(default=42, ge=0)
+    force: bool = False
+    train_start: str | None = None
+    train_end: str | None = None
 
 
 class BenchmarkConfig(BaseModel):
     """Configuration for multi-backend benchmark runs."""
 
     symbol: ValidSymbol = "XAUUSD"
-    timeframe: ValidTimeframe = "1H"
-    label_col: str = Field(default="label_10", min_length=1)
+    tf: ValidTimeframe = "1H"
+    label: str = Field(default="label_10", min_length=1)
     backends: list[
-        Literal["mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"]
+        Literal["mlf", "lstm", "sgd", "stats"]
     ] = Field(default_factory=lambda: ["mlf", "sgd", "stats"])
     n_trials: int = Field(default=5, ge=1)
     n_splits: int = Field(default=3, ge=2)
     train_start: str | None = None
     train_end: str | None = None
+    force: bool = False
 
     @model_validator(mode="after")
     def validate_backends(self) -> "BenchmarkConfig":
@@ -96,46 +116,48 @@ class ProfileTrainConfig(BaseModel):
     """Optional train overrides for a named workflow profile."""
 
     symbol: ValidSymbol | None = None
-    timeframe: ValidTimeframe | None = None
-    label_col: str | None = Field(default=None, min_length=1)
-    backend: Literal[
-        "mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"
-    ] | None = None
+    tf: ValidTimeframe | None = None
+    label: str | None = Field(default=None, min_length=1)
+    backend: Literal["mlf", "lstm", "sgd", "stats"] | None = None
     n_trials: int | None = Field(default=None, ge=1)
     n_splits: int | None = Field(default=None, ge=2)
     random_seed: int | None = Field(default=None, ge=0)
     train_start: str | None = None
     train_end: str | None = None
+    force: bool | None = None
 
 
 class ProfileEvaluateConfig(BaseModel):
     """Optional evaluation overrides for a named workflow profile."""
 
     symbol: ValidSymbol | None = None
-    timeframe: ValidTimeframe | None = None
-    label_col: str | None = Field(default=None, min_length=1)
+    tf: ValidTimeframe | None = None
+    label: str | None = Field(default=None, min_length=1)
     tp_r: float | None = Field(default=None, gt=0)
     sl_r: float | None = Field(default=None, gt=0)
     initial_capital: float | None = Field(default=None, gt=0)
     risk_pct: float | None = Field(default=None, gt=0)
     commission: float | None = Field(default=None, ge=0)
+    slippage: float | None = Field(default=None, ge=0)
     eval_start: str | None = None
     eval_end: str | None = None
+    use_labels: bool | None = None
 
 
 class ProfileBenchmarkConfig(BaseModel):
     """Optional benchmark overrides for a named workflow profile."""
 
     symbol: ValidSymbol | None = None
-    timeframe: ValidTimeframe | None = None
-    label_col: str | None = Field(default=None, min_length=1)
+    tf: ValidTimeframe | None = None
+    label: str | None = Field(default=None, min_length=1)
     backends: list[
-        Literal["mlf", "lstm", "bilstm", "transformer", "cnn_lstm", "sgd", "stats", "neuralforecast"]
+        Literal["mlf", "lstm", "sgd", "stats"]
     ] | None = None
     n_trials: int | None = Field(default=None, ge=1)
     n_splits: int | None = Field(default=None, ge=2)
     train_start: str | None = None
     train_end: str | None = None
+    force: bool | None = None
 
     @model_validator(mode="after")
     def validate_backends(self) -> "ProfileBenchmarkConfig":
@@ -157,13 +179,50 @@ class BacktestConfig(BaseModel):
     """Configuration for the backtesting stage."""
 
     symbol: ValidSymbol = "XAUUSD"
-    timeframe: ValidTimeframe = "1H"
-    label_col: str = Field(default="label_10", min_length=1)
+    tf: ValidTimeframe = "1H"
+    label: str = Field(default="label_10", min_length=1)
     tp_r: float = Field(default=1.5, gt=0)
     sl_r: float = Field(default=1.0, gt=0)
     initial_capital: float = Field(default=10_000.0, gt=0)
     risk_pct: float = Field(default=1.0, gt=0)
     commission: float = Field(default=0.1, ge=0)
+    slippage: float = Field(default=0.0, ge=0)
+    eval_start: str | None = None
+    eval_end: str | None = None
+    use_labels: bool = False
+
+
+class QaConfig(BaseModel):
+    """Configuration for the raw-tick QA audit stage."""
+
+    symbol: ValidSymbol = "XAUUSD"
+    asset_class: Literal["fx", "crypto"] = "fx"
+
+
+class ServeConfig(BaseModel):
+    """Configuration for the FastAPI serving stage."""
+
+    host: str = "0.0.0.0"
+    port: int = Field(default=8000, ge=1, le=65535)
+    reload: bool = False
+
+
+class BatchPredictConfig(BaseModel):
+    """Configuration for batch inference."""
+
+    symbol: ValidSymbol = "XAUUSD"
+    tf: ValidTimeframe = "1H"
+    label: str = Field(default="label_10", min_length=1)
+
+
+class DriftConfig(BaseModel):
+    """Configuration for feature-drift detection."""
+
+    symbol: ValidSymbol = "XAUUSD"
+    tf: ValidTimeframe = "1H"
+    threshold_ks: float = Field(default=0.1, gt=0)
+    threshold_psi: float = Field(default=0.2, gt=0)
+    min_samples: int = Field(default=30, ge=1)
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +239,10 @@ class AppConfig(BaseModel):
     train: TrainConfig = Field(default_factory=TrainConfig)
     benchmark: BenchmarkConfig = Field(default_factory=BenchmarkConfig)
     backtest: BacktestConfig = Field(default_factory=BacktestConfig)
+    qa: QaConfig = Field(default_factory=QaConfig)
+    serve: ServeConfig = Field(default_factory=ServeConfig)
+    batch_predict: BatchPredictConfig = Field(default_factory=BatchPredictConfig)
+    drift: DriftConfig = Field(default_factory=DriftConfig)
     profiles: dict[str, WorkflowProfileConfig] = Field(default_factory=dict)
 
 

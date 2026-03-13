@@ -112,8 +112,8 @@ class TestWorkflowProfiles:
 
         cfg = ProfileEvaluateConfig(
             symbol="XAUUSD",
-            timeframe="1H",
-            label_col="label_10",
+            tf="1H",
+            label="label_10",
             tp_r=1.5,
             sl_r=1.0,
             initial_capital=10_000.0,
@@ -135,8 +135,8 @@ class TestWorkflowProfiles:
                     "research": {
                         "train": {
                             "symbol": "XAUUSD",
-                            "timeframe": "1H",
-                            "label_col": "label_10",
+                            "tf": "1H",
+                            "label": "label_10",
                             "backend": "mlf",
                             "train_start": "20240101",
                             "train_end": "20241231",
@@ -145,8 +145,8 @@ class TestWorkflowProfiles:
                         },
                         "evaluate": {
                             "symbol": "XAUUSD",
-                            "timeframe": "1H",
-                            "label_col": "label_10",
+                            "tf": "1H",
+                            "label": "label_10",
                             "eval_start": "20250101",
                             "eval_end": "20250331",
                             "tp_r": 1.5,
@@ -157,8 +157,8 @@ class TestWorkflowProfiles:
                         },
                         "benchmark": {
                             "symbol": "XAUUSD",
-                            "timeframe": "1H",
-                            "label_col": "label_10",
+                            "tf": "1H",
+                            "label": "label_10",
                             "backends": ["mlf", "sgd", "stats"],
                             "train_start": "20240101",
                             "train_end": "20241231",
@@ -183,11 +183,10 @@ class TestWorkflowProfiles:
 
 class TestAppConfig:
     def test_load_config_returns_app_config(self, tmp_path: Path):
-        from mlfx.config.schema import AppConfig
         from mlfx.config.settings import load_config
 
-        config = load_config(tmp_path / "nonexistent.toml")
-        assert isinstance(config, AppConfig)
+        with pytest.raises(FileNotFoundError, match="config\\.toml not found"):
+            load_config(tmp_path / "nonexistent.toml")
 
     def test_load_config_reflects_toml_overrides(self, tmp_path: Path):
         from mlfx.config.schema import AppConfig
@@ -210,8 +209,8 @@ class TestAppConfig:
             """
 [profiles.research.train]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backend = "mlf"
 train_start = "20240101"
 train_end = "20241231"
@@ -220,8 +219,8 @@ n_splits = 3
 
 [profiles.research.evaluate]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 eval_start = "20250101"
 eval_end = "20250331"
 tp_r = 1.5
@@ -232,8 +231,8 @@ commission = 0.1
 
 [profiles.research.benchmark]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backends = ["mlf", "sgd", "stats"]
 train_start = "20240101"
 train_end = "20241231"
@@ -266,8 +265,8 @@ n_splits = 3
 # ---------------------------------------------------------------------------
 
 class TestSettingsHelpers:
-    def test_load_profiles_returns_raw_profile_mapping(self, tmp_path: Path):
-        from mlfx.config.settings import load_profiles
+    def test_load_config_includes_profiles_mapping(self, tmp_path: Path):
+        from mlfx.config.settings import load_config
 
         cfg_file = tmp_path / "config.toml"
         cfg_file.write_text(
@@ -280,13 +279,16 @@ backends = ["mlf", "sgd"]
 """
         )
 
-        profiles = load_profiles(cfg_file)
-        assert "research" in profiles
-        assert profiles["research"]["train"]["backend"] == "mlf"
-        assert profiles["research"]["benchmark"]["backends"] == ["mlf", "sgd"]
+        cfg = load_config(cfg_file)
+        assert "research" in cfg.profiles
+        assert cfg.profiles["research"].train is not None
+        assert cfg.profiles["research"].train.backend == "mlf"
+        assert cfg.profiles["research"].benchmark is not None
+        assert cfg.profiles["research"].benchmark.backends == ["mlf", "sgd"]
 
-    def test_get_profile_returns_single_profile(self, tmp_path: Path):
-        from mlfx.config.settings import get_profile
+    def test_resolve_profile_section_returns_single_section(self, tmp_path: Path):
+        from mlfx.cli.resolve import resolve_profile_section
+        from mlfx.config.settings import load_config
 
         cfg_file = tmp_path / "config.toml"
         cfg_file.write_text(
@@ -299,11 +301,13 @@ eval_start = "20250101"
 """
         )
 
-        profile = get_profile(cfg_file, "research")
-        assert profile["train"]["backend"] == "mlf"
+        cfg = load_config(cfg_file)
+        section = resolve_profile_section(cfg, "research", "train")
+        assert section["backend"] == "mlf"
 
-    def test_get_profile_raises_for_unknown_profile(self, tmp_path: Path):
-        from mlfx.config.settings import get_profile
+    def test_resolve_profile_section_raises_for_unknown_profile(self, tmp_path: Path):
+        from mlfx.cli.resolve import resolve_profile_section
+        from mlfx.config.settings import load_config
 
         cfg_file = tmp_path / "config.toml"
         cfg_file.write_text(
@@ -313,22 +317,27 @@ backend = "mlf"
 """
         )
 
-        with pytest.raises(KeyError, match="Unknown profile 'missing'"):
-            get_profile(cfg_file, "missing")
+        cfg = load_config(cfg_file)
+        with pytest.raises(ValueError, match="Unknown profile"):
+            resolve_profile_section(cfg, "missing", "train")
 
-    def test_resolve_profile_section_returns_dict_and_empty_mapping(self):
-        from mlfx.config.settings import resolve_profile_section
+    def test_resolve_profile_section_handles_missing_and_none(self, tmp_path: Path):
+        from mlfx.cli.resolve import resolve_profile_section
+        from mlfx.config.settings import load_config
 
-        profile = {
-            "train": {"backend": "mlf", "n_trials": 5},
-            "evaluate": {"eval_start": "20250101"},
-        }
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+[profiles.research.train]
+backend = "mlf"
+"""
+        )
+        cfg = load_config(cfg_file)
 
-        train_section = resolve_profile_section(profile, "train")
-        missing_section = resolve_profile_section(profile, "benchmark")
+        assert resolve_profile_section(cfg, None, "train") == {}
 
-        assert train_section == {"backend": "mlf", "n_trials": 5}
-        assert missing_section == {}
+        with pytest.raises(ValueError, match="does not define a 'benchmark' section"):
+            resolve_profile_section(cfg, "research", "benchmark")
 
 
 # ---------------------------------------------------------------------------

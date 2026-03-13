@@ -35,29 +35,8 @@ def _rebuild_lstm(payload: dict[str, Any]) -> Any:
     return _rebuild_torch_model(FXLstm, payload)
 
 
-def _rebuild_bilstm(payload: dict[str, Any]) -> Any:
-    from mlfx.training.backends.bilstm import FXBiLstm
-
-    return _rebuild_torch_model(FXBiLstm, payload)
-
-
-def _rebuild_cnn_lstm(payload: dict[str, Any]) -> Any:
-    from mlfx.training.backends.cnn_lstm import FXCnnLstm
-
-    return _rebuild_torch_model(FXCnnLstm, payload)
-
-
-def _rebuild_transformer(payload: dict[str, Any]) -> Any:
-    from mlfx.training.backends.transformer import FXTransformer
-
-    return _rebuild_torch_model(FXTransformer, payload, extra_from_metrics=["seq_len"])
-
-
 _MODEL_REBUILDERS: dict[str, Any] = {
     "LSTM": _rebuild_lstm,
-    "BiLSTM": _rebuild_bilstm,
-    "CNN_LSTM": _rebuild_cnn_lstm,
-    "Transformer": _rebuild_transformer,
 }
 
 

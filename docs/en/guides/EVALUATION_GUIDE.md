@@ -151,7 +151,7 @@ You can then compare:
 The runner builds `out_name` using:
 
 ```text
-{label_col}_R{int(tp_r * 10)}
+{label}_R{int(tp_r * 10)}
 ```
 
 Then the reporting layer builds the full prefix as:

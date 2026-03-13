@@ -59,7 +59,7 @@ concurrency = 20
 | Key | Type | Default | Corresponding CLI flag | Description |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Instrument symbol to process |
-| `timeframe` | string | `"1H"` | `--tf` | Target timeframe |
+| `tf` | string | `"1H"` | `--tf` | Target timeframe |
 | `pivot_type` | string | `"traditional"` | `--pivot` | Pivot-point calculation method |
 | `pivot_anchor` | string | `"daily"` | `--anchor` | Pivot anchor period |
 | `atr_period` | integer | `14` | `--atr-period` | ATR calculation window |
@@ -96,7 +96,7 @@ concurrency = 20
 ```/dev/null/config-reference-pipeline.toml#L1-6
 [pipeline]
 symbol = "XAUUSD"
-timeframe = "1H"
+tf = "1H"
 pivot_type = "traditional"
 pivot_anchor = "daily"
 atr_mult = 0.5
@@ -109,8 +109,8 @@ atr_mult = 0.5
 | Key | Type | Default | Corresponding CLI flag | Description |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Instrument symbol used for training |
-| `timeframe` | string | `"1H"` | `--tf` | Training timeframe |
-| `label_col` | string | `"label_10"` | `--label` | Target label column |
+| `tf` | string | `"1H"` | `--tf` | Training timeframe |
+| `label` | string | `"label_10"` | `--label` | Target label column |
 | `backend` | string | `"mlf"` | `--backend` | Training backend |
 | `n_trials` | integer | `30` | `--n-trials` | Number of hyperparameter trials, mainly for `mlf` |
 | `n_splits` | integer | `5` | `--n-splits` | Number of cross-validation folds |
@@ -119,12 +119,8 @@ atr_mult = 0.5
 
 - `mlf`
 - `lstm`
-- `bilstm`
-- `transformer`
-- `cnn_lstm`
 - `sgd`
 - `stats`
-- `neuralforecast`
 
 ### Supported labels
 
@@ -137,8 +133,8 @@ atr_mult = 0.5
 ```/dev/null/config-reference-train.toml#L1-7
 [train]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backend = "mlf"
 n_trials = 15
 n_splits = 5
@@ -178,8 +174,8 @@ avg_range_n = 5
 | Key | Type | Default | Corresponding CLI flag | Description |
 |---|---|---|---|---|
 | `symbol` | string | `"XAUUSD"` | `--symbol` | Instrument symbol to evaluate |
-| `timeframe` | string | `"1H"` | `--tf` | Backtest timeframe |
-| `label_col` | string | `"label_10"` | `--label` | Signal column used for backtesting |
+| `tf` | string | `"1H"` | `--tf` | Backtest timeframe |
+| `label` | string | `"label_10"` | `--label` | Signal column used for backtesting |
 | `tp_r` | float | `1.5` | `--tp` | Take-profit in `R` |
 | `sl_r` | float | `1.0` | `--sl` | Stop-loss in `R` |
 | `initial_capital` | float | `10000.0` | `--capital` | Initial capital |
@@ -192,8 +188,8 @@ avg_range_n = 5
 ```/dev/null/config-reference-backtest.toml#L1-9
 [backtest]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 tp_r = 1.5
 sl_r = 1.0
 initial_capital = 10000.0
@@ -220,7 +216,7 @@ concurrency = 20
 
 [pipeline]
 symbol       = "XAUUSD"
-timeframe    = "1H"
+tf    = "1H"
 pivot_type   = "traditional"
 pivot_anchor = "daily"
 atr_period   = 14
@@ -228,8 +224,8 @@ atr_mult     = 0.5
 
 [train]
 symbol     = "XAUUSD"
-timeframe  = "1H"
-label_col  = "label_10"
+tf  = "1H"
+label  = "label_10"
 backend    = "mlf"
 n_trials   = 15
 n_splits   = 5
@@ -245,8 +241,8 @@ avg_range_n = 5
 
 [backtest]
 symbol          = "XAUUSD"
-timeframe       = "1H"
-label_col       = "label_10"
+tf       = "1H"
+label       = "label_10"
 tp_r            = 1.5
 sl_r            = 1.0
 initial_capital = 10000.0
@@ -382,7 +378,7 @@ Priority order from highest to lowest:
 
 Example:
 
-- In `config.toml`, `timeframe = "1H"`
+- In `config.toml`, `tf = "1H"`
 - But you run:
   - `pixi run mlfx pipeline --symbol XAUUSD --tf 4H`
 
@@ -412,8 +408,8 @@ Override with CLI flags when:
 
 - Forgetting that CLI values override file-based values
 - Editing `config.toml` but not actually running the command you think you are testing
-- Using the wrong `label_col`
-- Using the wrong `timeframe`
+- Using the wrong `label`
+- Using the wrong `tf`
 - Picking a backend that does not match the goal of the experiment
 
 ---
@@ -423,8 +419,8 @@ Override with CLI flags when:
 If you are just getting started, this is a safe and easy set of values:
 
 - `symbol = "XAUUSD"`
-- `timeframe = "1H"`
-- `label_col = "label_10"`
+- `tf = "1H"`
+- `label = "label_10"`
 - `backend = "mlf"`
 - `pivot_type = "traditional"`
 - `pivot_anchor = "daily"`
@@ -451,11 +447,11 @@ asset_class = "fx"
 start_year = 2024
 
 [pipeline]
-timeframe = "1H"
+tf = "1H"
 
 [train]
 backend = "mlf"
-label_col = "label_10"
+label = "label_10"
 ```
 
 ### 8.2. Multi-model comparison
@@ -463,8 +459,8 @@ label_col = "label_10"
 ```/dev/null/config-reference-benchmark.toml#L1-8
 [train]
 symbol = "XAUUSD"
-timeframe = "1H"
-label_col = "label_10"
+tf = "1H"
+label = "label_10"
 backend = "mlf"
 n_trials = 15
 n_splits = 5
@@ -475,7 +471,7 @@ n_splits = 5
 ```/dev/null/config-reference-higher-tf.toml#L1-4
 [pipeline]
 symbol = "XAUUSD"
-timeframe = "4H"
+tf = "4H"
 ```
 
 ---

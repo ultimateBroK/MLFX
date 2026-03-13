@@ -95,12 +95,8 @@
 - [x] Xây dựng mô-đun `mlfx.training`
 - [x] Hỗ trợ bộ máy `mlf`
 - [x] Hỗ trợ bộ máy `lstm`
-- [x] Hỗ trợ bộ máy `bilstm`
-- [x] Hỗ trợ bộ máy `transformer`
-- [x] Hỗ trợ bộ máy `cnn_lstm`
 - [x] Hỗ trợ bộ máy `sgd`
 - [x] Hỗ trợ bộ máy `stats`
-- [x] Hỗ trợ bộ máy `neuralforecast`
 
 ### Quy trình huấn luyện
 
@@ -204,7 +200,6 @@
 
 ### Ưu tiên cao
 
-- [x] Mở `bilstm` ra CLI thông qua `--backend bilstm`
 - [x] Bổ sung quy trình benchmark thống nhất (`mlfx benchmark`)
 - [x] Thêm độ bao phủ end-to-end cho huấn luyện và đánh giá (`test_training_e2e.py`)
 - [x] Bổ sung xuất chỉ số tổng hợp (`metrics_log.jsonl`)

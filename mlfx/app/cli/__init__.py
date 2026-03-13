@@ -1,4 +1,7 @@
-"""CLI interface for MLFX."""
+"""Legacy compatibility package for old CLI import paths.
+
+Prefer using mlfx.cli instead.
+"""
 
 from __future__ import annotations
 

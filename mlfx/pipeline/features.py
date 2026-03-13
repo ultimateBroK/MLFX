@@ -72,78 +72,6 @@ def add_ema(df: pl.DataFrame, periods: list[int] | None = None) -> pl.DataFrame:
     return df
 
 
-def add_order_blocks(df: pl.DataFrame, swing_threshold: float = 1.5) -> pl.DataFrame:
-    """Detect simplified bullish/bearish order-block zones."""
-    body = (pl.col("close") - pl.col("open")).abs()
-    bull = pl.col("close") > pl.col("open")
-    bear = pl.col("close") < pl.col("open")
-    avg_body = body.rolling_mean(window_size=5, min_samples=1)
-    big_bull = bull & (body > avg_body * swing_threshold)
-    big_bear = bear & (body > avg_body * swing_threshold)
-
-    df = df.with_columns(
-        (big_bull.shift(-1).fill_null(False) & bear).alias("ob_bullish"),
-        (big_bear.shift(-1).fill_null(False) & bull).alias("ob_bearish"),
-    )
-
-    bull_high = pl.when(pl.col("ob_bullish")).then(pl.col("high")).otherwise(None).forward_fill()
-    bull_low = pl.when(pl.col("ob_bullish")).then(pl.col("low")).otherwise(None).forward_fill()
-    bear_high = pl.when(pl.col("ob_bearish")).then(pl.col("high")).otherwise(None).forward_fill()
-    bear_low = pl.when(pl.col("ob_bearish")).then(pl.col("low")).otherwise(None).forward_fill()
-
-    df = df.with_columns(
-        bull_high.alias("ob_bull_high"),
-        bull_low.alias("ob_bull_low"),
-        bear_high.alias("ob_bear_high"),
-        bear_low.alias("ob_bear_low"),
-    )
-
-    close = pl.col("close")
-    return df.with_columns(
-        ((close >= pl.col("ob_bull_low")) & (close <= pl.col("ob_bull_high"))).alias(
-            "price_in_bull_ob"
-        ),
-        ((close >= pl.col("ob_bear_low")) & (close <= pl.col("ob_bear_high"))).alias(
-            "price_in_bear_ob"
-        ),
-    )
-
-
-def add_fair_value_gaps(df: pl.DataFrame) -> pl.DataFrame:
-    """Detect simple bullish/bearish fair-value gaps."""
-    high_2 = pl.col("high").shift(2)
-    low_2 = pl.col("low").shift(2)
-    low_0 = pl.col("low")
-    high_0 = pl.col("high")
-
-    df = df.with_columns(
-        (low_0 > high_2).alias("fvg_bullish"),
-        (high_0 < low_2).alias("fvg_bearish"),
-    )
-
-    bull_top = pl.when(pl.col("fvg_bullish")).then(low_0).otherwise(None).forward_fill()
-    bull_bot = pl.when(pl.col("fvg_bullish")).then(high_2).otherwise(None).forward_fill()
-    bear_top = pl.when(pl.col("fvg_bearish")).then(low_2).otherwise(None).forward_fill()
-    bear_bot = pl.when(pl.col("fvg_bearish")).then(high_0).otherwise(None).forward_fill()
-
-    df = df.with_columns(
-        bull_top.alias("fvg_bull_top"),
-        bull_bot.alias("fvg_bull_bot"),
-        bear_top.alias("fvg_bear_top"),
-        bear_bot.alias("fvg_bear_bot"),
-    )
-
-    close = pl.col("close")
-    return df.with_columns(
-        ((close >= pl.col("fvg_bull_bot")) & (close <= pl.col("fvg_bull_top"))).alias(
-            "price_in_bull_fvg"
-        ),
-        ((close >= pl.col("fvg_bear_bot")) & (close <= pl.col("fvg_bear_top"))).alias(
-            "price_in_bear_fvg"
-        ),
-    )
-
-
 def add_normalized_distances(df: pl.DataFrame, atr_col: str = "atr_14") -> pl.DataFrame:
     """Normalize price-distance columns by ATR."""
     if atr_col not in df.columns:
@@ -191,8 +119,6 @@ def build_feature_pipeline(
     ohlcv = add_macd(ohlcv, fast=macd_fast, slow=macd_slow, signal=macd_signal)
     ohlcv = add_atr(ohlcv, period=atr_period)
     ohlcv = add_ema(ohlcv, periods=ema_periods)
-    ohlcv = add_order_blocks(ohlcv)
-    ohlcv = add_fair_value_gaps(ohlcv)
     return add_normalized_distances(ohlcv, atr_col=f"atr_{atr_period}")
 
 

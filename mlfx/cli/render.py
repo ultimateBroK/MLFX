@@ -30,7 +30,7 @@ def _fmt_symbol_tf(*sections: Mapping[str, Any]) -> str:
         if not section:
             continue
         symbol = str(section.get("symbol") or symbol)
-        timeframe = str(section.get("timeframe") or timeframe)
+        timeframe = str(section.get("tf") or timeframe)
     return f"{symbol}/{timeframe}" if symbol != "-" or timeframe != "-" else "-"
 
 
@@ -127,7 +127,7 @@ def print_profile_detail(name: str, profile: Mapping[str, Any]) -> None:
 
     train_details = (
         f"symbol/tf={_fmt_symbol_tf(train_cfg)} | "
-        f"label={train_cfg.get('label_col', '-')} | "
+        f"label={train_cfg.get('label', '-')} | "
         f"backend={train_cfg.get('backend', '-')} | "
         f"window={_fmt_range(train_cfg.get('train_start'), train_cfg.get('train_end'))} | "
         f"trials={train_cfg.get('n_trials', '-')} | "
@@ -137,7 +137,7 @@ def print_profile_detail(name: str, profile: Mapping[str, Any]) -> None:
     )
     eval_details = (
         f"symbol/tf={_fmt_symbol_tf(eval_cfg)} | "
-        f"label={eval_cfg.get('label_col', '-')} | "
+        f"label={eval_cfg.get('label', '-')} | "
         f"window={_fmt_range(eval_cfg.get('eval_start'), eval_cfg.get('eval_end'))} | "
         f"tp/sl={eval_cfg.get('tp_r', '-')}/{eval_cfg.get('sl_r', '-')} | "
         f"capital={eval_cfg.get('initial_capital', '-')} | "
@@ -149,7 +149,7 @@ def print_profile_detail(name: str, profile: Mapping[str, Any]) -> None:
     )
     benchmark_details = (
         f"symbol/tf={_fmt_symbol_tf(benchmark_cfg)} | "
-        f"label={benchmark_cfg.get('label_col', '-')} | "
+        f"label={benchmark_cfg.get('label', '-')} | "
         f"backends={_fmt_backends({}, benchmark_cfg)} | "
         f"window={_fmt_range(benchmark_cfg.get('train_start'), benchmark_cfg.get('train_end'))} | "
         f"trials={benchmark_cfg.get('n_trials', '-')} | "
