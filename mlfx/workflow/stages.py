@@ -6,13 +6,12 @@ from datetime import UTC, datetime
 from time import perf_counter
 from typing import Any
 
+from mlfx.config.schema import FeatureConfig, PipelineConfig
 from mlfx.evaluation.runner import get_baseline_metrics, run_full_eval, run_model_backtest
 from mlfx.ingestion.download import run_download_job
 from mlfx.monitoring.drift import DriftDetector, save_reference
-from mlfx.pipeline.features import run_feature_pipeline
-from mlfx.pipeline.labels import run_label_pipeline
 from mlfx.pipeline.qa import run_quality_audit
-from mlfx.pipeline.resample import resample_symbol_tf
+from mlfx.pipeline.runner import run_pipeline
 from mlfx.serving.batch import run_batch_inference
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.runner import run_training
@@ -170,51 +169,20 @@ def run_pipeline_stage(
         "skip_labels": skip_labels,
     }
     try:
-        per_tf: dict[str, dict[str, Any]] = {}
-        for timeframe in tf:
-            stage_stats: dict[str, Any] = {}
-            if skip_resample:
-                stage_stats["resample"] = {"processed": 0, "skipped": 1, "total_bars": 0}
-            else:
-                stage_stats["resample"] = resample_symbol_tf(
-                    symbol=symbol,
-                    tf=timeframe,
-                    force=force,
-                )
-
-            if skip_features:
-                stage_stats["features"] = {
-                    "processed": 0,
-                    "skipped": 1,
-                    "total_bars": 0,
-                    "total_features": 0,
-                }
-            else:
-                stage_stats["features"] = run_feature_pipeline(
-                    symbol=symbol,
-                    tf=timeframe,
-                    pivot_type=pivot_type,
-                    pivot_anchor=pivot_anchor,
-                    force=force,
-                )
-
-            if skip_labels:
-                stage_stats["labels"] = {
-                    "processed": 0,
-                    "skipped": 1,
-                    "total_bars": 0,
-                    "label_cols": ["label_5", "label_10", "label_20"],
-                }
-            else:
-                stage_stats["labels"] = run_label_pipeline(
-                    symbol=symbol,
-                    tf=timeframe,
-                    atr_period=atr_period,
-                    atr_mult=atr_mult,
-                    force=force,
-                )
-
-            per_tf[timeframe] = stage_stats
+        per_tf = run_pipeline(
+            symbol=symbol,
+            timeframes=tf,
+            force=force,
+            skip_resample=skip_resample,
+            skip_features=skip_features,
+            skip_labels=skip_labels,
+            feature_cfg=FeatureConfig(atr_period=atr_period),
+            pipeline_cfg=PipelineConfig(
+                pivot_type=pivot_type,
+                pivot_anchor=pivot_anchor,
+                atr_mult=atr_mult,
+            ),
+        )
 
         return _finish_stage(
             stage="pipeline",

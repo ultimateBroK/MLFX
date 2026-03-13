@@ -220,6 +220,7 @@ class DriftConfig(BaseModel):
 
     symbol: ValidSymbol = "XAUUSD"
     tf: ValidTimeframe = "1H"
+    label: str = Field(default="label_10", min_length=1)
     threshold_ks: float = Field(default=0.1, gt=0)
     threshold_psi: float = Field(default=0.2, gt=0)
     min_samples: int = Field(default=30, ge=1)

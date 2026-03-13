@@ -14,6 +14,7 @@ from mlfx.evaluation.runner import (
     run_full_eval,
     run_model_backtest,
 )
+from mlfx.workflow.results import StageResult
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.registry import BACKEND_REGISTRY
 from mlfx.training.runner import run_training
@@ -205,10 +206,10 @@ def run_profile_command(args: argparse.Namespace) -> None:
         console.print("[yellow]Step:[/] benchmark")
         benchmark_args = argparse.Namespace(
             profile=args.profile,
-            symbol="XAUUSD",
-            tf="1H",
-            label="label_10",
-            backends=["mlf", "sgd", "stats"],
+            symbol=None,
+            tf=None,
+            label=None,
+            backends=None,
             n_trials=None,
             n_splits=None,
             train_start=None,
@@ -365,3 +366,42 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
         "results": results,
         "report_path": str(report_path),
     }
+
+
+def run_benchmark_stage(args: argparse.Namespace) -> StageResult:
+    """Run benchmark and return a canonical StageResult payload."""
+    try:
+        result = run_benchmark(args)
+    except Exception as exc:  # noqa: BLE001
+        return StageResult(
+            stage="benchmark",
+            status="error",
+            params=vars(args),
+            error=str(exc),
+        )
+
+    benchmark_ok = bool(result)
+    benchmark_symbol: str | None = None
+    benchmark_tf: str | None = None
+    benchmark_label: str | None = None
+    if isinstance(result, dict):
+        symbol_value = result.get("symbol")
+        tf_value = result.get("tf")
+        label_value = result.get("label")
+        if isinstance(symbol_value, str):
+            benchmark_symbol = symbol_value
+        if isinstance(tf_value, str):
+            benchmark_tf = tf_value
+        if isinstance(label_value, str):
+            benchmark_label = label_value
+
+    return StageResult(
+        stage="benchmark",
+        status="ok" if benchmark_ok else "error",
+        metrics=result if isinstance(result, dict) else {},
+        params=vars(args),
+        symbol=benchmark_symbol,
+        tf=benchmark_tf,
+        label=benchmark_label,
+        error=None if benchmark_ok else "Benchmark run returned no results",
+    )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 from typing import Any
@@ -29,10 +30,16 @@ from .render import (
     print_resolved_train_summary,
 )
 from .resolve import (
+    resolve_batch_config,
+    resolve_download_config,
+    resolve_drift_config,
     resolve_evaluate_config,
+    resolve_pipeline_config,
+    resolve_qa_config,
+    resolve_serve_config,
     resolve_train_config,
 )
-from .workflows import run_benchmark, run_profile_command
+from .workflows import run_benchmark, run_benchmark_stage, run_profile_command
 
 _resolve_profile_section = None
 
@@ -85,7 +92,8 @@ def build_parser() -> argparse.ArgumentParser:
         "  mlfx evaluate --profile research\n"
         "  mlfx profiles\n"
         "  mlfx run-profile --profile research\n"
-        "  mlfx run-profile --profile research --skip-benchmark\n",
+        "  mlfx run-profile --profile research --skip-benchmark\n"
+        "  mlfx run-all --profile research\n",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
@@ -95,28 +103,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Download raw tick data from Dukascopy",
         description="Download historical tick data for a symbol.",
     )
-    download.add_argument("--symbol", default="XAUUSD", help="Symbol to download (default: XAUUSD)")
+    download.add_argument("--symbol", default=None, help="Symbol to download (default: config.toml)")
     download.add_argument(
         "--asset-class",
         choices=["fx", "crypto"],
-        default="fx",
-        help="Asset class (default: fx)",
+        default=None,
+        help="Asset class (default: config.toml)",
     )
-    download.add_argument("--start-year", type=int, default=2015, help="Start year (default: 2015)")
-    download.add_argument("--start-month", type=int, default=1, help="Start month 1-12 (default: 1)")
+    download.add_argument("--start-year", type=int, default=None, help="Start year (default: config.toml)")
+    download.add_argument("--start-month", type=int, default=None, help="Start month 1-12 (default: config.toml)")
     download.add_argument("--end-year", type=int, default=None, help="End year (default: current year)")
     download.add_argument("--end-month", type=int, default=None, help="End month (default: current month)")
-    download.add_argument("--concurrency", type=int, default=20, help="Parallel downloads (default: 20)")
+    download.add_argument("--concurrency", type=int, default=None, help="Parallel downloads (default: config.toml)")
     download.add_argument(
         "--force",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Force re-verify existing months",
+        default=None,
+        help="Force re-verify existing months (default: config.toml)",
     )
     download.add_argument(
         "--skip-current-month",
-        action="store_true",
-        help="Skip checking/repairing current month",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Skip checking/repairing current month (default: config.toml)",
     )
 
     pipeline = subparsers.add_parser(
@@ -124,61 +133,72 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run ETL pipeline: resample → features → labels",
         description="Execute the full data pipeline for one or more timeframes.",
     )
-    pipeline.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
+    pipeline.add_argument("--symbol", default=None, help="Symbol (default: config.toml)")
     pipeline.add_argument(
         "--tf",
         nargs="+",
-        default=["1H"],
+        default=None,
         metavar="TF",
-        help="Timeframe(s) to process: 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D (default: 1H)",
+        help="Timeframe(s) to process: 1m, 5m, 15m, 30m, 1H, 2H, 4H, 1D (default: config.toml)",
     )
     pipeline.add_argument(
         "--pivot",
-        default="traditional",
-        help="Pivot type: traditional, fibonacci, woodie, classic, demark, camarilla (default: traditional)",
+        default=None,
+        help="Pivot type: traditional, fibonacci, woodie, classic, demark, camarilla (default: config.toml)",
     )
     pipeline.add_argument(
         "--anchor",
-        default="daily",
-        help="Pivot anchor: daily, weekly, monthly (default: daily)",
+        default=None,
+        help="Pivot anchor: daily, weekly, monthly (default: config.toml)",
     )
     pipeline.add_argument(
         "--atr-period",
         type=int,
-        default=14,
-        help="ATR period for label generation (default: 14)",
+        default=None,
+        help="ATR period for label generation (default: config.toml)",
     )
     pipeline.add_argument(
         "--atr-mult",
         type=float,
-        default=0.5,
-        help="ATR multiplier for label thresholds (default: 0.5)",
+        default=None,
+        help="ATR multiplier for label thresholds (default: config.toml)",
     )
     pipeline.add_argument(
         "--force",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Overwrite existing files",
+        default=None,
+        help="Overwrite existing files (default: config.toml)",
     )
     pipeline.add_argument(
         "--skip-resample",
-        action="store_true",
-        help="Skip tick → OHLCV resampling",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Skip tick → OHLCV resampling (default: config.toml)",
     )
-    pipeline.add_argument("--skip-features", action="store_true", help="Skip feature engineering")
-    pipeline.add_argument("--skip-labels", action="store_true", help="Skip label generation")
+    pipeline.add_argument(
+        "--skip-features",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Skip feature engineering (default: config.toml)",
+    )
+    pipeline.add_argument(
+        "--skip-labels",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Skip label generation (default: config.toml)",
+    )
 
     qa = subparsers.add_parser(
         "qa",
         help="Audit raw downloaded tick data",
         description="Run quality checks on downloaded raw tick data.",
     )
-    qa.add_argument("--symbol", default="XAUUSD", help="Symbol to audit (default: XAUUSD)")
+    qa.add_argument("--symbol", default=None, help="Symbol to audit (default: config.toml)")
     qa.add_argument(
         "--asset-class",
         choices=["fx", "crypto"],
-        default="fx",
-        help="Asset class (default: fx)",
+        default=None,
+        help="Asset class (default: config.toml)",
     )
 
     train = subparsers.add_parser(
@@ -186,19 +206,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Train a single model backend",
         description="Train one backend with Optuna HPO and CV.",
     )
-    train.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
-    train.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
+    train.add_argument("--symbol", default=None, help="Symbol (default: config.toml)")
+    train.add_argument("--tf", default=None, help="Timeframe (default: config.toml)")
     train.add_argument(
         "--label",
-        default="label_10",
-        help="Label column: label_5, label_10, label_20 (default: label_10)",
+        default=None,
+        help="Label column: label_5, label_10, label_20 (default: config.toml)",
     )
     train.add_argument(
         "--backend",
-        default="mlf",
+        default=None,
         choices=_ALL_BACKENDS,
         metavar="BACKEND",
-        help=f"Model backend. Options: {', '.join(_ALL_BACKENDS)} (default: mlf)",
+        help=f"Model backend. Options: {', '.join(_ALL_BACKENDS)} (default: config.toml)",
     )
     train.add_argument("--n-trials", type=int, default=None, help="Optuna trials for HPO")
     train.add_argument("--n-splits", type=int, default=None, help="TimeSeriesSplit folds")
@@ -265,44 +285,49 @@ def build_parser() -> argparse.ArgumentParser:
         help="Start FastAPI inference server",
         description="Launch the real-time prediction API.",
     )
-    serve.add_argument("--host", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
-    serve.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
-    serve.add_argument("--reload", action="store_true", help="Enable auto-reload (dev mode)")
+    serve.add_argument("--host", default=None, help="Bind address (default: config.toml)")
+    serve.add_argument("--port", type=int, default=None, help="Port (default: config.toml)")
+    serve.add_argument(
+        "--reload",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable auto-reload (default: config.toml)",
+    )
 
     batch = subparsers.add_parser(
         "batch-predict",
         help="Run batch inference",
         description="Generate predictions for all bars and save to disk.",
     )
-    batch.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
-    batch.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
-    batch.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    batch.add_argument("--symbol", default=None, help="Symbol (default: config.toml)")
+    batch.add_argument("--tf", default=None, help="Timeframe (default: config.toml)")
+    batch.add_argument("--label", default=None, help="Label column (default: config.toml)")
 
     drift = subparsers.add_parser(
         "drift",
         help="Detect feature drift",
         description="Compare current features against training reference using KS/PSI tests.",
     )
-    drift.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
-    drift.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
-    drift.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    drift.add_argument("--symbol", default=None, help="Symbol (default: config.toml)")
+    drift.add_argument("--tf", default=None, help="Timeframe (default: config.toml)")
+    drift.add_argument("--label", default=None, help="Label column (default: config.toml)")
     drift.add_argument(
         "--threshold-ks",
         type=float,
-        default=0.1,
-        help="Kolmogorov-Smirnov threshold (default: 0.1)",
+        default=None,
+        help="Kolmogorov-Smirnov threshold (default: config.toml)",
     )
     drift.add_argument(
         "--threshold-psi",
         type=float,
-        default=0.2,
-        help="Population Stability Index threshold (default: 0.2)",
+        default=None,
+        help="Population Stability Index threshold (default: config.toml)",
     )
     drift.add_argument(
         "--min-samples",
         type=int,
-        default=30,
-        help="Minimum live samples per feature for drift tests (default: 30)",
+        default=None,
+        help="Minimum live samples per feature for drift tests (default: config.toml)",
     )
 
     drift_retrain = subparsers.add_parser(
@@ -346,20 +371,20 @@ def build_parser() -> argparse.ArgumentParser:
     drift_retrain.add_argument(
         "--threshold-ks",
         type=float,
-        default=0.1,
-        help="Kolmogorov-Smirnov threshold (default: 0.1)",
+        default=None,
+        help="Kolmogorov-Smirnov threshold (default: config.toml)",
     )
     drift_retrain.add_argument(
         "--threshold-psi",
         type=float,
-        default=0.2,
-        help="Population Stability Index threshold (default: 0.2)",
+        default=None,
+        help="Population Stability Index threshold (default: config.toml)",
     )
     drift_retrain.add_argument(
         "--min-samples",
         type=int,
-        default=30,
-        help="Minimum live samples per feature for drift tests (default: 30)",
+        default=None,
+        help="Minimum live samples per feature for drift tests (default: config.toml)",
     )
 
     models = subparsers.add_parser(
@@ -413,20 +438,57 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print a JSON summary of the run-profile orchestration result",
     )
 
+    run_all = subparsers.add_parser(
+        "run-all",
+        help="Run the full end-to-end workflow",
+        description=(
+            "Run workflow sequence: download -> qa -> pipeline -> train -> evaluate -> "
+            "benchmark -> serve placeholder -> batch-predict -> drift + retrain"
+        ),
+    )
+    run_all.add_argument(
+        "--profile",
+        default=None,
+        help="Use one workflow profile for train/evaluate/benchmark defaults",
+    )
+    run_all.add_argument("--skip-download", action="store_true", help="Skip download stage")
+    run_all.add_argument("--skip-qa", action="store_true", help="Skip QA stage")
+    run_all.add_argument("--skip-pipeline", action="store_true", help="Skip pipeline stage")
+    run_all.add_argument("--skip-train", action="store_true", help="Skip train stage")
+    run_all.add_argument("--skip-evaluate", action="store_true", help="Skip evaluate stage")
+    run_all.add_argument("--skip-benchmark", action="store_true", help="Skip benchmark stage")
+    run_all.add_argument("--skip-serve", action="store_true", help="Skip serve placeholder stage")
+    run_all.add_argument("--skip-batch", action="store_true", help="Skip batch prediction stage")
+    run_all.add_argument(
+        "--skip-drift-retrain",
+        action="store_true",
+        help="Skip drift detection and retraining stages",
+    )
+    run_all.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Continue remaining stages after an error",
+    )
+    run_all.add_argument(
+        "--json",
+        action="store_true",
+        help="Print a JSON summary of run-all stage outputs",
+    )
+
     benchmark = subparsers.add_parser(
         "benchmark",
         help="Compare multiple backends on same data",
         description="Run multiple backends sequentially and compare metrics in a table.",
     )
-    benchmark.add_argument("--symbol", default="XAUUSD", help="Symbol (default: XAUUSD)")
-    benchmark.add_argument("--tf", default="1H", help="Timeframe (default: 1H)")
-    benchmark.add_argument("--label", default="label_10", help="Label column (default: label_10)")
+    benchmark.add_argument("--symbol", default=None, help="Symbol (default: config.toml)")
+    benchmark.add_argument("--tf", default=None, help="Timeframe (default: config.toml)")
+    benchmark.add_argument("--label", default=None, help="Label column (default: config.toml)")
     benchmark.add_argument(
         "--backends",
         nargs="+",
-        default=["mlf", "sgd", "stats"],
+        default=None,
         metavar="BACKEND",
-        help=f"Backends to run. Default: mlf sgd stats. Available: {', '.join(_ALL_BACKENDS)}",
+        help=f"Backends to run. Default: config.toml. Available: {', '.join(_ALL_BACKENDS)}",
     )
     benchmark.add_argument("--n-trials", type=int, default=None, help="Optuna trials per backend")
     benchmark.add_argument("--n-splits", type=int, default=None, help="CV folds")
@@ -572,6 +634,221 @@ def _run_evaluate_command(args: argparse.Namespace) -> StageResult:
     return stage
 
 
+def _make_skipped_stage(
+    stage: str,
+    *,
+    reason: str,
+    params: dict[str, Any] | None = None,
+) -> StageResult:
+    """Create a canonical skipped stage result payload."""
+    return StageResult(
+        stage=stage,
+        status="skipped",
+        metrics={"reason": reason},
+        params=params or {},
+    )
+
+
+def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
+    """Execute the full hobby-workflow sequence with optional skips."""
+    skip_flags = [
+        args.skip_download,
+        args.skip_qa,
+        args.skip_pipeline,
+        args.skip_train,
+        args.skip_evaluate,
+        args.skip_benchmark,
+        args.skip_serve,
+        args.skip_batch,
+        args.skip_drift_retrain,
+    ]
+    if all(skip_flags):
+        raise ValueError("run-all cannot skip all stages at the same time")
+
+    stages: list[StageResult] = []
+
+    def _append(stage: StageResult) -> bool:
+        stages.append(stage)
+        return (stage.status == "error") and (not args.continue_on_error)
+
+    train_args = argparse.Namespace(
+        profile=args.profile,
+        symbol=None,
+        tf=None,
+        label=None,
+        backend=None,
+        n_trials=None,
+        n_splits=None,
+        train_start=None,
+        train_end=None,
+        force=None,
+    )
+    eval_args = argparse.Namespace(
+        profile=args.profile,
+        symbol=None,
+        tf=None,
+        label=None,
+        capital=None,
+        risk=None,
+        commission=None,
+        tp=None,
+        sl=None,
+        slippage=None,
+        eval_start=None,
+        eval_end=None,
+        use_labels=None,
+    )
+    benchmark_args = argparse.Namespace(
+        profile=args.profile,
+        symbol=None,
+        tf=None,
+        label=None,
+        backends=None,
+        n_trials=None,
+        n_splits=None,
+        train_start=None,
+        train_end=None,
+        force=None,
+    )
+
+    if args.skip_download:
+        stages.append(_make_skipped_stage("download", reason="Skipped by --skip-download"))
+    else:
+        download_cfg = _resolve_download_command_config(
+            argparse.Namespace(
+                symbol=None,
+                asset_class=None,
+                start_year=None,
+                start_month=None,
+                end_year=None,
+                end_month=None,
+                concurrency=None,
+                force=None,
+                skip_current_month=None,
+            )
+        )
+        if _append(run_download(**download_cfg)):
+            return stages
+
+    if args.skip_qa:
+        stages.append(_make_skipped_stage("qa", reason="Skipped by --skip-qa"))
+    else:
+        qa_cfg = _resolve_qa_command_config(
+            argparse.Namespace(symbol=None, asset_class=None)
+        )
+        if _append(run_qa(**qa_cfg)):
+            return stages
+
+    if args.skip_pipeline:
+        stages.append(_make_skipped_stage("pipeline", reason="Skipped by --skip-pipeline"))
+    else:
+        pipeline_cfg = _resolve_pipeline_command_config(
+            argparse.Namespace(
+                symbol=None,
+                tf=None,
+                pivot=None,
+                anchor=None,
+                atr_period=None,
+                atr_mult=None,
+                force=None,
+                skip_resample=None,
+                skip_features=None,
+                skip_labels=None,
+            )
+        )
+        if _append(run_pipeline_stage(**pipeline_cfg)):
+            return stages
+
+    if args.skip_train:
+        stages.append(_make_skipped_stage("train", reason="Skipped by --skip-train"))
+    else:
+        if _append(_run_train_command(train_args)):
+            return stages
+
+    if args.skip_evaluate:
+        stages.append(_make_skipped_stage("evaluate", reason="Skipped by --skip-evaluate"))
+    else:
+        if _append(_run_evaluate_command(eval_args)):
+            return stages
+
+    if args.skip_benchmark:
+        stages.append(_make_skipped_stage("benchmark", reason="Skipped by --skip-benchmark"))
+    else:
+        if _append(_run_benchmark_stage(benchmark_args)):
+            return stages
+
+    if args.skip_serve:
+        stages.append(_make_skipped_stage("serve", reason="Skipped by --skip-serve"))
+    else:
+        serve_cfg = _resolve_serve_command_config(
+            argparse.Namespace(host=None, port=None, reload=None)
+        )
+        stages.append(
+            _make_skipped_stage(
+                "serve",
+                reason="Realtime API is long-running; start separately with `mlfx serve`.",
+                params=serve_cfg,
+            )
+        )
+
+    if args.skip_batch:
+        stages.append(_make_skipped_stage("batch", reason="Skipped by --skip-batch"))
+    else:
+        batch_cfg = _resolve_batch_command_config(
+            argparse.Namespace(symbol=None, tf=None, label=None)
+        )
+        if _append(run_batch(**batch_cfg)):
+            return stages
+
+    if args.skip_drift_retrain:
+        stages.append(_make_skipped_stage("drift", reason="Skipped by --skip-drift-retrain"))
+        stages.append(_make_skipped_stage("retrain", reason="Skipped by --skip-drift-retrain"))
+    else:
+        drift_cfg = _resolve_drift_command_config(
+            argparse.Namespace(
+                symbol=None,
+                tf=None,
+                label=None,
+                threshold_ks=None,
+                threshold_psi=None,
+                min_samples=None,
+            )
+        )
+        train_cfg = _resolve_train_command_config(train_args)
+        training_cfg = TrainingConfig(
+            symbol=train_cfg["symbol"],
+            tf=train_cfg["tf"],
+            label=train_cfg["label"],
+            backend=train_cfg["backend"],
+            n_trials=train_cfg["n_trials"],
+            n_splits=train_cfg["n_splits"],
+            force=train_cfg["force"],
+            extra={
+                "train_start": train_cfg["train_start"],
+                "train_end": train_cfg["train_end"],
+                "profile": args.profile,
+            },
+        )
+        for drift_stage in run_drift_then_retrain(
+            drift_params={
+                "symbol": drift_cfg["symbol"],
+                "tf": drift_cfg["tf"],
+                "label": drift_cfg["label"],
+                "threshold_ks": drift_cfg["threshold_ks"],
+                "threshold_psi": drift_cfg["threshold_psi"],
+                "min_samples": drift_cfg["min_samples"],
+            },
+            train_config=training_cfg,
+        ):
+            if _append(drift_stage):
+                return stages
+
+    if args.json:
+        console.print_json(json.dumps({"stages": [stage.to_dict() for stage in stages]}))
+
+    return stages
+
+
 def main() -> None:
     """Parse CLI args and dispatch to the appropriate workflow."""
     try:
@@ -585,34 +862,15 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "download":
-        stage = run_download(
-            symbol=args.symbol,
-            asset_class=args.asset_class,
-            start_year=args.start_year,
-            start_month=args.start_month,
-            concurrency=args.concurrency,
-            force=args.force,
-            end_year=args.end_year,
-            end_month=args.end_month,
-            skip_current_month=args.skip_current_month,
-        )
+        download_cfg = _resolve_download_command_config(args)
+        stage = run_download(**download_cfg)
         _persist_cli_workflow("download", [stage], params=vars(args))
         _exit_on_stage_error(stage)
         return
 
     if args.command == "pipeline":
-        stage = run_pipeline_stage(
-            symbol=args.symbol,
-            tf=list(args.tf),
-            pivot_type=args.pivot,
-            pivot_anchor=args.anchor,
-            atr_period=args.atr_period,
-            atr_mult=args.atr_mult,
-            force=args.force,
-            skip_resample=args.skip_resample,
-            skip_features=args.skip_features,
-            skip_labels=args.skip_labels,
-        )
+        pipeline_cfg = _resolve_pipeline_command_config(args)
+        stage = run_pipeline_stage(**pipeline_cfg)
         _persist_cli_workflow("pipeline", [stage], params=vars(args))
         _exit_on_stage_error(stage)
         return
@@ -624,10 +882,8 @@ def main() -> None:
         return
 
     if args.command == "qa":
-        stage = run_qa(
-            symbol=args.symbol,
-            asset_class=args.asset_class,
-        )
+        qa_cfg = _resolve_qa_command_config(args)
+        stage = run_qa(**qa_cfg)
         _persist_cli_workflow("qa", [stage], params=vars(args))
         _exit_on_stage_error(stage)
         return
@@ -639,6 +895,7 @@ def main() -> None:
         return
 
     if args.command == "serve":
+        serve_cfg = _resolve_serve_command_config(args)
         try:
             import uvicorn  # type: ignore[import-not-found]  # noqa: PLC0415
         except ImportError:
@@ -648,19 +905,16 @@ def main() -> None:
             return
         uvicorn.run(
             "mlfx.serving.api:app",
-            host=args.host,
-            port=args.port,
-            reload=args.reload,
+            host=serve_cfg["host"],
+            port=serve_cfg["port"],
+            reload=serve_cfg["reload"],
         )
         return
 
     if args.command == "batch-predict":
+        batch_cfg = _resolve_batch_command_config(args)
         with console.status("[bold green]Running batch inference..."):
-            stage = run_batch(
-                symbol=args.symbol,
-                tf=args.tf,
-                label=args.label,
-            )
+            stage = run_batch(**batch_cfg)
         if stage.metrics:
             console.print(stage.metrics)
         _persist_cli_workflow("batch-predict", [stage], params=vars(args))
@@ -668,15 +922,9 @@ def main() -> None:
         return
 
     if args.command == "drift":
+        drift_cfg = _resolve_drift_command_config(args)
         with console.status("[bold green]Detecting feature drift..."):
-            stage = run_drift(
-                symbol=args.symbol,
-                tf=args.tf,
-                label=args.label,
-                threshold_ks=args.threshold_ks,
-                threshold_psi=args.threshold_psi,
-                min_samples=args.min_samples,
-            )
+            stage = run_drift(**drift_cfg)
         if stage.metrics:
             console.print(stage.metrics)
         _persist_cli_workflow("drift", [stage], params=vars(args))
@@ -684,6 +932,7 @@ def main() -> None:
         return
 
     if args.command == "drift-retrain":
+        drift_cfg = _resolve_drift_command_config(args)
         train_cfg = _resolve_train_command_config(args)
         cfg = TrainingConfig(
             symbol=train_cfg["symbol"],
@@ -704,9 +953,9 @@ def main() -> None:
                 "symbol": cfg.symbol,
                 "tf": cfg.tf,
                 "label": cfg.label,
-                "threshold_ks": args.threshold_ks,
-                "threshold_psi": args.threshold_psi,
-                "min_samples": args.min_samples,
+                "threshold_ks": drift_cfg["threshold_ks"],
+                "threshold_psi": drift_cfg["threshold_psi"],
+                "min_samples": drift_cfg["min_samples"],
             },
             train_config=cfg,
         )
@@ -781,40 +1030,39 @@ def main() -> None:
         return
 
     if args.command == "benchmark":
-        result = _run_benchmark(args)
-        benchmark_ok = bool(result)
-        benchmark_symbol: str | None = None
-        benchmark_tf: str | None = None
-        benchmark_label: str | None = None
-        if isinstance(result, dict):
-            symbol_value = result.get("symbol")
-            tf_value = result.get("tf")
-            label_value = result.get("label")
-            if isinstance(symbol_value, str):
-                benchmark_symbol = symbol_value
-            if isinstance(tf_value, str):
-                benchmark_tf = tf_value
-            if isinstance(label_value, str):
-                benchmark_label = label_value
-
-        stage = StageResult(
-            stage="benchmark",
-            status="ok" if benchmark_ok else "error",
-            metrics=result if isinstance(result, dict) else {},
-            params=vars(args),
-            symbol=benchmark_symbol,
-            tf=benchmark_tf,
-            label=benchmark_label,
-            error=None if benchmark_ok else "Benchmark run returned no results",
-        )
+        stage = _run_benchmark_stage(args)
         _persist_cli_workflow("benchmark", [stage], params=vars(args))
         _exit_on_stage_error(stage)
+        return
+
+    if args.command == "run-all":
+        try:
+            stages = _run_all_command(args)
+        except Exception as exc:  # noqa: BLE001
+            stages = [
+                StageResult(
+                    stage="run-all",
+                    status="error",
+                    params=vars(args),
+                    error=str(exc),
+                )
+            ]
+        _persist_cli_workflow("run-all", stages, params=vars(args))
+        if any(stage.status == "error" for stage in stages):
+            sys.exit(1)
         return
 
 
 _resolve_train_command_config = resolve_train_config
 _resolve_evaluate_command_config = resolve_evaluate_config
+_resolve_download_command_config = resolve_download_config
+_resolve_pipeline_command_config = resolve_pipeline_config
+_resolve_qa_command_config = resolve_qa_config
+_resolve_serve_command_config = resolve_serve_config
+_resolve_batch_command_config = resolve_batch_config
+_resolve_drift_command_config = resolve_drift_config
 _print_resolved_train_summary = print_resolved_train_summary
 _print_resolved_evaluate_summary = print_resolved_evaluate_summary
 _run_profile_command = run_profile_command
 _run_benchmark = run_benchmark
+_run_benchmark_stage = run_benchmark_stage

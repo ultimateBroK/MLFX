@@ -427,6 +427,47 @@ class TestRunProfileCommand:
 
 
 class TestMainDispatchFlow:
+    def test_main_dispatches_run_all_command(self, monkeypatch, cli_module) -> None:
+        parser = cli_module.build_parser()
+        monkeypatch.setattr(
+            parser,
+            "parse_args",
+            lambda: argparse.Namespace(
+                command="run-all",
+                profile="research",
+                skip_download=False,
+                skip_qa=False,
+                skip_pipeline=False,
+                skip_train=False,
+                skip_evaluate=False,
+                skip_benchmark=False,
+                skip_serve=False,
+                skip_batch=False,
+                skip_drift_retrain=False,
+                continue_on_error=False,
+                json=True,
+            ),
+        )
+        monkeypatch.setattr(cli_module, "build_parser", lambda: parser)
+
+        captured = {}
+
+        def _fake_run_all(args):
+            captured["args"] = args
+            return []
+
+        monkeypatch.setattr(cli_module, "_run_all_command", _fake_run_all)
+        monkeypatch.setattr(cli_module, "_persist_cli_workflow", lambda *args, **kwargs: None)
+
+        cli_module.main()
+
+        args = captured["args"]
+        assert args.profile == "research"
+        assert args.skip_download is False
+        assert args.skip_drift_retrain is False
+        assert args.continue_on_error is False
+        assert args.json is True
+
     def test_main_dispatches_run_profile_command(self, monkeypatch, cli_module) -> None:
         parser = cli_module.build_parser()
         monkeypatch.setattr(

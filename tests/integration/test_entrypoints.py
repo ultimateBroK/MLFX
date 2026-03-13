@@ -46,3 +46,9 @@ def test_mlfx_benchmark_help_smoke() -> None:
     result = _run_entrypoint("mlfx", "benchmark", "--help")
     assert result.returncode == 0, result.stderr
     assert "--backends" in result.stdout
+
+
+def test_mlfx_run_all_help_smoke() -> None:
+    result = _run_entrypoint("mlfx", "run-all", "--help")
+    assert result.returncode == 0, result.stderr
+    assert "--skip-drift-retrain" in result.stdout

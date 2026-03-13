@@ -44,6 +44,136 @@ def pick_value(
     return fallback
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """Normalize a scalar-or-list input into a list."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def resolve_download_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective download configuration from CLI and defaults."""
+    return resolve_download_config_from_settings(args, load_config())
+
+
+def resolve_download_config_from_settings(
+    args: argparse.Namespace,
+    cfg: AppConfig,
+) -> dict[str, Any]:
+    """Resolve effective download configuration from CLI and validated settings."""
+    return {
+        "symbol": pick_value(args.symbol, {}, "symbol", cfg.download.symbol),
+        "asset_class": pick_value(args.asset_class, {}, "asset_class", cfg.download.asset_class),
+        "start_year": pick_value(args.start_year, {}, "start_year", cfg.download.start_year),
+        "start_month": pick_value(args.start_month, {}, "start_month", cfg.download.start_month),
+        "end_year": pick_value(args.end_year, {}, "end_year", cfg.download.end_year),
+        "end_month": pick_value(args.end_month, {}, "end_month", cfg.download.end_month),
+        "concurrency": pick_value(args.concurrency, {}, "concurrency", cfg.download.concurrency),
+        "force": pick_value(args.force, {}, "force", cfg.download.force),
+        "skip_current_month": pick_value(
+            args.skip_current_month,
+            {},
+            "skip_current_month",
+            cfg.download.skip_current_month,
+        ),
+    }
+
+
+def resolve_pipeline_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective pipeline configuration from CLI and defaults."""
+    return resolve_pipeline_config_from_settings(args, load_config())
+
+
+def resolve_pipeline_config_from_settings(
+    args: argparse.Namespace,
+    cfg: AppConfig,
+) -> dict[str, Any]:
+    """Resolve effective pipeline configuration from CLI and validated settings."""
+    raw_tf = pick_value(args.tf, {}, "tf", list(cfg.pipeline.tf))
+    tf = _ensure_list(raw_tf)
+    return {
+        "symbol": pick_value(args.symbol, {}, "symbol", cfg.pipeline.symbol),
+        "tf": tf,
+        "pivot_type": pick_value(args.pivot, {}, "pivot", cfg.pipeline.pivot_type),
+        "pivot_anchor": pick_value(args.anchor, {}, "anchor", cfg.pipeline.pivot_anchor),
+        "atr_period": pick_value(args.atr_period, {}, "atr_period", cfg.features.atr_period),
+        "atr_mult": pick_value(args.atr_mult, {}, "atr_mult", cfg.pipeline.atr_mult),
+        "force": pick_value(args.force, {}, "force", cfg.pipeline.force),
+        "skip_resample": pick_value(args.skip_resample, {}, "skip_resample", cfg.pipeline.skip_resample),
+        "skip_features": pick_value(args.skip_features, {}, "skip_features", cfg.pipeline.skip_features),
+        "skip_labels": pick_value(args.skip_labels, {}, "skip_labels", cfg.pipeline.skip_labels),
+    }
+
+
+def resolve_qa_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective QA configuration from CLI and defaults."""
+    return resolve_qa_config_from_settings(args, load_config())
+
+
+def resolve_qa_config_from_settings(args: argparse.Namespace, cfg: AppConfig) -> dict[str, Any]:
+    """Resolve effective QA configuration from CLI and validated settings."""
+    return {
+        "symbol": pick_value(args.symbol, {}, "symbol", cfg.qa.symbol),
+        "asset_class": pick_value(args.asset_class, {}, "asset_class", cfg.qa.asset_class),
+    }
+
+
+def resolve_serve_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective serving configuration from CLI and defaults."""
+    return resolve_serve_config_from_settings(args, load_config())
+
+
+def resolve_serve_config_from_settings(
+    args: argparse.Namespace,
+    cfg: AppConfig,
+) -> dict[str, Any]:
+    """Resolve effective serving configuration from CLI and validated settings."""
+    return {
+        "host": pick_value(args.host, {}, "host", cfg.serve.host),
+        "port": pick_value(args.port, {}, "port", cfg.serve.port),
+        "reload": pick_value(args.reload, {}, "reload", cfg.serve.reload),
+    }
+
+
+def resolve_batch_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective batch prediction configuration from CLI and defaults."""
+    return resolve_batch_config_from_settings(args, load_config())
+
+
+def resolve_batch_config_from_settings(
+    args: argparse.Namespace,
+    cfg: AppConfig,
+) -> dict[str, Any]:
+    """Resolve effective batch prediction configuration from CLI and validated settings."""
+    return {
+        "symbol": pick_value(args.symbol, {}, "symbol", cfg.batch_predict.symbol),
+        "tf": pick_value(args.tf, {}, "tf", cfg.batch_predict.tf),
+        "label": pick_value(args.label, {}, "label", cfg.batch_predict.label),
+    }
+
+
+def resolve_drift_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve effective drift configuration from CLI and defaults."""
+    return resolve_drift_config_from_settings(args, load_config())
+
+
+def resolve_drift_config_from_settings(
+    args: argparse.Namespace,
+    cfg: AppConfig,
+) -> dict[str, Any]:
+    """Resolve effective drift configuration from CLI and validated settings."""
+    return {
+        "symbol": pick_value(args.symbol, {}, "symbol", cfg.drift.symbol),
+        "tf": pick_value(args.tf, {}, "tf", cfg.drift.tf),
+        "label": pick_value(args.label, {}, "label", cfg.drift.label),
+        "threshold_ks": pick_value(args.threshold_ks, {}, "threshold_ks", cfg.drift.threshold_ks),
+        "threshold_psi": pick_value(args.threshold_psi, {}, "threshold_psi", cfg.drift.threshold_psi),
+        "min_samples": pick_value(args.min_samples, {}, "min_samples", cfg.drift.min_samples),
+    }
+
+
 def resolve_train_config(args: argparse.Namespace) -> dict[str, Any]:
     """Resolve effective train configuration from CLI, profile, and defaults."""
     return resolve_train_config_from_settings(args, load_config())

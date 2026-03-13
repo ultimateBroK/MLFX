@@ -4,22 +4,13 @@ from __future__ import annotations
 
 import polars as pl
 
-DEFAULT_FEATURE_BLACKLIST = {
-    "timestamp",
-    "open",
-    "high",
-    "low",
-    "close",
-    "tick_count",
-    "close_ahead_5",
-    "close_ahead_10",
-    "close_ahead_20",
-    "label_5",
-    "label_10",
-    "label_20",
-}
+from mlfx.features.columns import (
+    FEATURE_BLACKLIST,
+    NUMERIC_DTYPES,
+    select_numeric_feature_columns as _select_numeric_feature_columns,
+)
 
-NUMERIC_DTYPES = (pl.Float64, pl.Float32, pl.Int64, pl.Int32, pl.Int8)
+DEFAULT_FEATURE_BLACKLIST = FEATURE_BLACKLIST
 
 
 def select_numeric_feature_columns(
@@ -27,9 +18,4 @@ def select_numeric_feature_columns(
     blacklist: set[str] | None = None,
 ) -> list[str]:
     """Select numeric feature columns while excluding price/target fields."""
-    active_blacklist = blacklist or DEFAULT_FEATURE_BLACKLIST
-    return [
-        column
-        for column in df.columns
-        if column not in active_blacklist and df[column].dtype in NUMERIC_DTYPES
-    ]
+    return _select_numeric_feature_columns(df, blacklist=blacklist)
