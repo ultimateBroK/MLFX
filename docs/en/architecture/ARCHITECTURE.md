@@ -112,9 +112,9 @@ mlfx/training/
 │   ├── _pytorch_common.py  ← Shared PyTorch utilities for DL backends
 │   ├── _sequence_utils.py  ← Sequence preparation helpers for DL backends
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
-│   ├── mlforecast.py       ← LightGBM via MLForecast  (key: "mlf")
+│   ├── mlf.py              ← LightGBM via MLForecast  (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
-│   ├── online_sgd.py       ← Sklearn SGD               (key: "sgd")
+│   ├── sgd.py              ← Sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← StatsForecast baseline    (key: "stats")
 ├── __init__.py             ← Public re-exports from data/feature_selection/artifacts
 ├── _utils.py               ← Internal utilities

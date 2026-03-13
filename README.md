@@ -30,28 +30,31 @@ Whether you're a solo quant, ML engineer, or systems-minded trader, MLFX gives y
 
 ## Table of contents
 
-- [Why MLFX?](#why-mlfx)
-- [What you can do with it](#what-you-can-do-with-it)
-- [Use cases](#use-cases)
-- [Core workflow](#core-workflow)
-- [Highlights](#highlights)
-- [Available backends](#available-backends)
-- [Quickstart](#quickstart)
-- [Requirements](#requirements)
-- [Install environment](#install-environment)
-- [Run a minimal end-to-end flow](#run-a-minimal-end-to-end-flow)
-- [Common commands](#common-commands)
-- [Command reference](#command-reference)
-- [Project structure](#project-structure)
-- [Generated artifacts](#generated-artifacts)
-- [Documentation](#documentation)
-- [Start here](#start-here)
-- [Recommended reading](#recommended-reading)
-- [Who is this for?](#who-is-this-for)
-- [Current direction](#current-direction)
-- [Contributing](#contributing)
-- [Author](#author)
-- [License](#license)
+- [MLFX](#mlfx)
+  - [Table of contents](#table-of-contents)
+  - [Why MLFX?](#why-mlfx)
+  - [What you can do with it](#what-you-can-do-with-it)
+  - [Use cases](#use-cases)
+  - [Core workflow](#core-workflow)
+    - [What each step means](#what-each-step-means)
+  - [Highlights](#highlights)
+  - [Available backends](#available-backends)
+  - [Quickstart](#quickstart)
+    - [Requirements](#requirements)
+    - [Install environment](#install-environment)
+    - [Run a minimal end-to-end flow](#run-a-minimal-end-to-end-flow)
+  - [Common commands](#common-commands)
+    - [Command reference](#command-reference)
+  - [Project structure](#project-structure)
+  - [Generated artifacts](#generated-artifacts)
+  - [Documentation](#documentation)
+    - [Start here](#start-here)
+    - [Recommended reading](#recommended-reading)
+  - [Who is this for?](#who-is-this-for)
+  - [Current direction](#current-direction)
+  - [Contributing](#contributing)
+  - [Author](#author)
+  - [License](#license)
 
 ---
 
@@ -209,7 +212,7 @@ pixi run clean-generated
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # CLI entrypoints
+│   ├── cli/            # unified CLI entrypoint and commands
 │   ├── config/         # config loading and path policy
 │   ├── ingestion/      # historical data download
 │   ├── pipeline/       # qa, resampling, features, labels

@@ -113,9 +113,9 @@ mlfx/training/
 │   ├── _pytorch_common.py  ← Tiện ích PyTorch dùng chung cho bộ máy học sâu
 │   ├── _sequence_utils.py  ← Helper chuẩn bị chuỗi cho bộ máy học sâu
 │   ├── base.py             ← BackendRunner protocol, TrainingConfig, TrainResult
-│   ├── mlforecast.py       ← LightGBM qua MLForecast   (key: "mlf")
+│   ├── mlf.py              ← LightGBM qua MLForecast   (key: "mlf")
 │   ├── lstm.py             ← PyTorch LSTM              (key: "lstm")
-│   ├── online_sgd.py       ← Sklearn SGD               (key: "sgd")
+│   ├── sgd.py              ← Sklearn SGD               (key: "sgd")
 │   ├── stats.py            ← Baseline StatsForecast    (key: "stats")
 ├── __init__.py             ← Tái xuất public từ data/feature_selection/artifacts
 ├── _utils.py               ← Tiện ích nội bộ

@@ -209,7 +209,7 @@ pixi run clean-generated
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # Các điểm vào CLI
+│   ├── cli/            # Điểm vào CLI thống nhất và các lệnh
 │   ├── config/         # Nạp cấu hình và chính sách đường dẫn
 │   ├── ingestion/      # Tải dữ liệu lịch sử
 │   ├── pipeline/       # qa, chuyển đổi, đặc trưng, nhãn

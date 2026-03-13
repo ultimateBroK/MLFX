@@ -139,6 +139,11 @@ class TestBackendRegistry:
 
 
 class TestPackageBoundaries:
+    def test_mlfx_has_no_legacy_app_shim_package(self):
+        import importlib.util
+
+        assert importlib.util.find_spec("mlfx.app") is None
+
     def test_mlfx_has_no_reverse_imports_to_legacy_tree(self):
         repo_root = Path(__file__).resolve().parents[1]
         mlfx_root = repo_root / "mlfx"
