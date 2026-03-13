@@ -145,7 +145,7 @@ class TestPackageBoundaries:
         assert importlib.util.find_spec("mlfx.app") is None
 
     def test_mlfx_has_no_reverse_imports_to_legacy_tree(self):
-        repo_root = Path(__file__).resolve().parents[1]
+        repo_root = Path(__file__).resolve().parents[2]
         mlfx_root = repo_root / "mlfx"
         legacy_import_pattern = re.compile(
             r"^\s*(from|import)\s+(pipeline|models|eval|indicators|viz)\b",
@@ -161,7 +161,7 @@ class TestPackageBoundaries:
         assert offenders == []
 
     def test_wheel_only_packages_mlfx_namespace(self):
-        repo_root = Path(__file__).resolve().parents[1]
+        repo_root = Path(__file__).resolve().parents[2]
         pyproject = tomllib.loads((repo_root / "pyproject.toml").read_text())
         packages = pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
         assert packages == ["mlfx"]

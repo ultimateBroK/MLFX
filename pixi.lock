@@ -3054,7 +3054,7 @@ packages:
 - pypi: ./
   name: mlfx
   version: 0.1.0
-  sha256: 25c94c78aef318e3a6d4339e2615c40f05d2ee0f941dcb3a985f349ceb4974da
+  sha256: 7bd9aa83707abf9a18e808dd9e111ace3534cb5a226f37ce965f7dba99d68503
   requires_dist:
   - cachetools>=5.3.0,<6
   - ipykernel>=7.2.0,<8
