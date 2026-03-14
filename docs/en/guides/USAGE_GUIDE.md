@@ -530,10 +530,36 @@ docker-compose --profile tracking up mlflow
 
 When the server is running, the tracking layer will automatically use MLflow instead of the file-based fallback tracker.
 
+#### MLflow Configuration
+
+MLflow can be configured via environment variables:
+
+| Variable | Description | Example |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | MLflow tracking server URI | `http://localhost:5000` |
+| `MLFLOW_ARTIFACT_ROOT` | Root directory for artifacts | `/data/mlflow_artifacts` |
+| `MLFLOW_REGISTRY_URI` | Model registry URI | `http://localhost:5000` |
+
+Example:
+
+```bash
+# Use remote MLflow server
+export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
+pixi run mlfx train --symbol XAUUSD --tf 1H
+
+# Use custom artifact storage
+export MLFLOW_ARTIFACT_ROOT="/mnt/shared/mlflow_artifacts"
+pixi run mlfx train --symbol XAUUSD --tf 1H
+```
+
+#### Default Backend
+
+By default, MLflow uses SQLite (`mlflow.db`) as the backend store, which is recommended over the deprecated file-based store.
+
 If you need to install MLflow:
 
 ```bash
-pip install mlflow
+pixi add mlflow
 ```
 
 ---

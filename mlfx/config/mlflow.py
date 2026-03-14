@@ -84,8 +84,8 @@ class MLflowConfig:
             return env_value
         if self.tracking_uri:
             return self.tracking_uri
-        # Default to local mlruns directory
-        return str(self._default_mlruns_path())
+        # Default to SQLite database (recommended over deprecated file-based store)
+        return f"sqlite:///{self._default_db_path()}"
 
     @property
     def resolved_artifact_root(self) -> Path:
@@ -107,10 +107,18 @@ class MLflowConfig:
         return self.registry_uri
 
     def _default_mlruns_path(self) -> Path:
-        """Return default mlruns directory path."""
+        """Return default mlruns directory path (legacy file-based store)."""
         # Use project root relative to this file
         project_root = Path(__file__).resolve().parents[2]
         return project_root / "mlruns"
+
+    def _default_db_path(self) -> Path:
+        """Return default SQLite database path for MLflow backend.
+        
+        SQLite is recommended over file-based store as of Feb 2026.
+        """
+        project_root = Path(__file__).resolve().parents[2]
+        return project_root / "mlflow.db"
 
     def _default_artifact_path(self) -> Path:
         """Return default artifact storage path."""

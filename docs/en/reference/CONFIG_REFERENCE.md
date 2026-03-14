@@ -438,7 +438,60 @@ pixi run mlfx run-profile --profile research
 
 ---
 
-## 3. Complete `config.toml` example
+## 2.12. `[mlflow]` — MLflow configuration (optional)
+
+MLflow is configured primarily through environment variables rather than `config.toml`. This allows for flexible deployment across different environments.
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | `sqlite:///mlflow.db` | MLflow tracking server URI |
+| `MLFLOW_ARTIFACT_ROOT` | `outputs/mlflow_artifacts/` | Root directory for artifact storage |
+| `MLFLOW_REGISTRY_URI` | (same as tracking URI) | Model registry URI |
+
+### Supported Tracking URI Formats
+
+- **SQLite (recommended)**: `sqlite:///mlflow.db`
+- **Local directory**: `file:///path/to/mlruns`
+- **HTTP server**: `http://localhost:5000`
+- **Databricks**: `databricks`
+
+### Example
+
+```bash
+# Set environment variables
+export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
+export MLFLOW_ARTIFACT_ROOT="/mnt/shared/artifacts"
+
+# Run training with MLflow tracking
+pixi run mlfx train --symbol XAUUSD --tf 1H
+```
+
+---
+
+## 3. Environment Variables Reference
+
+In addition to `config.toml`, MLFX supports environment variables for runtime configuration:
+
+### Project Environment Variables
+
+| Variable | Description |
+|---|---|
+| `MLFX_DATA_ROOT` | Override data directory |
+| `MLFX_OUTPUTS_ROOT` | Override outputs directory |
+
+### MLflow Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | `sqlite:///mlflow.db` | MLflow tracking server URI |
+| `MLFLOW_ARTIFACT_ROOT` | `outputs/mlflow_artifacts/` | Root directory for artifact storage |
+| `MLFLOW_REGISTRY_URI` | (same as tracking URI) | Model registry URI |
+
+---
+
+## 4. Complete `config.toml` example
 
 ```toml
 # MLFX Configuration
@@ -564,9 +617,9 @@ n_splits    = 3
 
 ---
 
-## 4. CLI flag reference
+## 5. CLI flag reference
 
-## 4.1. Shared flags
+## 5.1. Shared flags
 
 The main commands support:
 
@@ -577,7 +630,7 @@ The main commands support:
 
 ---
 
-## 4.2. `download`
+## 5.2. `download`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -593,7 +646,7 @@ The main commands support:
 
 ---
 
-## 4.3. `pipeline`
+## 5.3. `pipeline`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -610,7 +663,7 @@ The main commands support:
 
 ---
 
-## 4.4. `train`
+## 5.4. `train`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -627,7 +680,7 @@ The main commands support:
 
 ---
 
-## 4.5. `evaluate`
+## 5.5. `evaluate`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -647,7 +700,7 @@ The main commands support:
 
 ---
 
-## 4.6. `benchmark`
+## 5.6. `benchmark`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -664,7 +717,7 @@ The main commands support:
 
 ---
 
-## 4.7. `serve`
+## 5.7. `serve`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -674,7 +727,7 @@ The main commands support:
 
 ---
 
-## 4.8. `batch-predict`
+## 5.8. `batch-predict`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -684,7 +737,7 @@ The main commands support:
 
 ---
 
-## 4.9. `drift`
+## 5.9. `drift`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -697,7 +750,7 @@ The main commands support:
 
 ---
 
-## 4.10. `drift-retrain`
+## 5.10. `drift-retrain`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -717,7 +770,7 @@ The main commands support:
 
 ---
 
-## 4.11. `models`
+## 5.11. `models`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -727,7 +780,7 @@ The main commands support:
 
 ---
 
-## 4.12. `profiles`
+## 5.12. `profiles`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -735,7 +788,7 @@ The main commands support:
 
 ---
 
-## 4.13. `run-profile`
+## 5.13. `run-profile`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -747,7 +800,7 @@ The main commands support:
 
 ---
 
-## 4.14. `run-all`
+## 5.14. `run-all`
 
 | Flag | Default | Description |
 |---|---|---|
@@ -766,7 +819,7 @@ The main commands support:
 
 ---
 
-## 5. Configuration precedence
+## 6. Configuration precedence
 
 Priority order from highest to lowest:
 
@@ -784,9 +837,9 @@ Then the effective timeframe used at runtime will be `4H`.
 
 ---
 
-## 6. Things to remember when changing configuration
+## 7. Things to remember when changing configuration
 
-### 6.1. When should you edit the file?
+### 7.1. When should you edit the file?
 
 Edit `config.toml` when:
 
@@ -794,7 +847,7 @@ Edit `config.toml` when:
 - you want to define sensible defaults for yourself or your team
 - you want to reduce the length of commands you must type
 
-### 6.2. When should you override on the CLI?
+### 7.2. When should you override on the CLI?
 
 Override with CLI flags when:
 
@@ -802,7 +855,7 @@ Override with CLI flags when:
 - you want to compare multiple variants
 - you are debugging and want explicit control over the values in use
 
-### 6.3. Common mistakes
+### 7.3. Common mistakes
 
 - Forgetting that CLI values override file-based values
 - Editing `config.toml` but not actually running the command you think you are testing
@@ -812,7 +865,7 @@ Override with CLI flags when:
 
 ---
 
-## 7. Recommended starter configuration
+## 8. Recommended starter configuration
 
 If you are just getting started, this is a safe and easy set of values:
 
@@ -834,9 +887,9 @@ Why:
 
 ---
 
-## 8. Configuration examples by goal
+## 9. Configuration examples by goal
 
-### 8.1. Fast first run
+### 9.1. Fast first run
 
 ```toml
 [download]
@@ -852,7 +905,7 @@ backend = "mlf"
 label = "label_10"
 ```
 
-### 8.2. Multi-model comparison
+### 9.2. Multi-model comparison
 
 ```toml
 [train]
@@ -864,7 +917,7 @@ n_trials = 15
 n_splits = 5
 ```
 
-### 8.3. Larger timeframe experiments
+### 9.3. Larger timeframe experiments
 
 ```toml
 [pipeline]
@@ -874,7 +927,7 @@ tf = "4H"
 
 ---
 
-## 9. Post-change checklist
+## 10. Post-change checklist
 
 After changing `config.toml`, check:
 
@@ -888,7 +941,7 @@ After changing `config.toml`, check:
 
 ---
 
-## 10. See Also
+## 11. See Also
 
 - [Quickstart](../getting-started/QUICKSTART.md)
 - [Configuration and Usage Guide](../guides/USAGE_GUIDE.md)

@@ -162,12 +162,23 @@ cfg = TrainingConfig(
 
 ## Theo dõi thí nghiệm
 
-`mlfx.tracking.tracker` cung cấp giao diện thống nhất với 2 bộ máy theo dõi:
+Mô-đun `mlfx.tracking` cung cấp giao diện theo dõi thống nhất với tích hợp MLflow:
+
+```text
+mlfx/tracking/
+├── __init__.py       ← Các xuất public
+├── context.py        ← ExperimentContext, workflow_context cho lồng run
+└── tracker.py        ← BaseTracker, FileTracker, MlflowTracker, get_tracker()
+```
+
+### Các bộ máy theo dõi
 
 | Bộ máy | Điều kiện | Nơi lưu |
 |---|---|---|
-| `MlflowTracker` | đã cài `mlflow` | MLflow server hoặc `mlruns/` cục bộ |
+| `MlflowTracker` | đã cài `mlflow` | MLflow server (backend SQLite: `mlflow.db`) |
 | `FileTracker` | phương án dự phòng mặc định | `outputs/runs/{symbol}/{tf}/*.json` |
+
+### Cách sử dụng
 
 Tracking được gọi tự động bên trong `runner.run_training()`. Muốn tắt:
 
@@ -175,16 +186,54 @@ Tracking được gọi tự động bên trong `runner.run_training()`. Muốn 
 run_training(cfg, enable_tracking=False)
 ```
 
+Truy cập qua chương trình:
+
+```python
+from mlfx.tracking import get_tracker, experiment_context
+
+tracker = get_tracker()
+run_id = tracker.start_run("my_run", params={"lr": 0.01})
+tracker.log_metrics(run_id, {"f1": 0.72})
+tracker.end_run(run_id)
+
+# Context manager cho các run lồng nhau
+with experiment_context("experiment_name", symbol="XAUUSD", tf="1H"):
+    # Mã huấn luyện ở đây
+    pass
+```
+
 ---
 
 ## Sổ đăng ký mô hình
 
-`mlfx.registry.models.ModelRegistry` lưu metadata của mọi mô hình đã huấn luyện trong `outputs/models/registry.json`.
+Mô-đun `mlfx.registry` cung cấp hỗ trợ sổ đăng ký kép cho việc theo dõi các tệp đầu ra mô hình đã huấn luyện:
+
+```text
+mlfx/registry/
+├── __init__.py           ← Các xuất public, factory get_registry()
+├── models.py             ← ModelRegistry (dựa trên JSON)
+└── mlflow_registry.py    ← MlflowModelRegistry (dựa trên MLflow)
+```
+
+### Các backend sổ đăng ký
+
+| Backend | Hàm | Nơi lưu |
+|---|---|---|
+| `MlflowModelRegistry` | `get_registry(use_mlflow=True)` | MLflow Model Registry |
+| `ModelRegistry` | `get_registry(use_mlflow=False)` | `outputs/models/registry.json` |
+
+### Cách sử dụng
 
 ```python
 from mlfx.registry import get_registry
 
-reg = get_registry()
+# Dùng MLflow registry khi có sẵn (mặc định)
+reg = get_registry(use_mlflow=True)
+
+# Hoặc dùng JSON registry một cách rõ ràng
+reg = get_registry(use_mlflow=False)
+
+# Truy vấn mô hình tốt nhất
 best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
 ```
 
@@ -193,6 +242,8 @@ Kết quả trả về có dạng:
 ```json
 {"backend": "mlf", "artifact_path": "...", "metrics": {...}}
 ```
+
+Sổ đăng ký tự động quay về dùng JSON nếu MLflow chưa được cài đặt.
 
 ---
 
@@ -268,6 +319,23 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H
 pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
+### Tích hợp MLflow
+
+Cả `save_reference()` và `detect()` đều hỗ trợ ghi log tự động vào MLflow:
+
+```python
+from mlfx.monitoring.drift import DriftDetector, save_reference
+
+# Ghi mốc tham chiếu vào MLflow
+save_reference(train_df, feature_cols, "XAUUSD", "1H", log_to_mlflow=True)
+
+# Ghi kết quả phát hiện độ lệch vào MLflow
+detector = DriftDetector.load("XAUUSD", "1H")
+report = detector.detect(live_df, log_to_mlflow=True)
+```
+
+Khi MLflow có sẵn, các chỉ số độ lệch và artifact sẽ tự động được ghi vào thí nghiệm `mlfx/monitoring/drift`.
+
 ### Ghi nhật ký có cấu trúc
 
 Mọi log được xuất dưới dạng JSON lines khi chạy qua CLI:
@@ -309,6 +377,43 @@ Biến môi trường có thể ghi đè:
 - `MLFX_DATA_ROOT` — ghi đè thư mục dữ liệu
 - `MLFX_OUTPUTS_ROOT` — ghi đè thư mục outputs
 
+### Cấu hình MLflow
+
+Mô-đun `mlfx.config.mlflow` cung cấp cấu hình MLflow tập trung:
+
+```python
+from mlfx.config.mlflow import get_mlflow_config
+
+config = get_mlflow_config()
+config.setup_mlflow()  # Cấu hình MLflow với cài đặt dự án
+```
+
+**Các tùy chọn cấu hình:**
+
+| Cài đặt | Mặc định | Mô tả |
+|---|---|---|
+| Tracking URI | `sqlite:///mlflow.db` | URI máy chủ theo dõi MLflow |
+| Artifact Root | `outputs/mlflow_artifacts/` | Thư mục gốc cho artifact |
+| Experiment Prefix | `mlfx` | Tiền tố cho tên thí nghiệm |
+
+**Ghi đè bằng biến môi trường:**
+
+| Biến | Mô tả |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | Ghi đè URI máy chủ theo dõi (ví dụ: `http://localhost:5000`) |
+| `MLFLOW_ARTIFACT_ROOT` | Ghi đè đường dẫn lưu artifact |
+| `MLFLOW_REGISTRY_URI` | Ghi đè URI sổ đăng ký mô hình |
+
+**Quy ước đặt tên thí nghiệm:**
+
+```python
+# Tạo: mlfx/XAUUSD/1H/label_10
+experiment_name = config.experiment_name(symbol="XAUUSD", tf="1H", label="label_10")
+
+# Tạo: mlfx-XAUUSD-1H-label_10
+model_name = config.model_name(symbol="XAUUSD", tf="1H", label="label_10")
+```
+
 ---
 
 ## Điều phối quy trình làm việc
@@ -320,9 +425,10 @@ Mô-đun `mlfx.workflow/` cung cấp khả năng điều phối từ đầu đ�
 ```text
 mlfx/workflow/
 ├── __init__.py           ← Các xuất public
-├── run_all.py            ← Điều phối pipeline đầy đủ (download → evaluate)
-├── run_profile.py        ← Train + evaluate dựa trên hồ sơ
-└── types.py              ← Các kiểu kết quả quy trình
+├── results.py            ← StageResult, WorkflowResult, persist_workflow_result()
+├── stages.py             ← Các runner giai đoạn riêng lẻ (run_download, run_train, v.v.)
+├── stage.py              ← Tiện ích thực thi giai đoạn
+└── result.py             ← Các định nghĩa kiểu kết quả
 ```
 
 ### Các giai đoạn quy trình
@@ -341,6 +447,26 @@ Mỗi giai đoạn có thể bỏ qua độc lập qua các cờ:
 - `--skip-pipeline`
 - `--skip-train`
 - `--skip-evaluate`
+
+### Kết quả giai đoạn
+
+Mỗi giai đoạn trả về một `StageResult` với đầu ra có cấu trúc:
+
+```python
+from mlfx.workflow import StageResult, WorkflowResult, persist_workflow_result
+
+# Kết quả giai đoạn chứa trạng thái, thời lượng và đường dẫn đầu ra
+result: StageResult = run_train(symbol="XAUUSD", tf="1H", label="label_10")
+
+# Kết quả quy trình tổng hợp tất cả giai đoạn
+workflow_result = WorkflowResult(
+    stages=[download_result, pipeline_result, train_result, evaluate_result],
+    total_duration=120.5
+)
+
+# Lưu thành JSON để tích hợp CI/CD
+persist_workflow_result(workflow_result, path="outputs/runs/workflow_result.json")
+```
 
 ### Hệ thống hồ sơ
 

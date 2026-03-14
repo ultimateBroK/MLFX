@@ -532,10 +532,36 @@ docker-compose --profile tracking up mlflow
 
 Khi máy chủ đang chạy, hệ thống theo dõi sẽ tự động dùng MLflow thay cho bộ theo dõi bằng tệp.
 
+#### Cấu hình MLflow
+
+MLflow có thể được cấu hình qua biến môi trường:
+
+| Biến | Mô tả | Ví dụ |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | URI máy chủ theo dõi MLflow | `http://localhost:5000` |
+| `MLFLOW_ARTIFACT_ROOT` | Thư mục gốc cho artifact | `/data/mlflow_artifacts` |
+| `MLFLOW_REGISTRY_URI` | URI sổ đăng ký mô hình | `http://localhost:5000` |
+
+Ví dụ:
+
+```bash
+# Dùng máy chủ MLflow từ xa
+export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
+pixi run mlfx train --symbol XAUUSD --tf 1H
+
+# Dùng lưu trữ artifact tùy chỉnh
+export MLFLOW_ARTIFACT_ROOT="/mnt/shared/mlflow_artifacts"
+pixi run mlfx train --symbol XAUUSD --tf 1H
+```
+
+#### Backend mặc định
+
+Theo mặc định, MLflow dùng SQLite (`mlflow.db`) làm backend store, được khuyến nghị thay vì file-based store đã lỗi thời.
+
 Nếu cần cài MLflow:
 
 ```bash
-pip install mlflow
+pixi add mlflow
 ```
 
 ---

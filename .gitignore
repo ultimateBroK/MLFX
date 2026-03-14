@@ -18,6 +18,7 @@ logs/*
 /outputs
 /docs/storings
 /mlruns
+/mlflow.db
 
 # Tooling and test caches
 .pytest_cache/

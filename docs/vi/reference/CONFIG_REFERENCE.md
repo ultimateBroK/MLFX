@@ -438,7 +438,60 @@ pixi run mlfx run-profile --profile research
 
 ---
 
-## 3. Ví dụ `config.toml` hoàn chỉnh
+## 2.12. `[mlflow]` — Cấu hình MLflow (tùy chọn)
+
+MLflow được cấu hình chủ yếu qua biến môi trường thay vì `config.toml`. Điều này cho phép triển khai linh hoạt trên các môi trường khác nhau.
+
+### Biến môi trường
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | `sqlite:///mlflow.db` | URI máy chủ theo dõi MLflow |
+| `MLFLOW_ARTIFACT_ROOT` | `outputs/mlflow_artifacts/` | Thư mục gốc lưu artifact |
+| `MLFLOW_REGISTRY_URI` | (giống tracking URI) | URI sổ đăng ký mô hình |
+
+### Các định dạng Tracking URI được hỗ trợ
+
+- **SQLite (khuyến nghị)**: `sqlite:///mlflow.db`
+- **Thư mục cục bộ**: `file:///path/to/mlruns`
+- **Máy chủ HTTP**: `http://localhost:5000`
+- **Databricks**: `databricks`
+
+### Ví dụ
+
+```bash
+# Thiết lập biến môi trường
+export MLFLOW_TRACKING_URI="http://mlflow.example.com:5000"
+export MLFLOW_ARTIFACT_ROOT="/mnt/shared/artifacts"
+
+# Chạy huấn luyện với theo dõi MLflow
+pixi run mlfx train --symbol XAUUSD --tf 1H
+```
+
+---
+
+## 3. Tham chiếu biến môi trường
+
+Ngoài `config.toml`, MLFX hỗ trợ biến môi trường cho cấu hình thời gian chạy:
+
+### Biến môi trường dự án
+
+| Biến | Mô tả |
+|---|---|
+| `MLFX_DATA_ROOT` | Ghi đè thư mục dữ liệu |
+| `MLFX_OUTPUTS_ROOT` | Ghi đè thư mục outputs |
+
+### Biến môi trường MLflow
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | `sqlite:///mlflow.db` | URI máy chủ theo dõi MLflow |
+| `MLFLOW_ARTIFACT_ROOT` | `outputs/mlflow_artifacts/` | Thư mục gốc lưu artifact |
+| `MLFLOW_REGISTRY_URI` | (giống tracking URI) | URI sổ đăng ký mô hình |
+
+---
+
+## 4. Ví dụ `config.toml` hoàn chỉnh
 
 ```toml
 # Cấu hình MLFX
@@ -564,9 +617,9 @@ n_splits    = 3
 
 ---
 
-## 4. Tham chiếu các cờ dòng lệnh
+## 5. Tham chiếu các cờ dòng lệnh
 
-## 4.1. Cờ dùng chung
+## 5.1. Cờ dùng chung
 
 Các lệnh chính đều hỗ trợ:
 
@@ -577,7 +630,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.2. `download`
+## 5.2. `download`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -593,7 +646,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.3. `pipeline`
+## 5.3. `pipeline`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -610,7 +663,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.4. `train`
+## 5.4. `train`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -627,7 +680,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.5. `evaluate`
+## 5.5. `evaluate`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -647,7 +700,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.6. `benchmark`
+## 5.6. `benchmark`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -664,7 +717,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.7. `serve`
+## 5.7. `serve`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -674,7 +727,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.8. `batch-predict`
+## 5.8. `batch-predict`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -684,7 +737,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.9. `drift`
+## 5.9. `drift`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -697,7 +750,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.10. `drift-retrain`
+## 5.10. `drift-retrain`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -717,7 +770,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.11. `models`
+## 5.11. `models`
 
 | Cờ | Mặc định | Mô tả |
 |---|---|---|
@@ -727,7 +780,7 @@ Các lệnh chính đều hỗ trợ:
 
 ---
 
-## 4.12. `profiles`
+## 5.12. `profiles`
 
 Liệt kê tất cả hồ sơ quy trình có sẵn trong cấu hình.
 
@@ -737,7 +790,7 @@ Liệt kê tất cả hồ sơ quy trình có sẵn trong cấu hình.
 
 ---
 
-## 4.13. `run-profile`
+## 5.13. `run-profile`
 
 Chạy train + evaluate từ một hồ sơ cấu hình.
 
@@ -751,7 +804,7 @@ Chạy train + evaluate từ một hồ sơ cấu hình.
 
 ---
 
-## 4.14. `run-all`
+## 5.14. `run-all`
 
 Chạy toàn bộ quy trình từ đầu đến cuối: download → pipeline → train → evaluate.
 
@@ -772,7 +825,7 @@ Chạy toàn bộ quy trình từ đầu đến cuối: download → pipeline �
 
 ---
 
-## 5. Quy tắc ưu tiên cấu hình
+## 6. Quy tắc ưu tiên cấu hình
 
 Thứ tự ưu tiên từ cao xuống thấp:
 
@@ -790,9 +843,9 @@ thì khung thời gian thực tế được dùng sẽ là `4H`.
 
 ---
 
-## 6. Những điều nên nhớ khi chỉnh cấu hình
+## 7. Những điều nên nhớ khi chỉnh cấu hình
 
-### 6.1. Chỉnh trong file khi nào?
+### 7.1. Chỉnh trong file khi nào?
 
 Nên chỉnh `config.toml` khi:
 
@@ -800,7 +853,7 @@ Nên chỉnh `config.toml` khi:
 - Bạn muốn đặt sẵn giá trị mặc định cho bản thân hoặc cho nhóm
 - Bạn muốn giảm độ dài câu lệnh phải gõ
 
-### 6.2. Ghi đè trên dòng lệnh khi nào?
+### 7.2. Ghi đè trên dòng lệnh khi nào?
 
 Nên ghi đè bằng cờ dòng lệnh khi:
 
@@ -808,7 +861,7 @@ Nên ghi đè bằng cờ dòng lệnh khi:
 - Bạn muốn so sánh nhiều biến thể khác nhau
 - Bạn đang gỡ lỗi và cần kiểm soát chặt giá trị đang dùng
 
-### 6.3. Lỗi thường gặp
+### 7.3. Lỗi thường gặp
 
 - Quên rằng giá trị trên dòng lệnh sẽ ghi đè cấu hình trong file
 - Chỉnh `config.toml` nhưng lại không chạy đúng lệnh mong muốn
@@ -818,7 +871,7 @@ Nên ghi đè bằng cờ dòng lệnh khi:
 
 ---
 
-## 7. Gợi ý cấu hình cho người mới
+## 8. Gợi ý cấu hình cho người mới
 
 Nếu bạn mới bắt đầu, đây là bộ giá trị an toàn và dễ chạy:
 
@@ -840,9 +893,9 @@ Lý do:
 
 ---
 
-## 8. Ví dụ cấu hình theo mục tiêu
+## 9. Ví dụ cấu hình theo mục tiêu
 
-### 8.1. Muốn chạy nhanh lần đầu
+### 9.1. Muốn chạy nhanh lần đầu
 
 ```toml
 [download]
@@ -858,7 +911,7 @@ backend = "mlf"
 label = "label_10"
 ```
 
-### 8.2. Muốn so sánh nhiều mô hình
+### 9.2. Muốn so sánh nhiều mô hình
 
 ```toml
 [train]
@@ -870,7 +923,7 @@ n_trials = 15
 n_splits = 5
 ```
 
-### 8.3. Muốn thử khung thời gian lớn hơn
+### 9.3. Muốn thử khung thời gian lớn hơn
 
 ```toml
 [pipeline]
@@ -880,7 +933,7 @@ tf = "4H"
 
 ---
 
-## 9. Danh sách kiểm tra sau khi đổi cấu hình
+## 10. Danh sách kiểm tra sau khi đổi cấu hình
 
 Sau khi chỉnh `config.toml`, nên kiểm tra:
 
@@ -894,7 +947,7 @@ Sau khi chỉnh `config.toml`, nên kiểm tra:
 
 ---
 
-## 10. Xem thêm
+## 11. Xem thêm
 
 - [Bắt đầu nhanh](../getting-started/QUICKSTART.md)
 - [Hướng dẫn cấu hình và sử dụng](../guides/USAGE_GUIDE.md)

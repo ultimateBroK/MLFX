@@ -162,12 +162,23 @@ cfg = TrainingConfig(
 
 ## Experiment Tracking
 
-`mlfx.tracking.tracker` provides a unified interface with 2 backends:
+The `mlfx.tracking` module provides a unified tracking interface with MLflow integration:
+
+```
+mlfx/tracking/
+├── __init__.py       ← Public exports
+├── context.py        ← ExperimentContext, workflow_context for run nesting
+└── tracker.py        ← BaseTracker, FileTracker, MlflowTracker, get_tracker()
+```
+
+### Tracking Backends
 
 | Backend | Condition | Storage |
 |---|---|---|
-| `MlflowTracker` | `mlflow` installed | MLflow server or `mlruns/` local |
+| `MlflowTracker` | `mlflow` installed | MLflow server (SQLite backend: `mlflow.db`) |
 | `FileTracker` | Default fallback | `outputs/runs/{symbol}/{tf}/*.json` |
+
+### Usage
 
 Tracking is called automatically within `runner.run_training()`. To disable:
 
@@ -175,16 +186,54 @@ Tracking is called automatically within `runner.run_training()`. To disable:
 run_training(cfg, enable_tracking=False)
 ```
 
+For programmatic access:
+
+```python
+from mlfx.tracking import get_tracker, experiment_context
+
+tracker = get_tracker()
+run_id = tracker.start_run("my_run", params={"lr": 0.01})
+tracker.log_metrics(run_id, {"f1": 0.72})
+tracker.end_run(run_id)
+
+# Context manager for nested runs
+with experiment_context("experiment_name", symbol="XAUUSD", tf="1H"):
+    # Training code here
+    pass
+```
+
 ---
 
 ## Model Registry
 
-`mlfx.registry.models.ModelRegistry` stores metadata for all trained models in `outputs/models/registry.json`.
+The `mlfx.registry` module provides dual registry support for tracking trained model artifacts:
+
+```
+mlfx/registry/
+├── __init__.py           ← Public exports, get_registry() factory
+├── models.py             ← ModelRegistry (JSON-backed)
+└── mlflow_registry.py    ← MlflowModelRegistry (MLflow-backed)
+```
+
+### Registry Backends
+
+| Backend | Function | Storage |
+|---|---|---|
+| `MlflowModelRegistry` | `get_registry(use_mlflow=True)` | MLflow Model Registry |
+| `ModelRegistry` | `get_registry(use_mlflow=False)` | `outputs/models/registry.json` |
+
+### Usage
 
 ```python
 from mlfx.registry import get_registry
 
-reg = get_registry()
+# Use MLflow registry when available (default)
+reg = get_registry(use_mlflow=True)
+
+# Or use JSON registry explicitly
+reg = get_registry(use_mlflow=False)
+
+# Query best model
 best = reg.best_model(symbol="XAUUSD", tf="1H", metric="best_cv_f1_macro")
 ```
 
@@ -193,6 +242,8 @@ Returns:
 ```json
 {"backend": "mlf", "artifact_path": "...", "metrics": {...}}
 ```
+
+The registry automatically falls back to JSON if MLflow is not installed.
 
 ---
 
@@ -268,6 +319,23 @@ pixi run mlfx drift --symbol XAUUSD --tf 1H
 pixi run mlfx drift --symbol XAUUSD --tf 1H --threshold-ks 0.1 --threshold-psi 0.2
 ```
 
+### MLflow Integration
+
+Both `save_reference()` and `detect()` support automatic MLflow logging:
+
+```python
+from mlfx.monitoring.drift import DriftDetector, save_reference
+
+# Log reference snapshot to MLflow
+save_reference(train_df, feature_cols, "XAUUSD", "1H", log_to_mlflow=True)
+
+# Log drift detection results to MLflow
+detector = DriftDetector.load("XAUUSD", "1H")
+report = detector.detect(live_df, log_to_mlflow=True)
+```
+
+When MLflow is available, drift metrics and artifacts are automatically logged to the `mlfx/monitoring/drift` experiment.
+
 ### Structured Logging
 
 All logs are output as JSON lines when running through CLI:
@@ -309,6 +377,43 @@ Environment variable overrides:
 - `MLFX_DATA_ROOT` — override data directory
 - `MLFX_OUTPUTS_ROOT` — override outputs directory
 
+### MLflow Configuration
+
+The `mlfx.config.mlflow` module provides centralized MLflow configuration:
+
+```python
+from mlfx.config.mlflow import get_mlflow_config
+
+config = get_mlflow_config()
+config.setup_mlflow()  # Configure MLflow with project settings
+```
+
+**Configuration options:**
+
+| Setting | Default | Description |
+|---|---|---|
+| Tracking URI | `sqlite:///mlflow.db` | MLflow tracking server URI |
+| Artifact Root | `outputs/mlflow_artifacts/` | Root directory for artifacts |
+| Experiment Prefix | `mlfx` | Prefix for experiment names |
+
+**Environment variable overrides:**
+
+| Variable | Description |
+|---|---|---|
+| `MLFLOW_TRACKING_URI` | Override tracking server URI (e.g., `http://localhost:5000`) |
+| `MLFLOW_ARTIFACT_ROOT` | Override artifact storage path |
+| `MLFLOW_REGISTRY_URI` | Override model registry URI |
+
+**Experiment naming convention:**
+
+```python
+# Generates: mlfx/XAUUSD/1H/label_10
+experiment_name = config.experiment_name(symbol="XAUUSD", tf="1H", label="label_10")
+
+# Generates: mlfx-XAUUSD-1H-label_10
+model_name = config.model_name(symbol="XAUUSD", tf="1H", label="label_10")
+```
+
 ---
 
 ## Workflow Orchestration
@@ -320,9 +425,10 @@ The `mlfx.workflow/` module provides end-to-end orchestration capabilities:
 ```
 mlfx/workflow/
 ├── __init__.py           ← Public exports
-├── run_all.py            ← Full pipeline orchestration (download → evaluate)
-├── run_profile.py        ← Profile-based train + evaluate
-└── types.py              ← Workflow result types
+├── results.py            ← StageResult, WorkflowResult, persist_workflow_result()
+├── stages.py             ← Individual stage runners (run_download, run_train, etc.)
+├── stage.py              ← Stage execution utilities
+└── result.py             ← Result type definitions
 ```
 
 ### Workflow Stages
@@ -341,6 +447,26 @@ Each stage can be skipped independently via flags:
 - `--skip-pipeline`
 - `--skip-train`
 - `--skip-evaluate`
+
+### Stage Results
+
+Each stage returns a `StageResult` with structured output:
+
+```python
+from mlfx.workflow import StageResult, WorkflowResult, persist_workflow_result
+
+# Stage result contains status, duration, and output paths
+result: StageResult = run_train(symbol="XAUUSD", tf="1H", label="label_10")
+
+# Workflow result aggregates all stages
+workflow_result = WorkflowResult(
+    stages=[download_result, pipeline_result, train_result, evaluate_result],
+    total_duration=120.5
+)
+
+# Persist to JSON for CI/CD integration
+persist_workflow_result(workflow_result, path="outputs/runs/workflow_result.json")
+```
 
 ### Profiles System
 
