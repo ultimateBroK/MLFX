@@ -77,6 +77,16 @@ class ProjectPaths:
         """Directory for PyTorch Lightning logs."""
         return self.project_root / "lightning_logs"
 
+    @property
+    def mlruns_dir(self) -> Path:
+        """Directory for MLflow tracking store (local backend)."""
+        return self.project_root / "mlruns"
+
+    @property
+    def mlflow_artifacts_dir(self) -> Path:
+        """Directory for MLflow artifact storage (hybrid storage backend)."""
+        return self.outputs_root / "mlflow_artifacts"
+
     def raw_data_dir(self, symbol: str) -> Path:
         """Path to raw tick data directory for symbol."""
         return self.raw_root / symbol

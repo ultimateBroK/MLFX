@@ -243,6 +243,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Force retrain (overwrite saved model)",
     )
+    train.add_argument(
+        "--mlflow",
+        action="store_true",
+        default=False,
+        help="Enable MLflow experiment tracking and model registry",
+    )
 
     evaluate = subparsers.add_parser(
         "evaluate",
@@ -513,6 +519,86 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Force retrain all backends",
     )
+    benchmark.add_argument(
+        "--mlflow",
+        action="store_true",
+        default=False,
+        help="Enable MLflow experiment tracking for benchmark runs",
+    )
+
+    # MLflow commands
+    mlflow = subparsers.add_parser(
+        "mlflow",
+        help="MLflow integration commands",
+        description="Manage MLflow tracking server and migrate artifacts.",
+    )
+    mlflow_subparsers = mlflow.add_subparsers(
+        dest="mlflow_command",
+        required=True,
+        help="MLflow subcommands",
+    )
+
+    mlflow_ui = mlflow_subparsers.add_parser(
+        "ui",
+        help="Launch MLflow tracking UI",
+        description="Start the MLflow tracking server with web UI.",
+    )
+    mlflow_ui.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind the UI server (default: 127.0.0.1)",
+    )
+    mlflow_ui.add_argument(
+        "--port",
+        type=int,
+        default=5000,
+        help="Port for the UI server (default: 5000)",
+    )
+    mlflow_ui.add_argument(
+        "--backend-store-uri",
+        default=None,
+        help="URI for MLflow backend store (default: from config)",
+    )
+    mlflow_ui.add_argument(
+        "--default-artifact-root",
+        default=None,
+        help="Default artifact root path (default: from config)",
+    )
+
+    mlflow_migrate = mlflow_subparsers.add_parser(
+        "migrate",
+        help="Migrate existing artifacts to MLflow",
+        description="Migrate existing model artifacts and run metadata to MLflow.",
+    )
+    mlflow_migrate.add_argument(
+        "--symbol",
+        default=None,
+        help="Migrate only models for this symbol (default: all)",
+    )
+    mlflow_migrate.add_argument(
+        "--tf",
+        default=None,
+        help="Migrate only models for this timeframe (default: all)",
+    )
+    mlflow_migrate.add_argument(
+        "--backend",
+        default=None,
+        choices=_ALL_BACKENDS,
+        metavar="BACKEND",
+        help=f"Migrate only models for this backend. Options: {', '.join(_ALL_BACKENDS)} (default: all)",
+    )
+    mlflow_migrate.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Preview migration without making changes",
+    )
+    mlflow_migrate.add_argument(
+        "--register-models",
+        action="store_true",
+        default=True,
+        help="Register migrated models in MLflow Model Registry (default: True)",
+    )
 
     return parser
 
@@ -551,6 +637,14 @@ def _run_train_command(args: argparse.Namespace) -> StageResult:
         force=train_cfg["force"],
     )
 
+    # Enable MLflow if flag is set
+    use_mlflow = getattr(args, "mlflow", False)
+    if use_mlflow:
+        from mlfx.config.mlflow import MLflowConfig
+        config = MLflowConfig()
+        config.setup_mlflow()
+        console.print(f"[dim]MLflow tracking enabled: {config.tracking_uri}[/]")
+
     cfg = TrainingConfig(
         symbol=train_cfg["symbol"],
         tf=train_cfg["tf"],
@@ -563,6 +657,7 @@ def _run_train_command(args: argparse.Namespace) -> StageResult:
             "train_start": train_cfg["train_start"],
             "train_end": train_cfg["train_end"],
             "profile": args.profile,
+            "use_mlflow": use_mlflow,
         },
     )
     return run_train(cfg)
@@ -1051,6 +1146,170 @@ def main() -> None:
         if any(stage.status == "error" for stage in stages):
             sys.exit(1)
         return
+
+    if args.command == "mlflow":
+        _run_mlflow_command(args)
+        return
+
+
+def _run_mlflow_command(args: argparse.Namespace) -> None:
+    """Handle MLflow subcommands."""
+    if args.mlflow_command == "ui":
+        _run_mlflow_ui(args)
+    elif args.mlflow_command == "migrate":
+        _run_mlflow_migrate(args)
+
+
+def _run_mlflow_ui(args: argparse.Namespace) -> None:
+    """Launch MLflow tracking UI."""
+    try:
+        import mlflow  # type: ignore[import-not-found]  # noqa: PLC0415
+    except ImportError:
+        logging.getLogger(__name__).error(
+            "MLflow not installed. Run: pixi add mlflow"
+        )
+        return
+
+    from mlfx.config.mlflow import MLflowConfig
+
+    config = MLflowConfig()
+    
+    # Use resolved properties which have defaults
+    backend_store_uri = args.backend_store_uri or config.resolved_tracking_uri
+    artifact_root = args.default_artifact_root or str(config.resolved_artifact_root)
+
+    console.print(f"[bold cyan]Starting MLflow UI...[/]")
+    console.print(f"[dim]Backend store: {backend_store_uri}[/]")
+    console.print(f"[dim]Artifact root: {artifact_root}[/]")
+    console.print(f"[dim]URL: http://{args.host}:{args.port}[/]")
+
+    # Use subprocess to run mlflow server command
+    import subprocess
+    import sys
+
+    cmd = [
+        sys.executable,
+        "-m",
+        "mlflow",
+        "server",
+        "--backend-store-uri",
+        backend_store_uri,
+        "--default-artifact-root",
+        artifact_root,
+        "--host",
+        args.host,
+        "--port",
+        str(args.port),
+        "--serve-artifacts",
+    ]
+
+    try:
+        subprocess.run(cmd, check=True)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]MLflow UI stopped.[/]")
+
+
+def _run_mlflow_migrate(args: argparse.Namespace) -> None:
+    """Migrate existing artifacts to MLflow."""
+    try:
+        import mlflow  # type: ignore[import-not-found]  # noqa: PLC0415
+    except ImportError:
+        logging.getLogger(__name__).error(
+            "MLflow not installed. Run: pixi add mlflow"
+        )
+        return
+
+    from mlfx.config.mlflow import MLflowConfig
+    from mlfx.config.paths import DEFAULT_PATHS
+    from mlfx.registry.models import get_registry
+
+    config = MLflowConfig()
+    config.setup_mlflow()
+
+    console.print("[bold cyan]Migrating artifacts to MLflow...[/]")
+
+    # Get existing models from JSON registry
+    json_registry = get_registry(use_mlflow=False)
+    entries = json_registry.list_models(
+        symbol=args.symbol,
+        tf=args.tf,
+        backend=args.backend,
+    )
+
+    if not entries:
+        console.print("[yellow]No models found to migrate.[/yellow]")
+        return
+
+    console.print(f"[dim]Found {len(entries)} models to migrate[/]")
+
+    if args.dry_run:
+        console.print("[yellow]DRY RUN - No changes will be made[/]")
+        for entry in entries:
+            console.print(
+                f"  Would migrate: {entry.get('symbol')}/{entry.get('tf')}/"
+                f"{entry.get('backend')} - {entry.get('run_id', 'N/A')}"
+            )
+        return
+
+    # Get MLflow registry for registration
+    mlflow_registry = get_registry(use_mlflow=True)
+    migrated = 0
+    errors = 0
+
+    for entry in entries:
+        symbol = entry.get("symbol")
+        tf = entry.get("tf")
+        backend = entry.get("backend")
+        run_id = entry.get("run_id", "unknown")
+        accuracy = entry.get("accuracy")
+
+        try:
+            with console.status(f"[bold green]Migrating {symbol}/{tf}/{backend}..."):
+                # Create experiment and run
+                experiment_name = config.experiment_name(symbol, tf, backend)
+                mlflow.set_experiment(experiment_name)
+
+                with mlflow.start_run(run_name=f"migrated_{run_id}") as run:
+                    # Log metadata
+                    mlflow.log_param("symbol", symbol)
+                    mlflow.log_param("tf", tf)
+                    mlflow.log_param("backend", backend)
+                    mlflow.log_param("migrated_from", run_id)
+
+                    if accuracy is not None:
+                        mlflow.log_metric("accuracy", accuracy)
+
+                    # Log model artifact
+                    model_path = DEFAULT_PATHS.model_path(
+                        symbol=symbol,
+                        tf=tf,
+                        label="label_5",  # Default label
+                        backend=backend,
+                    )
+
+                    if model_path.exists():
+                        mlflow.log_artifact(str(model_path), artifact_path="model")
+                        artifact_uri = mlflow.get_artifact_uri("model")
+
+                        # Register model
+                        if args.register_models:
+                            model_name = config.model_name(symbol, tf, backend)
+                            mlflow.register_model(
+                                model_uri=artifact_uri,
+                                name=model_name,
+                            )
+
+                    mlflow.end_run()
+
+            migrated += 1
+            console.print(f"  [green]✓[/] Migrated: {symbol}/{tf}/{backend}")
+
+        except Exception as exc:  # noqa: BLE001
+            errors += 1
+            console.print(f"  [red]✗[/] Failed: {symbol}/{tf}/{backend} - {exc}")
+
+    console.print()
+    console.print(f"[bold]Migration complete:[/] {migrated} migrated, {errors} errors")
 
 
 _resolve_train_command_config = resolve_train_config

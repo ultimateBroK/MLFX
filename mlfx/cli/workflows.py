@@ -253,6 +253,14 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
     train_end = resolved["train_end"]
     backends = resolved["backends"]
 
+    # Enable MLflow if flag is set
+    use_mlflow = getattr(args, "mlflow", False)
+    if use_mlflow:
+        from mlfx.config.mlflow import MLflowConfig
+        config = MLflowConfig()
+        config.setup_mlflow()
+        console.print(f"[dim]MLflow tracking enabled: {config.tracking_uri}[/]")
+
     print_resolved_benchmark_summary(
         profile=args.profile,
         symbol=symbol,
@@ -289,9 +297,13 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
                     "train_start": train_start,
                     "train_end": train_end,
                     "profile": args.profile,
+                    "use_mlflow": use_mlflow,
                 },
             )
-            metrics = run_training(cfg, enable_tracking=False, enable_registry=False)
+            metrics = run_training(cfg, enable_tracking=not use_mlflow, enable_registry=not use_mlflow)
+            if use_mlflow:
+                # MLflow tracking handles its own metrics
+                pass
             elapsed = time.perf_counter() - t0
             row = {
                 "backend": backend,
