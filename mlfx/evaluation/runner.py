@@ -174,11 +174,13 @@ def run_model_backtest(
     train_start: str | None = None,
     train_end: str | None = None,
     *,
+    backend: str | None = None,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, str] | None:
     """Run backtest on model predictions (not labels).
 
-    Loads the best registered model, predicts on the dataset, then backtests.
+    Loads the best registered model for the given backend (or any backend if None),
+    predicts on the dataset, then backtests.
     Returns None if no model is registered or inference fails.
     """
     df = load_labelled_dataset(
@@ -194,7 +196,7 @@ def run_model_backtest(
 
     from mlfx.serving.core import resolve_and_predict
 
-    result = resolve_and_predict(symbol, tf, label, df)
+    result = resolve_and_predict(symbol, tf, label, df, backend=backend)
     if result is None:
         logger.warning("No registered model for %s/%s/%s — run train first", symbol, tf, label)
         return None

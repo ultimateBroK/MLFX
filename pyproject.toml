@@ -10,7 +10,7 @@ dependencies = [
     "pydantic>=2.12.5,<3",
     "uvicorn>=0.41.0,<0.42",
     "puremagic>=2.0.0,<3",
-    "pydantic-settings>=2.0.0,<3",
+    "pydantic-settings>=2.0.0,<3", "mlflow>=3.10.1,<4",
 ]
 description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "MLFX"

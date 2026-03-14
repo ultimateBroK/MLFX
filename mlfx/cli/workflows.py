@@ -52,20 +52,22 @@ def run_profile_command(args: argparse.Namespace) -> None:
 
     console.rule(f"[bold cyan]MLFX Run Profile — {args.profile}[/]")
 
+    # Resolve train config upfront to get backend for evaluation
+    train_args = argparse.Namespace(
+        profile=args.profile,
+        symbol=None,
+        tf=None,
+        label=None,
+        backend=None,
+        n_trials=None,
+        n_splits=None,
+        train_start=None,
+        train_end=None,
+        force=None,
+    )
+    train_cfg = resolve_train_command_config(train_args)
+
     if not args.skip_train:
-        train_args = argparse.Namespace(
-            profile=args.profile,
-            symbol=None,
-            tf=None,
-            label=None,
-            backend=None,
-            n_trials=None,
-            n_splits=None,
-            train_start=None,
-            train_end=None,
-            force=None,
-        )
-        train_cfg = resolve_train_command_config(train_args)
         print_resolved_train_summary(
             profile=args.profile,
             symbol=train_cfg["symbol"],
@@ -134,6 +136,9 @@ def run_profile_command(args: argparse.Namespace) -> None:
         )
         console.print("[yellow]Step:[/] evaluate")
 
+        # Use the same backend as defined in the profile's train section
+        eval_backend = train_cfg["backend"]
+
         eval_kw = dict(
             symbol=eval_cfg["symbol"],
             tf=eval_cfg["tf"],
@@ -146,6 +151,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
             slippage=eval_cfg["slippage"],
             train_start=eval_cfg["eval_start"],
             train_end=eval_cfg["eval_end"],
+            backend=eval_backend,
         )
 
         if eval_cfg["use_labels"]:

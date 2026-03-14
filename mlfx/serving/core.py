@@ -20,10 +20,17 @@ def resolve_and_predict(
     label: str,
     features: pl.DataFrame | dict[str, float],
     *,
+    backend: str | None = None,
     registry: ModelRegistry | None = None,
     model_cache: dict[str, Any] | None = None,
 ) -> tuple[np.ndarray, str, dict[str, Any]] | None:
     """Resolve model, load, validate, predict.
+
+    Parameters
+    ----------
+    backend:
+        Optional backend filter. When provided, only models from this backend
+        are considered. When None, the best model across all backends is used.
 
     Returns (predictions, artifact_path, entry) on success, or None on failure.
     """
@@ -32,7 +39,7 @@ def resolve_and_predict(
 
         registry = get_registry()
 
-    entry = registry.best_model(symbol=symbol, tf=tf, label=label)
+    entry = registry.best_model(symbol=symbol, tf=tf, label=label, backend=backend)
     if entry is None:
         return None
 

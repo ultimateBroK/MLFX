@@ -63,11 +63,17 @@ def get_backend_runner(backend: str) -> BackendRunner:
     return getattr(module, symbol_name)
 
 
+# Keys that are used for tracking/logging only and should not be passed to backend runners.
+_TRACKING_ONLY_KEYS = frozenset({"profile"})
+
+
 def get_runner_kwargs(config: "TrainingConfig") -> dict[str, Any]:
     """Build kwargs for a backend from config, including backend-specific params.
 
     Merge order (later wins): base params → backend defaults → user ``extra``.
     This ensures values in ``TrainingConfig.extra`` always override backend defaults.
+
+    Tracking-only keys (e.g., ``profile``) are filtered out before passing to runners.
     """
     base: dict[str, Any] = {
         "symbol": config.symbol,
@@ -81,6 +87,7 @@ def get_runner_kwargs(config: "TrainingConfig") -> dict[str, Any]:
     extra_fn = BACKEND_EXTRA_KWARGS.get(config.backend)
     if extra_fn is not None:
         base.update(extra_fn(config))
-    # User-supplied extra always wins over backend defaults.
-    base.update(config.extra)
+    # User-supplied extra always wins over backend defaults, but filter tracking-only keys.
+    filtered_extra = {k: v for k, v in config.extra.items() if k not in _TRACKING_ONLY_KEYS}
+    base.update(filtered_extra)
     return base
