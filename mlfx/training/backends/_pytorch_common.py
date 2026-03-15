@@ -51,7 +51,7 @@ from typing import Any, Callable
 import numpy as np
 import optuna
 import torch
-from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.feature_selection import SelectKBest, f_classif, VarianceThreshold
 from sklearn.model_selection import TimeSeriesSplit
 
 from mlfx.training.backends._sequence_utils import create_sequences
@@ -110,11 +110,21 @@ def run_pytorch_hpo(
     # ------------------------------------------------------------------
     # 1. Feature selection
     # ------------------------------------------------------------------
-    logger.info("Applying feature selection (top %d of %d)", top_k_features, X.shape[1])
-    k = min(top_k_features, X.shape[1])
+    # First, remove constant features (zero variance) to avoid sklearn warnings
+    variance_selector = VarianceThreshold(threshold=0.0)
+    X_var = variance_selector.fit_transform(X)
+    non_constant_mask = variance_selector.get_support()
+    feature_cols_non_constant = [f for i, f in enumerate(feature_cols) if non_constant_mask[i]]
+    n_removed = len(feature_cols) - len(feature_cols_non_constant)
+    if n_removed > 0:
+        logger.debug("Removed %d constant features before selection", n_removed)
+
+    # Then apply SelectKBest on non-constant features
+    logger.info("Applying feature selection (top %d of %d)", top_k_features, X_var.shape[1])
+    k = min(top_k_features, X_var.shape[1])
     selector = SelectKBest(score_func=f_classif, k=k)
-    X_sel: np.ndarray = selector.fit_transform(X, y)
-    selected_features = [f for i, f in enumerate(feature_cols) if selector.get_support()[i]]
+    X_sel: np.ndarray = selector.fit_transform(X_var, y)
+    selected_features = [f for i, f in enumerate(feature_cols_non_constant) if selector.get_support()[i]]
 
     # ------------------------------------------------------------------
     # 2. Optuna HPO
