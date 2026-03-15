@@ -27,14 +27,14 @@ class TestMlfxResampling:
 
 class TestMlfxIndicators:
     def test_killzone_module_builds_session_features(self, sample_ohlcv):
-        from mlfx.features.indicators.killzone import add_killzone_features
+        from mlfx.features.technical.killzone import add_killzone_features
 
         result = add_killzone_features(sample_ohlcv)
         assert "in_london" in result.columns
         assert "d_open" in result.columns
 
     def test_sr_pp_module_builds_support_resistance_features(self, sample_ohlcv):
-        from mlfx.features.indicators.sr_pp import add_sr_pp_features
+        from mlfx.features.technical.sr_pp import add_sr_pp_features
 
         result = add_sr_pp_features(sample_ohlcv)
         assert "sr_resist_1bar" in result.columns

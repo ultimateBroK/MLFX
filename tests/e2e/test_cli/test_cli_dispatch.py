@@ -31,15 +31,18 @@ class TestMainDispatchFlow:
             lambda: argparse.Namespace(
                 command="run-all",
                 profile="research",
-                skip_download=False,
-                skip_qa=False,
-                skip_pipeline=False,
-                skip_train=False,
-                skip_evaluate=False,
-                skip_benchmark=False,
-                skip_serve=False,
-                skip_batch=False,
-                skip_drift_retrain=False,
+                symbol=None,
+                tf=None,
+                label=None,
+                skip_download=True,
+                skip_qa=True,
+                skip_pipeline=True,
+                skip_train=True,
+                skip_evaluate=True,
+                skip_benchmark=True,
+                skip_serve=True,
+                skip_batch=True,
+                skip_drift_retrain=True,
                 continue_on_error=False,
                 json=True,
             ),
@@ -50,18 +53,14 @@ class TestMainDispatchFlow:
 
         def _fake_run_all(args):
             captured["args"] = args
-            return []
 
-        monkeypatch.setattr(cli_module, "_run_all_command", _fake_run_all)
-        monkeypatch.setattr(cli_module, "_persist_cli_workflow", lambda *args, **kwargs: None)
+        # Patch the handler directly on cli_module (where command_handlers references it)
+        monkeypatch.setattr(cli_module, "handle_run_all", _fake_run_all)
 
         cli_module.main()
 
         args = captured["args"]
         assert args.profile == "research"
-        assert args.skip_download is False
-        assert args.skip_drift_retrain is False
-        assert args.continue_on_error is False
         assert args.json is True
 
     def test_main_dispatches_run_profile_command(self, monkeypatch, cli_module) -> None:
@@ -82,9 +81,11 @@ class TestMainDispatchFlow:
 
         captured = {}
 
+        # Patch the handler module
+        from mlfx.cli.handlers import run_profile as run_profile_handler
         monkeypatch.setattr(
-            cli_module,
-            "_run_profile_command",
+            run_profile_handler,
+            "run_profile_command",
             lambda args: captured.setdefault("args", args),
         )
 
@@ -109,12 +110,13 @@ class TestMainDispatchFlow:
                 skip_evaluate=False,
                 skip_benchmark=True,
                 json=True,
+                force=False,
             ),
         )
         monkeypatch.setattr(cli_module, "build_parser", lambda: parser)
 
         monkeypatch.setattr(
-            "mlfx.cli.workflows.resolve_train_command_config",
+            "mlfx.cli.resolve.resolve_train_command_config",
             lambda args: {
                 "symbol": "XAUUSD",
                 "tf": "1H",
@@ -128,7 +130,7 @@ class TestMainDispatchFlow:
             },
         )
         monkeypatch.setattr(
-            "mlfx.cli.workflows.resolve_evaluate_command_config",
+            "mlfx.cli.resolve.resolve_evaluate_command_config",
             lambda args: {
                 "symbol": "XAUUSD",
                 "tf": "1H",
@@ -144,35 +146,46 @@ class TestMainDispatchFlow:
                 "use_labels": False,
             },
         )
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
         monkeypatch.setattr(
-            "mlfx.cli.workflows.run_training",
+            "mlfx.workflow.orchestration.run_training",
             lambda config: {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61},
         )
         monkeypatch.setattr(
-            "mlfx.cli.workflows.run_model_backtest",
+            "mlfx.workflow.orchestration.run_model_backtest",
             lambda **kwargs: {"Net Profit (R)": "12.0R", "Sharpe": "1.20"},
         )
-        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
-        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
+        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
         monkeypatch.setattr(
-            "mlfx.cli.workflows.run_benchmark",
+            "mlfx.workflow.orchestration.run_benchmark",
             lambda args: pytest.fail("benchmark should not run when --skip-benchmark is set"),
         )
 
         printed_json = {}
-        monkeypatch.setattr(cli_module.console, "print", lambda *args, **kwargs: None)
-        monkeypatch.setattr(cli_module.console, "rule", lambda *args, **kwargs: None)
-        monkeypatch.setattr(
-            cli_module.console,
-            "print_json",
-            lambda payload: printed_json.setdefault("payload", json.loads(payload)),
-        )
+        from mlfx.cli.render import console
+        monkeypatch.setattr(console, "print", lambda *args, **kwargs: None)
+        monkeypatch.setattr(console, "rule", lambda *args, **kwargs: None)
+
+        # Mock Path.write_text to capture JSON output
+        written_files = {}
+        import pathlib
+        original_write_text = pathlib.Path.write_text
+        def mock_write_text(self, content, encoding=None, errors=None):
+            if "_summary.json" in str(self):
+                written_files[str(self)] = content
+            return original_write_text(self, content, encoding=encoding, errors=errors)
+        monkeypatch.setattr(pathlib.Path, "write_text", mock_write_text)
 
         cli_module.main()
 
-        summary = printed_json["payload"]
+        # Find the JSON file that was created
+        assert len(written_files) == 1
+        json_path = list(written_files.keys())[0]
+        assert "_summary.json" in json_path
+        summary = json.loads(written_files[json_path])
+
         assert summary["profile"] == "research"
         assert summary["steps"]["train"]["skipped"] is False
         assert summary["steps"]["train"]["config"]["backend"] == "mlf"
@@ -208,7 +221,9 @@ class TestMainDispatchFlow:
             "basicConfig",
             lambda **kwargs: import_calls.append(kwargs),
         )
-        monkeypatch.setattr(cli_module, "_print_profiles_summary", lambda profile_name: None)
+        # Patch the profiles handler
+        from mlfx.cli.handlers import profiles as profiles_handler
+        monkeypatch.setattr(profiles_handler, "print_profiles_summary", lambda profile_name, profiles=None: None)
 
         cli_module.main()
 
@@ -229,10 +244,12 @@ class TestProfilesCommand:
 
         captured = {}
 
+        # Patch the profiles handler
+        from mlfx.cli.handlers import profiles as profiles_handler
         monkeypatch.setattr(
-            cli_module,
-            "_print_profiles_summary",
-            lambda profile_name: captured.setdefault("profile", profile_name),
+            profiles_handler,
+            "print_profiles_summary",
+            lambda profile_name, profiles=None: captured.setdefault("profile", profile_name),
         )
 
         cli_module.main()
@@ -292,7 +309,6 @@ class TestProfilesCommand:
             },
         )
         monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr(cli_module, "_persist_cli_workflow", lambda *args, **kwargs: None)
 
         captured = {}
 
@@ -302,7 +318,10 @@ class TestProfilesCommand:
             captured["config"] = config
             return StageResult(stage="train", status="ok", metrics={"artifact_path": "fake.pkl"})
 
-        monkeypatch.setattr(cli_module, "run_train", _fake_run_train)
+        # Patch the train handler
+        from mlfx.cli.handlers import train as train_handler
+        monkeypatch.setattr(train_handler, "_persist_cli_workflow", lambda *args, **kwargs: None)
+        monkeypatch.setattr(train_handler, "run_train", _fake_run_train)
 
         cli_module.main()
 

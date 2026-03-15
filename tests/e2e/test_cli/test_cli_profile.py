@@ -69,37 +69,42 @@ class TestRunProfileCommand:
         captured_training = {}
         benchmark_calls = []
 
-        monkeypatch.setattr("mlfx.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
-        monkeypatch.setattr("mlfx.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
+        monkeypatch.setattr("mlfx.cli.resolve.resolve_train_command_config", lambda args: train_cfg)
+        monkeypatch.setattr("mlfx.cli.resolve.resolve_evaluate_command_config", lambda args: eval_cfg)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
         monkeypatch.setattr(
-            "mlfx.cli.workflows.run_model_backtest",
+            "mlfx.workflow.orchestration.run_model_backtest",
             lambda **kwargs: {"Net Profit (R)": "12.0R", "Win Rate": "55%"},
         )
-        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
 
         def _fake_run_training(config):
             captured_training["config"] = config
             return {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61}
 
-        monkeypatch.setattr("mlfx.cli.workflows.run_training", _fake_run_training)
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_training", _fake_run_training)
 
         def _fake_run_benchmark(args):
             benchmark_calls.append(args)
             return {"results": [{"backend": "mlf", "status": "OK"}]}
 
-        monkeypatch.setattr("mlfx.cli.workflows.run_benchmark", _fake_run_benchmark)
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_benchmark", _fake_run_benchmark)
 
-        printed_json = {}
+        # Mock Path.write_text to capture JSON output
+        import pathlib
+        written_files = {}
+        original_write_text = pathlib.Path.write_text
+        def mock_write_text(self, content, encoding=None, errors=None):
+            if "_summary.json" in str(self):
+                written_files[str(self)] = content
+            return original_write_text(self, content, encoding=encoding, errors=errors)
+        monkeypatch.setattr(pathlib.Path, "write_text", mock_write_text)
 
-        def _fake_print_json(payload: str):
-            printed_json["payload"] = json.loads(payload)
-
-        monkeypatch.setattr(cli_module.console, "print_json", _fake_print_json)
-        monkeypatch.setattr(cli_module.console, "print", lambda *args, **kwargs: None)
-        monkeypatch.setattr(cli_module.console, "rule", lambda *args, **kwargs: None)
+        from mlfx.cli.render import console
+        monkeypatch.setattr(console, "print", lambda *args, **kwargs: None)
+        monkeypatch.setattr(console, "rule", lambda *args, **kwargs: None)
 
         args = argparse.Namespace(
             profile="research",
@@ -107,6 +112,7 @@ class TestRunProfileCommand:
             skip_evaluate=False,
             skip_benchmark=False,
             json=True,
+            force=False,
         )
 
         cli_module._run_profile_command(args)
@@ -126,7 +132,12 @@ class TestRunProfileCommand:
         assert len(benchmark_calls) == 1
         assert benchmark_calls[0].profile == "research"
 
-        summary = printed_json["payload"]
+        # Find the JSON file that was created
+        assert len(written_files) == 1
+        json_path = list(written_files.keys())[0]
+        assert "_summary.json" in json_path
+        summary = json.loads(written_files[json_path])
+
         assert summary["profile"] == "research"
         assert summary["steps"]["train"]["skipped"] is False
         assert summary["steps"]["train"]["config"]["backend"] == "mlf"
@@ -165,22 +176,23 @@ class TestRunProfileCommand:
 
         benchmark_called = {"value": False}
 
-        monkeypatch.setattr("mlfx.cli.workflows.resolve_train_command_config", lambda args: train_cfg)
-        monkeypatch.setattr("mlfx.cli.workflows.resolve_evaluate_command_config", lambda args: eval_cfg)
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_train_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.run_training", lambda config: {"artifact_path": "fake.pkl"})
-        monkeypatch.setattr("mlfx.cli.workflows.run_full_eval", lambda **kwargs: {"Net Profit (R)": "9.0R"})
-        monkeypatch.setattr("mlfx.cli.workflows.run_model_backtest", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.cli.workflows.get_baseline_metrics", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.resolve.resolve_train_command_config", lambda args: train_cfg)
+        monkeypatch.setattr("mlfx.cli.resolve.resolve_evaluate_command_config", lambda args: eval_cfg)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_training", lambda config: {"artifact_path": "fake.pkl"})
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "9.0R"})
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_model_backtest", lambda **kwargs: None)
+        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: None)
 
         def _unexpected_benchmark(args):
             benchmark_called["value"] = True
             return {}
 
-        monkeypatch.setattr("mlfx.cli.workflows.run_benchmark", _unexpected_benchmark)
-        monkeypatch.setattr(cli_module.console, "print", lambda *args, **kwargs: None)
-        monkeypatch.setattr(cli_module.console, "rule", lambda *args, **kwargs: None)
+        monkeypatch.setattr("mlfx.workflow.orchestration.run_benchmark", _unexpected_benchmark)
+        from mlfx.cli.render import console
+        monkeypatch.setattr(console, "print", lambda *args, **kwargs: None)
+        monkeypatch.setattr(console, "rule", lambda *args, **kwargs: None)
 
         args = argparse.Namespace(
             profile="research",
@@ -188,6 +200,7 @@ class TestRunProfileCommand:
             skip_evaluate=False,
             skip_benchmark=True,
             json=False,
+            force=False,
         )
 
         cli_module._run_profile_command(args)

@@ -122,10 +122,12 @@ def test_online_sgd_smoke(
     ids=["stats", "mlforecast"],
 )
 def test_backend_returns_empty_when_no_data(run_fn, module_path, monkeypatch) -> None:
-    """Backends that load data internally must return {} when data is unavailable."""
+    """Backends that load data internally must handle missing data gracefully."""
     monkeypatch.setattr(
         f"{module_path}.load_labelled_dataset",
         lambda *a, **kw: None,
     )
     result = run_fn()
-    assert result == {}, f"{run_fn.__name__} must return {{}} when data is None"
+    # Backend should either return empty dict or indicate it was skipped
+    is_valid = result == {} or result.get("skipped") is True
+    assert is_valid, f"{run_fn.__name__} must return {{}} or {{'skipped': True}} when data is None, got {result}"

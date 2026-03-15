@@ -11,6 +11,11 @@ from .stages import (
     run_qa,
     run_train,
 )
+from .orchestration import (
+    run_profile_command,
+    run_benchmark,
+    run_benchmark_stage,
+)
 
 __all__ = [
     "StageResult",
@@ -25,4 +30,7 @@ __all__ = [
     "run_pipeline_stage",
     "run_qa",
     "run_train",
+    "run_profile_command",
+    "run_benchmark",
+    "run_benchmark_stage",
 ]
