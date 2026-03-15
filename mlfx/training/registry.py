@@ -64,7 +64,7 @@ def get_backend_runner(backend: str) -> BackendRunner:
 
 
 # Keys that are used for tracking/logging only and should not be passed to backend runners.
-_TRACKING_ONLY_KEYS = frozenset({"profile"})
+_TRACKING_ONLY_KEYS = frozenset({"profile", "use_mlflow"})
 
 
 def get_runner_kwargs(config: "TrainingConfig") -> dict[str, Any]:

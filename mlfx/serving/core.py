@@ -140,7 +140,7 @@ def _resolve_from_json_registry(
 ) -> tuple[np.ndarray, str, dict[str, Any]] | None:
     """Resolve model from JSON registry (original implementation)."""
     if registry is None:
-        from mlfx.registry.models import get_registry  # noqa: PLC0415
+        from mlfx.registry import get_registry  # noqa: PLC0415
 
         registry = get_registry(use_mlflow=False)
 

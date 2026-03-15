@@ -102,6 +102,47 @@ def persist_workflow_result(
     return out_path
 
 
+def _log_workflow_run_content(
+    mlflow: Any, result: WorkflowResult, json_path: Path
+) -> None:
+    """Log workflow content to MLflow run."""
+    # Log workflow-level params
+    mlflow.log_params({
+        "workflow": result.workflow,
+        "invocation_id": result.invocation_id,
+        "status": result.status,
+    })
+
+    # Log workflow-level metrics
+    mlflow.log_metrics({
+        "elapsed_seconds": result.elapsed_seconds,
+        "n_stages": len(result.stages),
+        "n_successful": sum(1 for s in result.stages if s.status == "ok"),
+        "n_failed": sum(1 for s in result.stages if s.status == "error"),
+        "n_skipped": sum(1 for s in result.stages if s.status == "skipped"),
+    })
+
+    # Log the JSON artifact
+    mlflow.log_artifact(str(json_path))
+
+    # Log stage-level metrics
+    for stage in result.stages:
+        stage_prefix = f"stage.{stage.stage}"
+
+        # Log stage params as tags
+        for key, value in stage.params.items():
+            mlflow.set_tag(f"{stage_prefix}.{key}", str(value))
+
+        # Log stage metrics
+        for key, value in stage.metrics.items():
+            if isinstance(value, (int, float)):
+                mlflow.log_metric(f"{stage_prefix}.{key}", float(value))
+
+        # Log stage artifacts as tags (paths)
+        for key, path in stage.artifacts.items():
+            mlflow.set_tag(f"{stage_prefix}.artifact.{key}", path)
+
+
 def _log_workflow_to_mlflow(result: WorkflowResult, json_path: Path) -> None:
     """Log workflow result to MLflow."""
     import logging  # noqa: PLC0415
@@ -123,46 +164,23 @@ def _log_workflow_to_mlflow(result: WorkflowResult, json_path: Path) -> None:
         experiment_name = f"{config.experiment_prefix}/workflows/{result.workflow}"
         mlflow.set_experiment(experiment_name)
 
-        # Start a run for this workflow invocation
-        with mlflow.start_run(
-            run_name=f"{result.workflow}_{result.invocation_id}",
-            tags={"workflow": result.workflow, "invocation_id": result.invocation_id},
-        ):
-            # Log workflow-level params
-            mlflow.log_params({
-                "workflow": result.workflow,
-                "invocation_id": result.invocation_id,
-                "status": result.status,
-            })
-
-            # Log workflow-level metrics
-            mlflow.log_metrics({
-                "elapsed_seconds": result.elapsed_seconds,
-                "n_stages": len(result.stages),
-                "n_successful": sum(1 for s in result.stages if s.status == "ok"),
-                "n_failed": sum(1 for s in result.stages if s.status == "error"),
-                "n_skipped": sum(1 for s in result.stages if s.status == "skipped"),
-            })
-
-            # Log the JSON artifact
-            mlflow.log_artifact(str(json_path))
-
-            # Log stage-level metrics
-            for stage in result.stages:
-                stage_prefix = f"stage.{stage.stage}"
-
-                # Log stage params as tags
-                for key, value in stage.params.items():
-                    mlflow.set_tag(f"{stage_prefix}.{key}", str(value))
-
-                # Log stage metrics
-                for key, value in stage.metrics.items():
-                    if isinstance(value, (int, float)):
-                        mlflow.log_metric(f"{stage_prefix}.{key}", float(value))
-
-                # Log stage artifacts as tags (paths)
-                for key, path in stage.artifacts.items():
-                    mlflow.set_tag(f"{stage_prefix}.artifact.{key}", path)
+        # Check if there's already an active run
+        active_run = mlflow.active_run()
+        if active_run:
+            # Use nested run if there's already an active run
+            with mlflow.start_run(
+                run_name=f"{result.workflow}_{result.invocation_id}",
+                tags={"workflow": result.workflow, "invocation_id": result.invocation_id},
+                nested=True,
+            ):
+                _log_workflow_run_content(mlflow, result, json_path)
+        else:
+            # Start a new run
+            with mlflow.start_run(
+                run_name=f"{result.workflow}_{result.invocation_id}",
+                tags={"workflow": result.workflow, "invocation_id": result.invocation_id},
+            ):
+                _log_workflow_run_content(mlflow, result, json_path)
 
         logger.debug("Logged workflow %s to MLflow", result.invocation_id)
 

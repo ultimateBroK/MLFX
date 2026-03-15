@@ -258,7 +258,8 @@ class MlflowModelRegistry:
 
             # Get latest versions
             try:
-                versions = client.get_latest_versions(name)
+                # Use search_model_versions instead of deprecated get_latest_versions
+                versions = list(client.search_model_versions(f"name='{name}'", max_results=100))
                 for v in versions:
                     results.append({
                         "model_name": name,
@@ -313,7 +314,10 @@ class MlflowModelRegistry:
 
         try:
             # Get all versions for this model
-            versions = client.get_latest_versions(model_name.replace("*", ""))
+            # Use search_model_versions instead of deprecated get_latest_versions
+            versions = list(client.search_model_versions(
+                f"name='{model_name.replace('*', '')}'", max_results=100
+            ))
 
             if not versions:
                 return None
@@ -392,18 +396,22 @@ class MlflowModelRegistry:
             if version:
                 v = client.get_model_version(model_name, str(version))
             elif stage:
-                versions = client.get_latest_versions(model_name, stages=[stage])
+                # Use search_model_versions instead of deprecated get_latest_versions
+                versions = list(client.search_model_versions(f"name='{model_name}'", max_results=100))
+                versions = [v for v in versions if v.current_stage == stage]
                 if not versions:
                     return None
-                v = versions[0]
+                v = max(versions, key=lambda x: int(x.version))
             else:
                 # Get latest production version
-                versions = client.get_latest_versions(model_name, stages=["Production"])
-                if not versions:
-                    versions = client.get_latest_versions(model_name)
-                if not versions:
+                versions = list(client.search_model_versions(f"name='{model_name}'", max_results=100))
+                prod_versions = [v for v in versions if v.current_stage == "Production"]
+                if prod_versions:
+                    v = max(prod_versions, key=lambda x: int(x.version))
+                elif versions:
+                    v = max(versions, key=lambda x: int(x.version))
+                else:
                     return None
-                v = versions[0]
 
             return {
                 "model_name": v.name,

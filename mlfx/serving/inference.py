@@ -98,13 +98,19 @@ def load_from_mlflow(
             model_version = client.get_model_version(model_name, str(version))
         else:
             target_stage = stage or "Production"
-            versions = client.get_latest_versions(model_name, stages=[target_stage])
+            # Use search_model_versions instead of deprecated get_latest_versions
+            filter_string = f"name='{model_name}'"
+            versions = list(client.search_model_versions(filter_string, max_results=100))
+            # Filter by stage if specified
+            if target_stage and target_stage != "None":
+                versions = [v for v in versions if v.current_stage == target_stage]
             if not versions:
                 # Fall back to any version
-                versions = client.get_latest_versions(model_name)
+                versions = list(client.search_model_versions(filter_string, max_results=100))
             if not versions:
                 raise ValueError(f"No versions found for model: {model_name}")
-            model_version = versions[0]
+            # Get the latest version (highest version number)
+            model_version = max(versions, key=lambda v: int(v.version))
 
         # Download and load the model
         model_uri = f"models:/{model_name}/{model_version.version}"

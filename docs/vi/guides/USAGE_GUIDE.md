@@ -64,6 +64,20 @@ pixi run mlfx --help
 pixi run mlfx pipeline --help
 ```
 
+### Chọn ngôn ngữ hiển thị
+
+MLFX hỗ trợ tiếng Anh và tiếng Việt cho đầu ra bảng biểu:
+
+```bash
+# Dùng tiếng Việt
+pixi run mlfx --lang vi train --symbol XAUUSD --tf 1H
+
+# Dùng tiếng Anh (mặc định)
+pixi run mlfx --lang en run-profile --profile research
+```
+
+- `--lang` — chọn ngôn ngữ hiển thị (`en` hoặc `vi`, mặc định: `en`)
+
 ---
 
 ## 3. `config.toml`
@@ -474,12 +488,29 @@ pixi run mlfx run-profile --profile research --skip-evaluate
 pixi run mlfx run-profile --profile research --skip-benchmark
 ```
 
+#### Buộc huấn luyện lại
+
+```bash
+# Huấn luyện lại ngay cả khi mô hình đã tồn tại
+pixi run mlfx run-profile --profile research --force
+```
+
+#### Lưu tóm tắt JSON
+
+```bash
+# Lưu tóm tắt vào tệp thay vì in ra màn hình
+pixi run mlfx run-profile --profile research --json
+# → outputs/runs/workflows/{timestamp}_{profile}_summary.json
+```
+
 #### Tham số chính
 
 - `--profile` — **bắt buộc**, tên hồ sơ cần sử dụng
 - `--skip-train` — bỏ qua bước huấn luyện
 - `--skip-evaluate` — bỏ qua bước đánh giá
 - `--skip-benchmark` — bỏ qua bước benchmark (nếu có trong hồ sơ)
+- `--force` — buộc huấn luyện lại ngay cả khi mô hình đã tồn tại
+- `--json` — lưu tóm tắt JSON vào `outputs/runs/workflows/`
 
 ---
 
@@ -508,16 +539,16 @@ pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
 
 #### Tham số chính
 
-- `--symbol`
-- `--tf`
-- `--label`
-- `--backend`
+- `--symbol` — ghi đè ký hiệu (override profile)
+- `--tf` — ghi đè khung thời gian (override profile)
+- `--label` — ghi đè cột nhãn (override profile)
+- `--backend` — bộ máy huấn luyện
 - `--skip-download` — bỏ qua tải dữ liệu
 - `--skip-pipeline` — bỏ qua xử lý đặc trưng
 - `--skip-train` — bỏ qua huấn luyện mô hình
 - `--skip-evaluate` — bỏ qua đánh giá
 - `--continue-on-error` — tiếp tục ngay cả khi có bước thất bại
-- `--json` — xuất kết quả dạng JSON
+- `--json` — lưu tóm tắt JSON vào `outputs/runs/workflows/`
 
 ---
 

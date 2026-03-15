@@ -5,9 +5,8 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import logging
 import time
-
-from rich.table import Table
 
 from mlfx.evaluation.runner import (
     get_baseline_metrics,
@@ -24,12 +23,15 @@ from .render import (
     print_resolved_benchmark_summary,
     print_resolved_evaluate_summary,
     print_resolved_train_summary,
+    t,
 )
 from .resolve import (
     resolve_benchmark_config,
     resolve_evaluate_command_config,
     resolve_train_command_config,
 )
+
+logger = logging.getLogger(__name__)
 
 _ALL_BACKENDS = sorted(BACKEND_REGISTRY)
 
@@ -63,7 +65,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
         n_splits=None,
         train_start=None,
         train_end=None,
-        force=None,
+        force=args.force,
     )
     train_cfg = resolve_train_command_config(train_args)
 
@@ -80,7 +82,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
             train_end=train_cfg["train_end"],
             force=train_cfg["force"],
         )
-        console.print("[yellow]Step:[/] train")
+        console.rule(f"[bold yellow]{t('step_train')}[/]")
         cfg = TrainingConfig(
             symbol=train_cfg["symbol"],
             tf=train_cfg["tf"],
@@ -134,7 +136,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
             eval_end=eval_cfg["eval_end"],
             use_labels=eval_cfg["use_labels"],
         )
-        console.print("[yellow]Step:[/] evaluate")
+        console.rule(f"[bold yellow]{t('step_evaluate')}[/]")
 
         # Use the same backend as defined in the profile's train section
         eval_backend = train_cfg["backend"]
@@ -166,40 +168,14 @@ def run_profile_command(args: argparse.Namespace) -> None:
                 source = "Labels (no model, fallback)"
 
         if results:
-            console.print(f"[dim]Backtest: {source}[/]")
+            # Use the shared print_backtest_results function for consistency
+            from .render import print_backtest_results
+            baseline = None
             if source == "Model":
-                baseline = get_baseline_metrics(**eval_kw)
-                if baseline is not None:
-                    try:
-                        model_r = float(
-                            results["Net Profit (R)"]
-                            .replace("R", "")
-                            .replace(",", "")
-                            .strip()
-                        )
-                        base_r = baseline["total_r"]
-                        diff = model_r - base_r
-                        if diff > 0:
-                            diff_str = f"model tốt hơn +{diff:.1f}R"
-                        elif diff < 0:
-                            diff_str = f"labels tốt hơn {-diff:.1f}R"
-                        else:
-                            diff_str = "bằng nhau"
-                        console.print(
-                            f"[dim]So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R → {diff_str}[/]"
-                        )
-                    except (ValueError, KeyError):
-                        pass
-            table = Table(
-                title="Kết quả Backtest",
-                show_header=True,
-                header_style="bold cyan",
-            )
-            table.add_column("Chỉ số", style="dim")
-            table.add_column("Giá trị", justify="right")
-            for key, value in results.items():
-                table.add_row(key, value)
-            console.print(table)
+                # Filter out backend param not accepted by get_baseline_metrics
+                baseline_kw = {k: v for k, v in eval_kw.items() if k != "backend"}
+                baseline = get_baseline_metrics(**baseline_kw)
+            print_backtest_results(results=results, source=source, baseline=baseline)
 
         summary["steps"]["evaluate"] = {
             "skipped": False,
@@ -209,7 +185,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
         }
 
     if not args.skip_benchmark:
-        console.print("[yellow]Step:[/] benchmark")
+        console.rule(f"[bold yellow]{t('step_benchmark')}[/]")
         benchmark_args = argparse.Namespace(
             profile=args.profile,
             symbol=None,
@@ -229,18 +205,22 @@ def run_profile_command(args: argparse.Namespace) -> None:
         }
 
     if args.json:
-        console.print_json(json.dumps(summary))
+        # Save JSON summary to file instead of stdout
+        from datetime import datetime
+        from mlfx.config.paths import DEFAULT_PATHS
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        profile_name = args.profile or "default"
+        json_filename = f"{timestamp}_{profile_name}_summary.json"
+        json_path = DEFAULT_PATHS.runs_root / json_filename
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(json.dumps(summary, indent=2, default=str))
+        console.print(f"[dim]JSON summary saved to: {json_path}[/]")
 
 
 def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
     """Run multiple backends on the same dataset and print a comparison table."""
     from mlfx.config.paths import DEFAULT_PATHS
-
-    backends: list[str] = args.backends
-    invalid = [backend for backend in backends if backend not in BACKEND_REGISTRY]
-    if invalid:
-        console.print(f"[red]Unknown backends: {invalid}. Available: {_ALL_BACKENDS}[/red]")
-        return {}
 
     resolved = resolve_benchmark_config(args)
     symbol = resolved["symbol"]
@@ -252,6 +232,12 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
     train_start = resolved["train_start"]
     train_end = resolved["train_end"]
     backends = resolved["backends"]
+
+    # Validate backends after resolution
+    invalid = [backend for backend in backends if backend not in BACKEND_REGISTRY]
+    if invalid:
+        console.print(f"[red]Unknown backends: {invalid}. Available: {_ALL_BACKENDS}[/red]")
+        return {}
 
     # Enable MLflow if flag is set
     use_mlflow = getattr(args, "mlflow", False)
@@ -304,6 +290,16 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
             if use_mlflow:
                 # MLflow tracking handles its own metrics
                 pass
+
+            # If metrics are empty/zeros (model existed, no retrain), retrieve from registry
+            if not metrics.get("best_cv_f1_macro") and not force:
+                from mlfx.registry import get_registry
+                registry = get_registry(use_mlflow=False)
+                entry = registry.best_model(symbol=symbol, tf=tf, label=label, backend=backend)
+                if entry and entry.get("metrics"):
+                    metrics = {**metrics, **entry["metrics"]}
+                    logger.debug("Retrieved cached metrics from registry for %s", backend)
+
             elapsed = time.perf_counter() - t0
             row = {
                 "backend": backend,
@@ -327,30 +323,9 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
             console.print(f"[red]ERROR[/] — {exc}")
         results.append(row)
 
-    console.print()
-    table = Table(
-        title=f"Benchmark Results — {symbol} {tf} {label}",
-        show_header=True,
-        header_style="bold cyan",
-    )
-    table.add_column("Backend", style="bold")
-    table.add_column("CV F1 (macro)", justify="right")
-    table.add_column("Train F1", justify="right")
-    table.add_column("Accuracy", justify="right")
-    table.add_column("Time (s)", justify="right")
-    table.add_column("Status")
-
-    for row in results:
-        status_style = "green" if row["status"] == "OK" else "red"
-        table.add_row(
-            row["backend"],
-            row["cv_f1_macro"],
-            row["train_f1"],
-            row["accuracy"],
-            row["elapsed_s"],
-            f"[{status_style}]{row['status']}[/]",
-        )
-    console.print(table)
+    # Use the shared benchmark results table function
+    from .render import print_benchmark_results_table
+    print_benchmark_results_table(symbol=symbol, tf=tf, label=label, results=results)
 
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     reports_dir = DEFAULT_PATHS.reports_dir(symbol, tf) / label / "benchmark"

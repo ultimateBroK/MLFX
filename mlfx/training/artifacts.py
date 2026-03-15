@@ -87,8 +87,16 @@ def log_artifact_to_mlflow(
         import mlflow  # noqa: PLC0415
 
         if run_id:
-            with mlflow.start_run(run_id=run_id):
+            # Check if there's an active run
+            active = mlflow.active_run()
+            if active and active.info.run_id == run_id:
                 mlflow.log_artifact(str(local_path), artifact_path)
+            elif active:
+                with mlflow.start_run(run_id=run_id, nested=True):
+                    mlflow.log_artifact(str(local_path), artifact_path)
+            else:
+                with mlflow.start_run(run_id=run_id):
+                    mlflow.log_artifact(str(local_path), artifact_path)
         else:
             mlflow.log_artifact(str(local_path), artifact_path)
         logger.debug("Logged artifact to MLflow: %s", local_path)
@@ -123,8 +131,16 @@ def log_metrics_to_mlflow(
         import mlflow  # noqa: PLC0415
 
         if run_id:
-            with mlflow.start_run(run_id=run_id):
+            # Check if there's an active run
+            active = mlflow.active_run()
+            if active and active.info.run_id == run_id:
                 mlflow.log_metrics(metrics)
+            elif active:
+                with mlflow.start_run(run_id=run_id, nested=True):
+                    mlflow.log_metrics(metrics)
+            else:
+                with mlflow.start_run(run_id=run_id):
+                    mlflow.log_metrics(metrics)
         else:
             mlflow.log_metrics(metrics)
         logger.debug("Logged %d metrics to MLflow", len(metrics))
@@ -162,8 +178,16 @@ def log_params_to_mlflow(
         str_params = {k: str(v) for k, v in params.items()}
 
         if run_id:
-            with mlflow.start_run(run_id=run_id):
+            # Check if there's an active run
+            active = mlflow.active_run()
+            if active and active.info.run_id == run_id:
                 mlflow.log_params(str_params)
+            elif active:
+                with mlflow.start_run(run_id=run_id, nested=True):
+                    mlflow.log_params(str_params)
+            else:
+                with mlflow.start_run(run_id=run_id):
+                    mlflow.log_params(str_params)
         else:
             mlflow.log_params(str_params)
         logger.debug("Logged %d params to MLflow", len(params))

@@ -64,6 +64,20 @@ pixi run mlfx --help
 pixi run mlfx pipeline --help
 ```
 
+### Select Display Language
+
+MLFX supports English and Vietnamese for table outputs:
+
+```bash
+# Use Vietnamese
+pixi run mlfx --lang vi train --symbol XAUUSD --tf 1H
+
+# Use English (default)
+pixi run mlfx --lang en run-profile --profile research
+```
+
+- `--lang` — select display language (`en` or `vi`, default: `en`)
+
 ---
 
 ## 3. `config.toml`
@@ -472,12 +486,29 @@ pixi run mlfx run-profile --profile research --skip-evaluate
 pixi run mlfx run-profile --profile research --skip-benchmark
 ```
 
+#### Force Retraining
+
+```bash
+# Retrain even if a model already exists
+pixi run mlfx run-profile --profile research --force
+```
+
+#### Save JSON Summary
+
+```bash
+# Save summary to file instead of printing to stdout
+pixi run mlfx run-profile --profile research --json
+# → outputs/runs/workflows/{timestamp}_{profile}_summary.json
+```
+
 #### Key Arguments
 
 - `--profile` — **required**, name of the profile to use
 - `--skip-train` — skip training step
 - `--skip-evaluate` — skip evaluation step
 - `--skip-benchmark` — skip benchmark step (if defined in profile)
+- `--force` — force retraining even if a model already exists
+- `--json` — save JSON summary to `outputs/runs/workflows/`
 
 ---
 
@@ -506,16 +537,16 @@ pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
 
 #### Key Arguments
 
-- `--symbol`
-- `--tf`
-- `--label`
-- `--backend`
+- `--symbol` — override symbol (overrides profile)
+- `--tf` — override timeframe (overrides profile)
+- `--label` — override label column (overrides profile)
+- `--backend` — training backend
 - `--skip-download` — skip data download
 - `--skip-pipeline` — skip feature pipeline
 - `--skip-train` — skip model training
 - `--skip-evaluate` — skip evaluation
 - `--continue-on-error` — continue even if a step fails
-- `--json` — output results as JSON
+- `--json` — save JSON summary to `outputs/runs/workflows/`
 
 ---
 

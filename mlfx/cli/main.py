@@ -28,6 +28,7 @@ from .render import (
     print_profiles_summary,
     print_resolved_evaluate_summary,
     print_resolved_train_summary,
+    t,
 )
 from .resolve import (
     resolve_batch_config,
@@ -95,6 +96,12 @@ def build_parser() -> argparse.ArgumentParser:
         "  mlfx run-profile --profile research --skip-benchmark\n"
         "  mlfx run-all --profile research\n",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--lang",
+        choices=["en", "vi"],
+        default="en",
+        help="Display language for output (default: en)",
     )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
@@ -443,6 +450,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print a JSON summary of the run-profile orchestration result",
     )
+    run_profile.add_argument(
+        "--force",
+        action="store_true",
+        help="Force retraining even if a model already exists",
+    )
 
     run_all = subparsers.add_parser(
         "run-all",
@@ -457,6 +469,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Use one workflow profile for train/evaluate/benchmark defaults",
     )
+    run_all.add_argument("--symbol", default=None, help="Symbol override (e.g., XAUUSD)")
+    run_all.add_argument("--tf", default=None, help="Timeframe override (e.g., 1H, 4H)")
+    run_all.add_argument("--label", default=None, help="Label column override")
     run_all.add_argument("--skip-download", action="store_true", help="Skip download stage")
     run_all.add_argument("--skip-qa", action="store_true", help="Skip QA stage")
     run_all.add_argument("--skip-pipeline", action="store_true", help="Skip pipeline stage")
@@ -725,7 +740,7 @@ def _run_evaluate_command(args: argparse.Namespace) -> StageResult:
         / report_mode
         / risk_dir
     )
-    console.print(f"\n[dim]Biểu đồ: {reports_dir}/[/]")
+    console.print(f"\n[dim]{t('chart_path', path=reports_dir)}[/]")
     return stage
 
 
@@ -768,9 +783,9 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
 
     train_args = argparse.Namespace(
         profile=args.profile,
-        symbol=None,
-        tf=None,
-        label=None,
+        symbol=args.symbol,
+        tf=args.tf,
+        label=args.label,
         backend=None,
         n_trials=None,
         n_splits=None,
@@ -780,9 +795,9 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
     )
     eval_args = argparse.Namespace(
         profile=args.profile,
-        symbol=None,
-        tf=None,
-        label=None,
+        symbol=args.symbol,
+        tf=args.tf,
+        label=args.label,
         capital=None,
         risk=None,
         commission=None,
@@ -795,9 +810,9 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
     )
     benchmark_args = argparse.Namespace(
         profile=args.profile,
-        symbol=None,
-        tf=None,
-        label=None,
+        symbol=args.symbol,
+        tf=args.tf,
+        label=args.label,
         backends=None,
         n_trials=None,
         n_splits=None,
@@ -811,7 +826,7 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
     else:
         download_cfg = _resolve_download_command_config(
             argparse.Namespace(
-                symbol=None,
+                symbol=args.symbol,
                 asset_class=None,
                 start_year=None,
                 start_month=None,
@@ -829,7 +844,7 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
         stages.append(_make_skipped_stage("qa", reason="Skipped by --skip-qa"))
     else:
         qa_cfg = _resolve_qa_command_config(
-            argparse.Namespace(symbol=None, asset_class=None)
+            argparse.Namespace(symbol=args.symbol, asset_class=None)
         )
         if _append(run_qa(**qa_cfg)):
             return stages
@@ -839,8 +854,8 @@ def _run_all_command(args: argparse.Namespace) -> list[StageResult]:
     else:
         pipeline_cfg = _resolve_pipeline_command_config(
             argparse.Namespace(
-                symbol=None,
-                tf=None,
+                symbol=args.symbol,
+                tf=args.tf,
                 pivot=None,
                 anchor=None,
                 atr_period=None,
@@ -955,6 +970,10 @@ def main() -> None:
 
     parser = build_parser()
     args = parser.parse_args()
+
+    # Set display language
+    from mlfx.cli.render import set_language
+    set_language(getattr(args, "lang", "en"))
 
     if args.command == "download":
         download_cfg = _resolve_download_command_config(args)
@@ -1221,7 +1240,7 @@ def _run_mlflow_migrate(args: argparse.Namespace) -> None:
 
     from mlfx.config.mlflow import MLflowConfig
     from mlfx.config.paths import DEFAULT_PATHS
-    from mlfx.registry.models import get_registry
+    from mlfx.registry import get_registry
 
     config = MLflowConfig()
     config.setup_mlflow()

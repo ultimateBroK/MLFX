@@ -57,7 +57,7 @@ test-contract = "pytest tests/contract/ -v"
 test-e2e = "pytest tests/e2e/ -v"
 test-fast = "pytest -m 'not slow' -v"
 verify = "pytest tests/contract/ tests/integration/ -v"
-clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs && mkdir -p outputs/models outputs/reports logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
+clean-generated = "bash -lc 'rm -rf .cache .pixi-cache .pytest_cache .ruff_cache __pycache__ lightning_logs mlruns && mkdir -p outputs/models outputs/reports outputs/predictions outputs/monitoring outputs/runs outputs/mlflow_artifacts logs && find outputs/models -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/reports -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/predictions -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/monitoring -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/runs -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find outputs/mlflow_artifacts -mindepth 1 ! -name .gitkeep -exec rm -rf {} + && find logs -mindepth 1 ! -name .gitkeep -exec rm -rf {} +'"
 
 [tool.pixi.dependencies]
 polars = ">=1.38.1,<2"

@@ -3,12 +3,112 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Literal
 
 from rich.console import Console
 from rich.table import Table
 
 console = Console()
+
+# Language type alias
+Language = Literal["en", "vi"]
+
+# Default language (can be overridden via --lang flag)
+_current_lang: Language = "en"
+
+
+def set_language(lang: Language) -> None:
+    """Set the current display language."""
+    global _current_lang
+    _current_lang = lang
+
+
+def get_language() -> Language:
+    """Get the current display language."""
+    return _current_lang
+
+
+def t(key: str, **kwargs: Any) -> str:
+    """Get translated string for the current language.
+
+    Parameters
+    ----------
+    key : str
+        Translation key (e.g., "backtest_results")
+    **kwargs : Any
+        Format arguments for string interpolation
+
+    Returns
+    -------
+    str
+        Translated and formatted string
+    """
+    translations = TRANSLATIONS.get(_current_lang, TRANSLATIONS["en"])
+    template = translations.get(key, TRANSLATIONS["en"].get(key, key))
+    if kwargs:
+        return template.format(**kwargs)
+    return template
+
+
+# Translation dictionaries for bilingual support
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        # Backtest results
+        "backtest_results": "Backtest Results",
+        "metric": "Metric",
+        "value": "Value",
+        "backtest_source": "Backtest: {source}",
+        # Model vs labels comparison
+        "model_better": "model better +{diff:.1f}R",
+        "labels_better": "labels better {diff:.1f}R",
+        "equal": "equal",
+        "vs_labels": "vs labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R -> {result}",
+        # Benchmark
+        "benchmark_results": "Benchmark Results - {symbol} {tf} {label}",
+        "backend": "Backend",
+        "cv_f1_macro": "CV F1 (macro)",
+        "train_f1": "Train F1",
+        "accuracy": "Accuracy",
+        "time_s": "Time (s)",
+        "status": "Status",
+        # Section headers
+        "step_train": "Step: train",
+        "step_evaluate": "Step: evaluate",
+        "step_benchmark": "Step: benchmark",
+        # Train config
+        "force_retrain": "Force Retrain",
+        # Chart output
+        "chart_path": "Charts: {path}/",
+    },
+    "vi": {
+        # Backtest results
+        "backtest_results": "Kết quả Backtest",
+        "metric": "Chỉ số",
+        "value": "Giá trị",
+        "backtest_source": "Backtest: {source}",
+        # Model vs labels comparison
+        "model_better": "model tốt hơn +{diff:.1f}R",
+        "labels_better": "labels tốt hơn {diff:.1f}R",
+        "equal": "bằng nhau",
+        "vs_labels": "So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R -> {result}",
+        # Benchmark
+        "benchmark_results": "Kết quả Benchmark - {symbol} {tf} {label}",
+        "backend": "Backend",
+        "cv_f1_macro": "CV F1 (macro)",
+        "train_f1": "Train F1",
+        "accuracy": "Độ chính xác",
+        "time_s": "Thời gian (s)",
+        "status": "Trạng thái",
+        # Section headers
+        "step_train": "Bước: train",
+        "step_evaluate": "Bước: evaluate",
+        "step_benchmark": "Bước: benchmark",
+        # Train config
+        "force_retrain": "Buộc train lại",
+        # Chart output
+        "chart_path": "Biểu đồ: {path}/",
+    },
+}
 
 
 def _fmt_range(start: str | None, end: str | None) -> str:
@@ -190,7 +290,7 @@ def print_resolved_train_summary(
     table.add_row("Train End", train_end or "(full dataset)")
     table.add_row("Optuna Trials", str(n_trials))
     table.add_row("CV Splits", str(n_splits))
-    table.add_row("Force Retrain", str(force))
+    table.add_row(t("force_retrain"), str(force))
     console.print(table)
     console.print()
 
@@ -266,7 +366,7 @@ def print_resolved_benchmark_summary(
     table.add_row("Train End", train_end or "(full dataset)")
     table.add_row("Optuna Trials", str(n_trials))
     table.add_row("CV Splits", str(n_splits))
-    table.add_row("Force Retrain", str(force))
+    table.add_row(t("force_retrain"), str(force))
     console.print(table)
     console.print()
 
@@ -278,7 +378,7 @@ def print_backtest_results(
     baseline: Mapping[str, Any] | None = None,
 ) -> None:
     """Render backtest results and optional model-vs-label comparison."""
-    console.print(f"[dim]Backtest: {source}[/]")
+    console.print(f"[dim]{t('backtest_source', source=source)}[/]")
 
     if source == "Model" and baseline is not None:
         try:
@@ -288,20 +388,20 @@ def print_backtest_results(
             base_r = float(baseline["total_r"])
             diff = model_r - base_r
             if diff > 0:
-                diff_str = f"model tốt hơn +{diff:.1f}R"
+                result_str = t("model_better", diff=diff)
             elif diff < 0:
-                diff_str = f"labels tốt hơn {-diff:.1f}R"
+                result_str = t("labels_better", diff=-diff)
             else:
-                diff_str = "bằng nhau"
+                result_str = t("equal")
             console.print(
-                f"[dim]So với labels: model {model_r:+.1f}R vs labels {base_r:+.1f}R → {diff_str}[/]"
+                f"[dim]{t('vs_labels', model_r=model_r, base_r=base_r, result=result_str)}[/]"
             )
         except (ValueError, KeyError, TypeError):
             pass
 
-    table = Table(title="Kết quả Backtest", show_header=True, header_style="bold cyan")
-    table.add_column("Chỉ số", style="dim")
-    table.add_column("Giá trị", justify="right")
+    table = Table(title=t("backtest_results"), show_header=True, header_style="bold cyan")
+    table.add_column(t("metric"), style="dim")
+    table.add_column(t("value"), justify="right")
     for key, value in results.items():
         table.add_row(str(key), str(value))
     console.print(table)
@@ -331,16 +431,16 @@ def print_benchmark_results_table(
     """Render the final benchmark comparison table."""
     console.print()
     table = Table(
-        title=f"Benchmark Results — {symbol} {tf} {label}",
+        title=t("benchmark_results", symbol=symbol, tf=tf, label=label),
         show_header=True,
         header_style="bold cyan",
     )
-    table.add_column("Backend", style="bold")
-    table.add_column("CV F1 (macro)", justify="right")
-    table.add_column("Train F1", justify="right")
-    table.add_column("Accuracy", justify="right")
-    table.add_column("Time (s)", justify="right")
-    table.add_column("Status")
+    table.add_column(t("backend"), style="bold")
+    table.add_column(t("cv_f1_macro"), justify="right")
+    table.add_column(t("train_f1"), justify="right")
+    table.add_column(t("accuracy"), justify="right")
+    table.add_column(t("time_s"), justify="right")
+    table.add_column(t("status"))
 
     for row in results:
         status = str(row.get("status", ""))

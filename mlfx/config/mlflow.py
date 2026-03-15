@@ -7,7 +7,7 @@ flexible deployment scenarios.
 Environment Variables
 ---------------------
 MLFLOW_TRACKING_URI
-    Override the MLflow tracking server URI. Defaults to local ``mlruns/`` directory.
+    Override the MLflow tracking server URI. Defaults to SQLite database ``mlflow.db``.
 MLFLOW_ARTIFACT_ROOT
     Override the root directory for artifact storage. Defaults to ``outputs/mlflow_artifacts/``.
 MLFLOW_REGISTRY_URI
@@ -52,7 +52,7 @@ class MLflowConfig:
     ----------
     tracking_uri
         URI for MLflow tracking server. Can be:
-        - Local path: ``./mlruns`` or ``file:///path/to/mlruns``
+        - SQLite database: ``sqlite:///mlflow.db`` (recommended)
         - HTTP server: ``http://localhost:5000``
         - Databricks: ``databricks``
     artifact_root

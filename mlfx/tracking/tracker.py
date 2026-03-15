@@ -337,7 +337,7 @@ class MlflowTracker(BaseTracker):
     Parameters
     ----------
     tracking_uri:
-        MLflow tracking server URI.  Defaults to the local ``mlruns/``
+        MLflow tracking server URI.  Defaults to SQLite database
         directory (MLflow's own default).
     experiment_name:
         MLflow experiment to log runs under.
@@ -365,8 +365,19 @@ class MlflowTracker(BaseTracker):
         return run_id
 
     def log_metrics(self, run_id: str, metrics: dict[str, float]) -> None:
-        with self._mlflow.start_run(run_id=run_id):
+        # Check if there's an active run
+        active = self._mlflow.active_run()
+        if active and active.info.run_id == run_id:
+            # Already in this run's context, log directly
             self._mlflow.log_metrics(metrics)
+        elif active:
+            # There's an active run but it's different, use nested
+            with self._mlflow.start_run(run_id=run_id, nested=True):
+                self._mlflow.log_metrics(metrics)
+        else:
+            # No active run, start normally
+            with self._mlflow.start_run(run_id=run_id):
+                self._mlflow.log_metrics(metrics)
 
     def end_run(self, run_id: str, status: str = "FINISHED") -> None:
         self._mlflow.end_run(status=status)
@@ -378,8 +389,16 @@ class MlflowTracker(BaseTracker):
         if not local_path.exists():
             logger.warning("MlflowTracker: artifact path does not exist: %s", local_path)
             return
-        with self._mlflow.start_run(run_id=run_id):
+        # Check if there's an active run
+        active = self._mlflow.active_run()
+        if active and active.info.run_id == run_id:
             self._mlflow.log_artifact(str(local_path), artifact_path=artifact_path)
+        elif active:
+            with self._mlflow.start_run(run_id=run_id, nested=True):
+                self._mlflow.log_artifact(str(local_path), artifact_path=artifact_path)
+        else:
+            with self._mlflow.start_run(run_id=run_id):
+                self._mlflow.log_artifact(str(local_path), artifact_path=artifact_path)
         logger.debug("MlflowTracker: logged artifact %s", local_path)
 
     def log_artifacts(self, run_id: str, local_dir: Path | str, artifact_path: str | None = None) -> None:
@@ -388,20 +407,44 @@ class MlflowTracker(BaseTracker):
         if not local_dir.is_dir():
             logger.warning("MlflowTracker: artifact directory does not exist: %s", local_dir)
             return
-        with self._mlflow.start_run(run_id=run_id):
+        # Check if there's an active run
+        active = self._mlflow.active_run()
+        if active and active.info.run_id == run_id:
             self._mlflow.log_artifacts(str(local_dir), artifact_path=artifact_path)
+        elif active:
+            with self._mlflow.start_run(run_id=run_id, nested=True):
+                self._mlflow.log_artifacts(str(local_dir), artifact_path=artifact_path)
+        else:
+            with self._mlflow.start_run(run_id=run_id):
+                self._mlflow.log_artifacts(str(local_dir), artifact_path=artifact_path)
         logger.debug("MlflowTracker: logged artifacts from %s", local_dir)
 
     def log_figure(self, run_id: str, figure: Any, filename: str) -> None:
         """Log a matplotlib/plotly figure as an artifact using MLflow."""
-        with self._mlflow.start_run(run_id=run_id):
+        # Check if there's an active run
+        active = self._mlflow.active_run()
+        if active and active.info.run_id == run_id:
             self._mlflow.log_figure(figure, filename)
+        elif active:
+            with self._mlflow.start_run(run_id=run_id, nested=True):
+                self._mlflow.log_figure(figure, filename)
+        else:
+            with self._mlflow.start_run(run_id=run_id):
+                self._mlflow.log_figure(figure, filename)
         logger.debug("MlflowTracker: logged figure %s", filename)
 
     def log_dict(self, run_id: str, dictionary: dict[str, Any], artifact_file: str) -> None:
         """Log a dictionary as a JSON artifact using MLflow."""
-        with self._mlflow.start_run(run_id=run_id):
+        # Check if there's an active run
+        active = self._mlflow.active_run()
+        if active and active.info.run_id == run_id:
             self._mlflow.log_dict(dictionary, artifact_file)
+        elif active:
+            with self._mlflow.start_run(run_id=run_id, nested=True):
+                self._mlflow.log_dict(dictionary, artifact_file)
+        else:
+            with self._mlflow.start_run(run_id=run_id):
+                self._mlflow.log_dict(dictionary, artifact_file)
         logger.debug("MlflowTracker: logged dict to %s", artifact_file)
 
     def register_model(
