@@ -68,7 +68,7 @@ def _persist_cli_workflow(
         params=params or {},
     )
     summary_path = persist_workflow_result(result)
-    console.print(f"[dim]Workflow summary: {summary_path}[/]")
+    console.print(f"Workflow summary: {summary_path}")
 
 
 def _exit_on_stage_error(stage: StageResult) -> None:
@@ -658,7 +658,7 @@ def _run_train_command(args: argparse.Namespace) -> StageResult:
         from mlfx.config.mlflow import MLflowConfig
         config = MLflowConfig()
         config.setup_mlflow()
-        console.print(f"[dim]MLflow tracking enabled: {config.tracking_uri}[/]")
+        console.print(f"MLflow tracking enabled: {config.tracking_uri}")
 
     cfg = TrainingConfig(
         symbol=train_cfg["symbol"],
@@ -740,7 +740,7 @@ def _run_evaluate_command(args: argparse.Namespace) -> StageResult:
         / report_mode
         / risk_dir
     )
-    console.print(f"\n[dim]{t('chart_path', path=reports_dir)}[/]")
+    console.print(f"\n{t('chart_path', path=reports_dir)}")
     return stage
 
 
@@ -1198,9 +1198,9 @@ def _run_mlflow_ui(args: argparse.Namespace) -> None:
     artifact_root = args.default_artifact_root or str(config.resolved_artifact_root)
 
     console.print(f"[bold cyan]Starting MLflow UI...[/]")
-    console.print(f"[dim]Backend store: {backend_store_uri}[/]")
-    console.print(f"[dim]Artifact root: {artifact_root}[/]")
-    console.print(f"[dim]URL: http://{args.host}:{args.port}[/]")
+    console.print(f"Backend store: {backend_store_uri}")
+    console.print(f"Artifact root: {artifact_root}")
+    console.print(f"URL: http://{args.host}:{args.port}")
 
     # Use subprocess to run mlflow server command
     import subprocess
@@ -1259,7 +1259,7 @@ def _run_mlflow_migrate(args: argparse.Namespace) -> None:
         console.print("[yellow]No models found to migrate.[/yellow]")
         return
 
-    console.print(f"[dim]Found {len(entries)} models to migrate[/]")
+    console.print(f"Found {len(entries)} models to migrate")
 
     if args.dry_run:
         console.print("[yellow]DRY RUN - No changes will be made[/]")

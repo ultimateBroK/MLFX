@@ -160,7 +160,7 @@ def print_profiles_summary(profile_name: str | None, profiles: Mapping[str, Any]
             )
             return
         print_profile_detail(profile_name, profile)
-        console.print("[dim]Tip: remove --profile to see the overview table.[/]")
+        console.print("Tip: remove --profile to see the overview table.")
         return
 
     table = Table(title="Available Workflow Profiles", show_header=True, header_style="bold cyan")
@@ -207,8 +207,8 @@ def print_profiles_summary(profile_name: str | None, profiles: Mapping[str, Any]
         )
 
     console.print(table)
-    console.print("[dim]Use with: mlfx train|evaluate|benchmark --profile <name>[/]")
-    console.print("[dim]For one profile only: mlfx profiles --profile <name>[/]")
+    console.print("Use with: mlfx train|evaluate|benchmark --profile <name>")
+    console.print("For one profile only: mlfx profiles --profile <name>")
 
 
 def print_profile_detail(name: str, profile: Mapping[str, Any]) -> None:
@@ -378,7 +378,7 @@ def print_backtest_results(
     baseline: Mapping[str, Any] | None = None,
 ) -> None:
     """Render backtest results and optional model-vs-label comparison."""
-    console.print(f"[dim]{t('backtest_source', source=source)}[/]")
+    console.print(f"{t('backtest_source', source=source)}")
 
     if source == "Model" and baseline is not None:
         try:
@@ -394,7 +394,7 @@ def print_backtest_results(
             else:
                 result_str = t("equal")
             console.print(
-                f"[dim]{t('vs_labels', model_r=model_r, base_r=base_r, result=result_str)}[/]"
+                f"{t('vs_labels', model_r=model_r, base_r=base_r, result=result_str)}"
             )
         except (ValueError, KeyError, TypeError):
             pass

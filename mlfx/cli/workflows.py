@@ -215,7 +215,7 @@ def run_profile_command(args: argparse.Namespace) -> None:
         json_path = DEFAULT_PATHS.runs_root / json_filename
         json_path.parent.mkdir(parents=True, exist_ok=True)
         json_path.write_text(json.dumps(summary, indent=2, default=str))
-        console.print(f"[dim]JSON summary saved to: {json_path}[/]")
+        console.print(f"JSON summary saved to: {json_path}")
 
 
 def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
@@ -245,7 +245,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
         from mlfx.config.mlflow import MLflowConfig
         config = MLflowConfig()
         config.setup_mlflow()
-        console.print(f"[dim]MLflow tracking enabled: {config.tracking_uri}[/]")
+        console.print(f"MLflow tracking enabled: {config.tracking_uri}")
 
     print_resolved_benchmark_summary(
         profile=args.profile,
@@ -345,7 +345,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
         "results": results,
     }
     report_path.write_text(json.dumps(payload, indent=2))
-    console.print(f"\n[dim]Report saved → {report_path}[/]")
+    console.print(f"\nReport saved → {report_path}")
 
     return {
         "profile": args.profile,

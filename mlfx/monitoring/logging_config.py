@@ -52,7 +52,7 @@ class _ContextRichHandler(RichHandler):
         ctx = _context.get({})
         if ctx:
             ctx_str = " ".join(
-                f"[dim]{k}=[/dim][cyan]{v}[/cyan]" for k, v in ctx.items()
+                f"{k}=[cyan]{v}[/cyan]" for k, v in ctx.items()
             )
             # Append nicely
             message = f"{message} {ctx_str}"
