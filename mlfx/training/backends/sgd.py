@@ -106,7 +106,7 @@ def run_online_sgd(
 
     if out_path.exists() and not force:
         logger.info("Online SGD model exists at %s", out_path)
-        return {}
+        return {"artifact_path": str(out_path), "skipped": True}
 
     prepared = prepare_tabular_data(
         symbol,

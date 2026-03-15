@@ -223,7 +223,7 @@ def run_ml_models(
 
     if out_path.exists() and not force:
         logger.info("MLForecast model exists at %s", out_path)
-        return {}
+        return {"artifact_path": str(out_path), "skipped": True}
 
     df = load_labelled_dataset(
         symbol,
