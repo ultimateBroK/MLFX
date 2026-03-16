@@ -552,6 +552,46 @@ pixi run mlfx run-all --symbol XAUUSD --tf 1H --continue-on-error --json
 
 ---
 
+### 4.15. Quản lý máy chủ MLflow
+
+Quản lý máy chủ theo dõi MLflow và di chuyển artifact.
+
+#### Khởi động máy chủ MLflow
+
+```bash
+pixi run mlfx mlflow ui --port 5000
+# Giao diện tại http://localhost:5000
+```
+
+#### Di chuyển artifact
+
+Di chuyển artifact từ hệ thống tệp cục bộ sang MLflow:
+
+```bash
+# Xem trước di chuyển (không thực hiện)
+pixi run mlfx mlflow migrate --symbol XAUUSD --tf 1H --dry-run
+
+# Thực hiện di chuyển
+pixi run mlfx mlflow migrate --symbol XAUUSD --tf 1H --register-models
+```
+
+#### Tham số chính `mlflow ui`
+
+- `--host` — địa chỉ bind (mặc định: `127.0.0.1`)
+- `--port` — cổng MLflow UI (mặc định: `5000`)
+- `--backend-store-uri` — URI backend store (mặc định: `sqlite:///mlflow.db`)
+- `--default-artifact-root` — đường dẫn lưu artifact mặc định
+
+#### Tham số chính `mlflow migrate`
+
+- `--symbol` — **bắt buộc**, ký hiệu cần di chuyển
+- `--tf` — **bắt buộc**, khung thời gian cần di chuyển
+- `--backend` — lọc theo bộ máy huấn luyện
+- `--dry-run` — xem trước mà không thực hiện
+- `--register-models` — đăng ký mô hình đã di chuyển vào MLflow Model Registry
+
+---
+
 ### 4.10. Theo dõi bằng MLflow (không bắt buộc)
 
 Khởi động máy chủ MLflow qua Docker:

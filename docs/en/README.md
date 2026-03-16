@@ -117,6 +117,7 @@ What each stage does:
 - `profiles` — list workflow profiles
 - `run-profile` — train + evaluate from a profile
 - `run-all` — full end-to-end pipeline in one command
+- `mlflow` — manage MLflow tracking server and migrate artifacts
 
 For runnable commands, see [Quickstart](getting-started/QUICKSTART.md) and [Usage Guide](guides/USAGE_GUIDE.md).
 

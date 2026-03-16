@@ -595,6 +595,52 @@ pixi add mlflow
 
 ---
 
+### 4.16. MLflow Server Management
+
+Manage MLflow tracking server and migrate existing artifacts:
+
+#### Start MLflow UI
+
+```bash
+pixi run mlfx mlflow ui --port 5000
+# UI available at http://127.0.0.1:5000
+```
+
+#### Key Arguments for `mlflow ui`
+
+- `--host` — Host to bind the UI server (default: `127.0.0.1`)
+- `--port` — Port for the UI server (default: `5000`)
+- `--backend-store-uri` — URI for MLflow backend store (default: from config)
+- `--default-artifact-root` — Default artifact root path (default: from config)
+
+#### Migrate Existing Artifacts
+
+Migrate existing model artifacts and run metadata to MLflow:
+
+```bash
+# Migrate all models
+pixi run mlfx mlflow migrate
+
+# Migrate only specific symbol
+pixi run mlfx mlflow migrate --symbol XAUUSD
+
+# Migrate only specific symbol and timeframe
+pixi run mlfx mlflow migrate --symbol XAUUSD --tf 1H
+
+# Preview migration without making changes
+pixi run mlfx mlflow migrate --dry-run
+```
+
+#### Key Arguments for `mlflow migrate`
+
+- `--symbol` — Migrate only models for this symbol (default: all)
+- `--tf` — Migrate only models for this timeframe (default: all)
+- `--backend` — Migrate only models for this backend (default: all)
+- `--dry-run` — Preview migration without making changes
+- `--register-models` — Register migrated models in MLflow Model Registry (default: True)
+
+---
+
 ## 5. Full Workflow Examples
 
 ### 5.1. Minimal Workflow

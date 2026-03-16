@@ -825,6 +825,31 @@ Chạy toàn bộ quy trình từ đầu đến cuối: download → pipeline �
 
 ---
 
+## 5.15. `mlflow`
+
+Quản lý máy chủ theo dõi MLflow và di chuyển artifact.
+
+### Lệnh con `mlflow ui`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--host` | `127.0.0.1` | Địa chỉ bind cho máy chủ MLflow |
+| `--port` | `5000` | Cổng cho MLflow UI |
+| `--backend-store-uri` | `sqlite:///mlflow.db` | URI cho backend store (SQLite, PostgreSQL, v.v.) |
+| `--default-artifact-root` | `outputs/mlflow_artifacts/` | Vị trí lưu artifact mặc định |
+
+### Lệnh con `mlflow migrate`
+
+| Cờ | Mặc định | Mô tả |
+|---|---|---|
+| `--symbol` | bắt buộc | Ký hiệu cần di chuyển artifact |
+| `--tf` | bắt buộc | Khung thời gian cần di chuyển artifact |
+| `--backend` | không có | Lọc theo bộ máy huấn luyện |
+| `--dry-run` | `false` | Xem trước di chuyển mà không thực hiện |
+| `--register-models` | `false` | Đăng ký mô hình đã di chuyển vào MLflow Model Registry |
+
+---
+
 ## 6. Quy tắc ưu tiên cấu hình
 
 Thứ tự ưu tiên từ cao xuống thấp:

@@ -425,6 +425,7 @@ Mô-đun `mlfx.workflow/` cung cấp khả năng điều phối từ đầu đ�
 ```text
 mlfx/workflow/
 ├── __init__.py           ← Các xuất public
+├── orchestration.py      ← Điều phối cấp cao (run_profile, run_benchmark)
 ├── results.py            ← StageResult, WorkflowResult, persist_workflow_result()
 ├── stages.py             ← Các runner giai đoạn riêng lẻ (run_download, run_train, v.v.)
 ├── stage.py              ← Tiện ích thực thi giai đoạn

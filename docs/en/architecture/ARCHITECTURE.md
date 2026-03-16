@@ -425,6 +425,7 @@ The `mlfx.workflow/` module provides end-to-end orchestration capabilities:
 ```
 mlfx/workflow/
 ├── __init__.py           ← Public exports
+├── orchestration.py      ← High-level orchestration (run_profile, run_benchmark)
 ├── results.py            ← StageResult, WorkflowResult, persist_workflow_result()
 ├── stages.py             ← Individual stage runners (run_download, run_train, etc.)
 ├── stage.py              ← Stage execution utilities
@@ -549,7 +550,8 @@ mlfx
 ├── models            # Model registry listing
 ├── profiles          # List workflow profiles
 ├── run-profile       # Train + evaluate from profile
-└── run-all           # Full end-to-end pipeline
+├── run-all           # Full end-to-end pipeline
+└── mlflow            # MLflow tracking server management
 ```
 
 ### Command Implementation

@@ -819,6 +819,31 @@ The main commands support:
 
 ---
 
+## 5.15. `mlflow`
+
+Manage MLflow tracking server and migrate artifacts.
+
+### `mlflow ui` subcommand
+
+| Flag | Default | Description |
+|---|---|---|
+| `--host` | `127.0.0.1` | Host address to bind MLflow server |
+| `--port` | `5000` | Port for MLflow UI |
+| `--backend-store-uri` | `sqlite:///mlflow.db` | URI for backend store (SQLite, PostgreSQL, etc.) |
+| `--default-artifact-root` | `outputs/mlflow_artifacts/` | Default artifact storage location |
+
+### `mlflow migrate` subcommand
+
+| Flag | Default | Description |
+|---|---|---|
+| `--symbol` | required | Symbol to migrate artifacts for |
+| `--tf` | required | Timeframe to migrate artifacts for |
+| `--backend` | none | Filter by training backend |
+| `--dry-run` | `false` | Preview migration without executing |
+| `--register-models` | `false` | Register migrated models in MLflow Model Registry |
+
+---
+
 ## 6. Configuration precedence
 
 Priority order from highest to lowest:

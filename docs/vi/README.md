@@ -117,6 +117,7 @@ download
 - `profiles` — liệt kê các hồ sơ quy trình
 - `run-profile` — train + evaluate từ hồ sơ
 - `run-all` — chạy toàn bộ pipeline trong một lệnh
+- `mlflow` — quản lý máy chủ theo dõi MLflow và di chuyển artifact
 
 Để xem lệnh chạy thực tế, hãy đọc:
 - [Bắt đầu nhanh](getting-started/QUICKSTART.md)
