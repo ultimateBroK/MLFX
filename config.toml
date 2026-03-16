@@ -23,14 +23,17 @@ skip_features = false
 skip_labels   = false
 
 [train]
-symbol     = "XAUUSD"
-tf         = "1H"
-label      = "label_10"
-backend    = "lstm"       # "mlf" | "lstm" | "sgd" | "stats"
-n_trials   = 30
-n_splits   = 5
-random_seed = 42
-force      = false
+symbol       = "XAUUSD"
+tf           = "1H"
+label        = "label_10"
+backend      = "lstm"       # "mlf" | "lstm" | "sgd" | "stats"
+n_trials     = 30
+n_splits     = 5
+random_seed  = 42
+force        = false
+# Cross-validation settings for realistic training
+cv_method    = "purged_timeseries"  # "purged_kfold" | "purged_timeseries" | "walk_forward" | "timeseries"
+embargo_pct  = 0.01                 # Percentage of data to embargo after each test fold
 
 [benchmark]
 symbol     = "XAUUSD"
@@ -95,14 +98,16 @@ min_samples  = 30
 # ---------------------------------------------------------------------------
 
 [profiles.research.train]
-symbol      = "XAUUSD"
-tf          = "1H"
-label       = "label_10"
-backend     = "mlf"
-train_start = "20240101"
-train_end   = "20241231"
-n_trials    = 5
-n_splits    = 3
+symbol       = "XAUUSD"
+tf           = "1H"
+label        = "label_10"
+backend      = "mlf"
+train_start  = "20240101"
+train_end    = "20241231"
+n_trials     = 5
+n_splits     = 3
+cv_method    = "purged_kfold"
+embargo_pct  = 0.01
 
 [profiles.research.evaluate]
 symbol          = "XAUUSD"
@@ -128,14 +133,16 @@ n_trials    = 5
 n_splits    = 3
 
 [profiles.oos.train]
-symbol      = "XAUUSD"
-tf          = "1H"
-label       = "label_10"
-backend     = "mlf"
-train_start = "20150101"
-train_end   = "20221231"
-n_trials    = 10
-n_splits    = 5
+symbol       = "XAUUSD"
+tf           = "1H"
+label        = "label_10"
+backend      = "mlf"
+train_start  = "20150101"
+train_end    = "20221231"
+n_trials     = 10
+n_splits     = 5
+cv_method    = "purged_timeseries"
+embargo_pct  = 0.02  # Larger embargo for OOS testing
 
 [profiles.oos.evaluate]
 symbol          = "XAUUSD"

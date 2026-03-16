@@ -101,6 +101,9 @@ def train_lstm(
     patience: int = 5,
     top_k_features: int = 20,
     seed: int = 42,
+    cv_method: str = "purged_timeseries",
+    embargo_pct: float = 0.01,
+    label_horizon: int = 10,
 ) -> tuple[FXLstm, dict]:
     """Train LSTM with Optuna HPO, feature selection, and OOS evaluation. Returns (model, metrics)."""
     return run_pytorch_hpo(
@@ -114,6 +117,9 @@ def train_lstm(
         patience=patience,
         top_k_features=top_k_features,
         seed=seed,
+        cv_method=cv_method,
+        embargo_pct=embargo_pct,
+        label_horizon=label_horizon,
     )
 
 def save_model(model: FXLstm, metrics: dict, path: Path) -> None:
@@ -154,6 +160,8 @@ def run_lstm(
     X: np.ndarray | None = None,
     y: np.ndarray | None = None,
     feature_cols: list[str] | None = None,
+    cv_method: str = "purged_timeseries",
+    embargo_pct: float = 0.01,
 ) -> dict:
     """Train PyTorch LSTM with Optuna HPO. Returns metrics dict or {} if skipped."""
     set_seed(seed)
@@ -174,6 +182,10 @@ def run_lstm(
         if prepared is None:
             return {}
         X, y, feature_cols = prepared
+
+    # Extract label horizon from label name (e.g., "label_10" -> 10)
+    label_horizon = int(label.split("_")[1]) if "_" in label else 10
+
     model, metrics = train_lstm(
         X, y, feature_cols,
         n_trials=n_trials,
@@ -184,6 +196,9 @@ def run_lstm(
         patience=patience,
         top_k_features=top_k_features,
         seed=seed,
+        cv_method=cv_method,
+        embargo_pct=embargo_pct,
+        label_horizon=label_horizon,
     )
     save_model(model, metrics, out_path)
     metrics["artifact_path"] = str(out_path)

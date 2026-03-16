@@ -147,6 +147,8 @@ def _start_tracking_run(config: TrainingConfig) -> str | None:
                 "label": config.label,
                 "n_trials": config.n_trials,
                 "n_splits": config.n_splits,
+                "cv_method": config.extra.get("cv_method", "purged_timeseries"),
+                "embargo_pct": config.extra.get("embargo_pct", 0.01),
                 **config.extra,
             },
         )

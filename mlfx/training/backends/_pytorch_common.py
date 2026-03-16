@@ -52,9 +52,9 @@ import numpy as np
 import optuna
 import torch
 from sklearn.feature_selection import SelectKBest, f_classif, VarianceThreshold
-from sklearn.model_selection import TimeSeriesSplit
 
 from mlfx.training.backends._sequence_utils import create_sequences
+from mlfx.training.cross_validation import get_cross_validator
 from mlfx.training.evaluation import compute_classification_metrics
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,9 @@ def run_pytorch_hpo(
     patience: int,
     top_k_features: int,
     seed: int,
+    cv_method: str = "purged_timeseries",
+    embargo_pct: float = 0.01,
+    label_horizon: int = 10,
 ) -> tuple[Any, dict[str, Any]]:
     """Feature selection → Optuna HPO → OOS evaluation → final model.
 
@@ -98,6 +101,13 @@ def run_pytorch_hpo(
         Pre-loaded feature matrix, label array, and column names.
     model_type:
         Short string stored in the returned metrics dict (e.g. ``"LSTM"``).
+    cv_method:
+        Cross-validation method: "purged_kfold", "purged_timeseries",
+        "walk_forward", or "timeseries" (default: "purged_timeseries").
+    embargo_pct:
+        Percentage of data to embargo after each test fold (default: 0.01).
+    label_horizon:
+        Number of bars ahead used in label generation (default: 10).
 
     Returns
     -------
@@ -105,7 +115,7 @@ def run_pytorch_hpo(
         *model* is the final trained model; *metrics_dict* contains
         ``best_cv_f1_macro``, ``f1_macro_oos``, ``best_params``,
         ``selected_features``, ``seq_len``, ``n_samples``, ``history``,
-        and ``model_type``.
+        ``model_type``, ``cv_method``, ``embargo_pct``, ``label_horizon``.
     """
     # ------------------------------------------------------------------
     # 1. Feature selection
@@ -141,9 +151,14 @@ def run_pytorch_hpo(
             # Invalid hyperparameter combination (e.g. d_model % nhead != 0).
             return 0.0
 
-        tscv = TimeSeriesSplit(n_splits=n_splits)
+        cv = get_cross_validator(
+            method=cv_method,
+            n_splits=n_splits,
+            label_horizon=label_horizon,
+            embargo_pct=embargo_pct,
+        )
         f1_scores: list[float] = []
-        for train_idx, val_idx in tscv.split(X_sel):
+        for train_idx, val_idx in cv.split(X_sel):
             if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
                 continue
             _, val_f1, _ = train_once_fn(
@@ -165,11 +180,16 @@ def run_pytorch_hpo(
     # ------------------------------------------------------------------
     # 3. Out-of-sample evaluation (walk-forward CV with best params)
     # ------------------------------------------------------------------
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    cv = get_cross_validator(
+        method=cv_method,
+        n_splits=n_splits,
+        label_horizon=label_horizon,
+        embargo_pct=embargo_pct,
+    )
     oos_preds = np.full(len(y), -1, dtype=y.dtype)
     oos_labels = np.full(len(y), -1, dtype=y.dtype)
 
-    for train_idx, val_idx in tscv.split(X_sel):
+    for train_idx, val_idx in cv.split(X_sel):
         if len(train_idx) <= seq_len or len(val_idx) <= seq_len:
             continue
         model_cv, _, _ = train_once_fn(
@@ -214,6 +234,9 @@ def run_pytorch_hpo(
         "n_samples": len(X),
         "history": history,
         "model_type": model_type,
+        "cv_method": cv_method,
+        "embargo_pct": embargo_pct,
+        "label_horizon": label_horizon,
     }
     logger.info("Final OOS F1: %.4f", f1_macro_oos)
     return final_model, metrics

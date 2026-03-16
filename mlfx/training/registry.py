@@ -33,6 +33,8 @@ def _extra_lstm(c: "TrainingConfig") -> dict[str, Any]:
         "batch_size": 128,
         "patience": 5,
         "top_k_features": 20,
+        "cv_method": c.extra.get("cv_method", "purged_timeseries"),
+        "embargo_pct": c.extra.get("embargo_pct", 0.01),
     }
 
 

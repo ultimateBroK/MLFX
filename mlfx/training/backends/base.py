@@ -27,6 +27,9 @@ class TrainResult(TypedDict, total=False):
     selected_features: list[str]
     artifact_path: str
     run_id: str
+    cv_method: str
+    embargo_pct: float
+    label_horizon: int
 
 
 # ---------------------------------------------------------------------------
