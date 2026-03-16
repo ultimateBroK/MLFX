@@ -47,10 +47,10 @@ venv/
 .env.*.local
 
 # Local editor and agent state
-.agent/*
+.agents/*
 .cursor/*
 .vscode/*
 .qoder/
 .github/*
 
-task.md
+AGENTS.md
