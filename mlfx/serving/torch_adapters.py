@@ -8,6 +8,20 @@ import numpy as np
 
 NUM_CLASSES = 5
 
+# Training-only hyperparameters that should NOT be passed to model constructors
+_TRAINING_ONLY_PARAMS: frozenset[str] = frozenset({
+    "lr",           # learning rate
+    "learning_rate",
+    "epochs",
+    "batch_size",
+    "patience",     # early stopping patience
+    "optimizer",
+    "weight_decay",
+    "momentum",
+    "n_trials",     # optuna trials
+    "n_splits",     # cv splits
+})
+
 
 def _rebuild_torch_model(
     model_cls: Type[Any],
@@ -19,7 +33,11 @@ def _rebuild_torch_model(
     metrics = payload["metrics"]
     bp = metrics["best_params"]
     input_size = len(metrics.get("selected_features", []))
-    kwargs: dict[str, Any] = {"input_size": input_size, "num_classes": NUM_CLASSES, **bp}
+    
+    # Filter out training-only hyperparameters, keep only architecture params
+    arch_params = {k: v for k, v in bp.items() if k not in _TRAINING_ONLY_PARAMS}
+    
+    kwargs: dict[str, Any] = {"input_size": input_size, "num_classes": NUM_CLASSES, **arch_params}
     if extra_from_metrics:
         for key in extra_from_metrics:
             kwargs[key] = metrics.get(key)

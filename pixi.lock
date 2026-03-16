@@ -3501,7 +3501,7 @@ packages:
 - pypi: ./
   name: mlfx
   version: 0.1.0
-  sha256: 0b9690294d6d1f2a51b41f5c843ecf0b0f395d7c2021d6f36ee0d65c899e1b42
+  sha256: d163b1372b66f5ac703e52e9bac6f59922a678448a766d94e43d9764ca6d7eaf
   requires_dist:
   - cachetools>=5.3.0,<6
   - ipykernel>=7.2.0,<8
@@ -3514,6 +3514,7 @@ packages:
   - puremagic>=2.0.0,<3
   - pydantic-settings>=2.0.0,<3
   - mlflow>=3.10.1,<4
+  - plotly
   - fastapi>=0.135.1,<0.136 ; extra == 'serving'
   - pydantic>=2.12.5,<3 ; extra == 'serving'
   - uvicorn>=0.41.0,<0.42 ; extra == 'serving'
