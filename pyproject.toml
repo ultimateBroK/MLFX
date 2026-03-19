@@ -15,7 +15,8 @@ dependencies = [
     "bentoml>=1.4.36,<2", 
     "dagster>=1.12.14,<2", 
     "dagster-webserver>=1.12.14,<2", 
-    "aiosqlite>=0.22.1,<0.23", "jupyterlab>=4.5.6,<5",
+    "aiosqlite>=0.22.1,<0.23", 
+    "jupyterlab>=4.5.6,<5",
 ]
 description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "MLFX"
