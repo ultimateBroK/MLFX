@@ -9,6 +9,7 @@ from typing import Any
 
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.workflow import StageResult
+from mlfx.workflow.results import StageStatus
 from mlfx.workflow.stages import run_drift, run_drift_then_retrain
 
 from ..render import console
@@ -17,7 +18,7 @@ from ..resolve import resolve_drift_config, resolve_train_config
 logger = logging.getLogger(__name__)
 
 
-def _derive_workflow_status(stages: list[StageResult]) -> str:
+def _derive_workflow_status(stages: list[StageResult]) -> StageStatus:
     if any(stage.status == "error" for stage in stages):
         return "error"
     if stages and all(stage.status == "skipped" for stage in stages):
@@ -35,7 +36,7 @@ def _persist_cli_workflow(
     result = WorkflowResult(
         workflow=workflow,
         stages=stages,
-        status=_derive_workflow_status(stages),  # type: ignore[arg-type]
+        status=_derive_workflow_status(stages),
         params=params or {},
     )
     summary_path = persist_workflow_result(result)
@@ -73,6 +74,8 @@ def handle_drift_retrain(args: argparse.Namespace) -> None:
         n_splits=train_cfg["n_splits"],
         force=train_cfg["force"],
         extra={
+            "cv_method": train_cfg["cv_method"],
+            "embargo_pct": train_cfg["embargo_pct"],
             "train_start": train_cfg["train_start"],
             "train_end": train_cfg["train_end"],
             "profile": args.profile,

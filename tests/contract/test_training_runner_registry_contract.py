@@ -30,3 +30,24 @@ def test_runner_registers_artifact_path(monkeypatch, tmp_path: Path):
     assert "elapsed_seconds" in metrics
     assert captured["artifact_path"] == str(tmp_path / "artifact.pkl")
     assert captured["backend"] == "mlf"
+
+
+def test_registry_runner_kwargs_include_cross_validation_settings():
+    from mlfx.training.config import TrainingConfig
+    from mlfx.training.registry import get_runner_kwargs
+
+    cfg = TrainingConfig(
+        symbol="XAUUSD",
+        tf="1H",
+        label="label_10",
+        backend="lstm",
+        extra={
+            "cv_method": "walk_forward",
+            "embargo_pct": 0.03,
+        },
+    )
+
+    kwargs = get_runner_kwargs(cfg)
+
+    assert kwargs["cv_method"] == "walk_forward"
+    assert kwargs["embargo_pct"] == 0.03

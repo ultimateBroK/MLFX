@@ -19,6 +19,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ValidSymbol = Annotated[str, Field(min_length=1)]
 ValidTimeframe = Literal["1m", "5m", "15m", "30m", "1H", "2H", "4H", "1D"]
+ValidCvMethod = Literal["purged_kfold", "purged_timeseries", "walk_forward", "timeseries"]
 
 
 class DownloadConfig(BaseModel):
@@ -83,6 +84,8 @@ class TrainConfig(BaseModel):
     backend: Literal["mlf", "lstm", "sgd", "stats"] = "mlf"
     n_trials: int = Field(default=30, ge=1)
     n_splits: int = Field(default=5, ge=2)
+    cv_method: ValidCvMethod = "purged_timeseries"
+    embargo_pct: float = Field(default=0.01, ge=0.0, lt=1.0)
     random_seed: int = Field(default=42, ge=0)
     force: bool = False
     train_start: str | None = None
@@ -121,6 +124,8 @@ class ProfileTrainConfig(BaseModel):
     backend: Literal["mlf", "lstm", "sgd", "stats"] | None = None
     n_trials: int | None = Field(default=None, ge=1)
     n_splits: int | None = Field(default=None, ge=2)
+    cv_method: ValidCvMethod | None = None
+    embargo_pct: float | None = Field(default=None, ge=0.0, lt=1.0)
     random_seed: int | None = Field(default=None, ge=0)
     train_start: str | None = None
     train_end: str | None = None

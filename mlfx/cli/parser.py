@@ -191,6 +191,18 @@ def _add_train_parser(subparsers: argparse._SubParsersAction) -> None:
     train.add_argument("--n-trials", type=int, default=None, help="Optuna trials for HPO")
     train.add_argument("--n-splits", type=int, default=None, help="TimeSeriesSplit folds")
     train.add_argument(
+        "--cv-method",
+        choices=["purged_kfold", "purged_timeseries", "walk_forward", "timeseries"],
+        default=None,
+        help="Cross-validation method (default: config.toml)",
+    )
+    train.add_argument(
+        "--embargo-pct",
+        type=float,
+        default=None,
+        help="Embargo percentage for purged CV methods (default: config.toml)",
+    )
+    train.add_argument(
         "--train-start",
         default=None,
         help="Inclusive training start date in compact format YYYYMMDD, e.g. 20240101",
@@ -336,6 +348,18 @@ def _add_drift_retrain_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     drift_retrain.add_argument("--n-trials", type=int, default=None, help="Optuna trials for HPO")
     drift_retrain.add_argument("--n-splits", type=int, default=None, help="TimeSeriesSplit folds")
+    drift_retrain.add_argument(
+        "--cv-method",
+        choices=["purged_kfold", "purged_timeseries", "walk_forward", "timeseries"],
+        default=None,
+        help="Cross-validation method (default: config.toml)",
+    )
+    drift_retrain.add_argument(
+        "--embargo-pct",
+        type=float,
+        default=None,
+        help="Embargo percentage for purged CV methods (default: config.toml)",
+    )
     drift_retrain.add_argument(
         "--train-start",
         default=None,

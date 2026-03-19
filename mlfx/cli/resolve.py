@@ -181,17 +181,29 @@ def resolve_train_config(args: argparse.Namespace) -> dict[str, Any]:
 
 def resolve_train_config_from_settings(args: argparse.Namespace, cfg: AppConfig) -> dict[str, Any]:
     """Resolve effective train configuration from CLI, profile, and validated settings."""
-    profile_data = resolve_profile_section(cfg, args.profile, "train")
+    profile_data = resolve_profile_section(cfg, getattr(args, "profile", None), "train")
 
-    symbol = pick_value(args.symbol, profile_data, "symbol", cfg.train.symbol)
-    tf = pick_value(args.tf, profile_data, "tf", cfg.train.tf)
-    label = pick_value(args.label, profile_data, "label", cfg.train.label)
-    backend = pick_value(args.backend, profile_data, "backend", cfg.train.backend)
-    n_trials = pick_value(args.n_trials, profile_data, "n_trials", cfg.train.n_trials)
-    n_splits = pick_value(args.n_splits, profile_data, "n_splits", cfg.train.n_splits)
-    force = pick_value(args.force, profile_data, "force", cfg.train.force)
-    train_start = pick_value(args.train_start, profile_data, "train_start", cfg.train.train_start)
-    train_end = pick_value(args.train_end, profile_data, "train_end", cfg.train.train_end)
+    symbol = pick_value(getattr(args, "symbol", None), profile_data, "symbol", cfg.train.symbol)
+    tf = pick_value(getattr(args, "tf", None), profile_data, "tf", cfg.train.tf)
+    label = pick_value(getattr(args, "label", None), profile_data, "label", cfg.train.label)
+    backend = pick_value(getattr(args, "backend", None), profile_data, "backend", cfg.train.backend)
+    n_trials = pick_value(getattr(args, "n_trials", None), profile_data, "n_trials", cfg.train.n_trials)
+    n_splits = pick_value(getattr(args, "n_splits", None), profile_data, "n_splits", cfg.train.n_splits)
+    cv_method = pick_value(
+        getattr(args, "cv_method", None),
+        profile_data,
+        "cv_method",
+        getattr(cfg.train, "cv_method", "purged_timeseries"),
+    )
+    embargo_pct = pick_value(
+        getattr(args, "embargo_pct", None),
+        profile_data,
+        "embargo_pct",
+        getattr(cfg.train, "embargo_pct", 0.01),
+    )
+    force = pick_value(getattr(args, "force", None), profile_data, "force", cfg.train.force)
+    train_start = pick_value(getattr(args, "train_start", None), profile_data, "train_start", cfg.train.train_start)
+    train_end = pick_value(getattr(args, "train_end", None), profile_data, "train_end", cfg.train.train_end)
 
     return {
         "symbol": symbol,
@@ -200,6 +212,8 @@ def resolve_train_config_from_settings(args: argparse.Namespace, cfg: AppConfig)
         "backend": backend,
         "n_trials": n_trials,
         "n_splits": n_splits,
+        "cv_method": cv_method,
+        "embargo_pct": embargo_pct,
         "force": force,
         "train_start": train_start,
         "train_end": train_end,

@@ -15,7 +15,7 @@ from mlfx.pipeline.runner import run_pipeline
 from mlfx.serving.batch import run_batch_inference
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.runner import run_training
-from mlfx.workflow.results import StageResult
+from mlfx.workflow.results import StageResult, StageStatus
 
 
 def _finish_stage(
@@ -23,7 +23,7 @@ def _finish_stage(
     stage: str,
     started: float,
     started_at: str,
-    status: str,
+    status: StageStatus,
     metrics: dict[str, Any] | None = None,
     params: dict[str, Any] | None = None,
     artifacts: dict[str, str] | None = None,
@@ -36,7 +36,7 @@ def _finish_stage(
     ended_at = datetime.now(UTC).isoformat()
     return StageResult(
         stage=stage,
-        status=status,  # type: ignore[arg-type]
+        status=status,
         metrics=metrics or {},
         params=params or {},
         artifacts=artifacts or {},

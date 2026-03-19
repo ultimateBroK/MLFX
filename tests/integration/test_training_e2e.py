@@ -70,6 +70,48 @@ def test_run_training_dl_backend_threads_data(monkeypatch, tmp_path: Path):
     assert metrics["best_cv_f1_macro"] == 0.42
 
 
+def test_run_training_dl_backend_receives_cv_settings(monkeypatch, tmp_path: Path):
+    """DL backends should receive resolved CV settings from TrainingConfig.extra."""
+    from mlfx.training.runner import run_training
+
+    backend_calls: list[dict[str, Any]] = []
+
+    def _fake_prepare_tabular_data(symbol: str, tf: str, label: str) -> tuple:
+        import numpy as np
+
+        X = np.random.randn(100, 10)
+        y = np.random.randint(0, 2, 100)
+        feature_cols = [f"f{i}" for i in range(10)]
+        return X, y, feature_cols
+
+    def _fake_dl_runner(**kwargs: Any) -> dict[str, Any]:
+        backend_calls.append(kwargs)
+        return {
+            "best_cv_f1_macro": 0.42,
+            "artifact_path": str(tmp_path / "model.pkl"),
+        }
+
+    monkeypatch.setattr("mlfx.training.runner.get_backend_runner", lambda backend: _fake_dl_runner)
+    monkeypatch.setattr(
+        "mlfx.training.data.prepare_tabular_data",
+        _fake_prepare_tabular_data,
+    )
+    monkeypatch.setattr("mlfx.registry.models.get_registry", lambda: None)
+
+    cfg = TrainingConfig(
+        symbol="XAUUSD",
+        tf="1H",
+        backend="lstm",
+        label="label_10",
+        extra={"cv_method": "walk_forward", "embargo_pct": 0.03},
+    )
+    run_training(cfg, enable_tracking=False, enable_registry=False)
+
+    assert len(backend_calls) == 1
+    assert backend_calls[0]["cv_method"] == "walk_forward"
+    assert backend_calls[0]["embargo_pct"] == 0.03
+
+
 def test_run_training_non_dl_backend_no_data_threading(monkeypatch):
     """Test that non-DL backends do NOT receive X, y, feature_cols."""
     from mlfx.training.runner import run_training

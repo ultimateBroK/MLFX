@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from typing import Any
 
 from mlfx.workflow import StageResult
+from mlfx.workflow.results import StageStatus
 from mlfx.workflow.stages import run_pipeline_stage
 
 from ..render import console
@@ -15,7 +17,7 @@ from ..resolve import resolve_pipeline_config
 logger = logging.getLogger(__name__)
 
 
-def _derive_workflow_status(stages: list[StageResult]) -> str:
+def _derive_workflow_status(stages: list[StageResult]) -> StageStatus:
     if any(stage.status == "error" for stage in stages):
         return "error"
     if stages and all(stage.status == "skipped" for stage in stages):
@@ -33,7 +35,7 @@ def _persist_cli_workflow(
     result = WorkflowResult(
         workflow=workflow,
         stages=stages,
-        status=_derive_workflow_status(stages),  # type: ignore[arg-type]
+        status=_derive_workflow_status(stages),
         params=params or {},
     )
     summary_path = persist_workflow_result(result)
@@ -53,7 +55,3 @@ def handle_pipeline(args: argparse.Namespace) -> None:
     stage = run_pipeline_stage(**pipeline_cfg)
     _persist_cli_workflow("pipeline", [stage], params=vars(args))
     _exit_on_stage_error(stage)
-
-
-# Import Any for type hints
-from typing import Any

@@ -47,6 +47,18 @@ class TestTrainConfig:
         with pytest.raises(ValidationError):
             TrainConfig(n_trials=0)
 
+    def test_cv_method_accepts_documented_values(self):
+        from mlfx.config.schema import TrainConfig
+
+        cfg = TrainConfig(cv_method="walk_forward")
+        assert cfg.cv_method == "walk_forward"
+
+    def test_embargo_pct_must_be_in_half_open_unit_interval(self):
+        from mlfx.config.schema import TrainConfig
+
+        with pytest.raises(ValidationError):
+            TrainConfig(embargo_pct=1.0)
+
 
 # ---------------------------------------------------------------------------
 # BacktestConfig validation
@@ -138,6 +150,8 @@ class TestWorkflowProfiles:
                             "tf": "1H",
                             "label": "label_10",
                             "backend": "mlf",
+                            "cv_method": "purged_kfold",
+                            "embargo_pct": 0.02,
                             "train_start": "20240101",
                             "train_end": "20241231",
                             "n_trials": 5,
@@ -175,6 +189,8 @@ class TestWorkflowProfiles:
         assert cfg.profiles["research"].evaluate is not None
         assert cfg.profiles["research"].benchmark is not None
         assert cfg.profiles["research"].benchmark.backends == ["mlf", "sgd", "stats"]
+        assert cfg.profiles["research"].train.cv_method == "purged_kfold"
+        assert cfg.profiles["research"].train.embargo_pct == 0.02
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +228,8 @@ symbol = "XAUUSD"
 tf = "1H"
 label = "label_10"
 backend = "mlf"
+cv_method = "purged_kfold"
+embargo_pct = 0.02
 train_start = "20240101"
 train_end = "20241231"
 n_trials = 5
@@ -245,6 +263,8 @@ n_splits = 3
         assert "research" in config.profiles
         assert config.profiles["research"].train is not None
         assert config.profiles["research"].train.backend == "mlf"
+        assert config.profiles["research"].train.cv_method == "purged_kfold"
+        assert config.profiles["research"].train.embargo_pct == 0.02
         assert config.profiles["research"].train.train_start == "20240101"
         assert config.profiles["research"].evaluate is not None
         assert config.profiles["research"].evaluate.eval_end == "20250331"
