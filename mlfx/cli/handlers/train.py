@@ -3,79 +3,28 @@
 from __future__ import annotations
 
 import argparse
-import logging
-import sys
 from typing import Any
 
-from mlfx.training.backends.base import TrainingConfig
 from mlfx.workflow import StageResult
-from mlfx.workflow.results import StageStatus
+from mlfx.training.backends.base import TrainingConfig
 from mlfx.workflow.stages import run_train
 
-from ..render import console, print_resolved_train_summary
-from ..resolve import resolve_train_config
-
-logger = logging.getLogger(__name__)
-
-
-def _derive_workflow_status(stages: list[StageResult]) -> StageStatus:
-    if any(stage.status == "error" for stage in stages):
-        return "error"
-    if stages and all(stage.status == "skipped" for stage in stages):
-        return "skipped"
-    return "ok"
+from .. import render as render_cli
+from .. import resolve as resolve_cli
+from .._workflow_summary import (
+    exit_on_stage_error as _exit_on_stage_error,
+    persist_cli_workflow as _persist_cli_workflow,
+)
 
 
-def _persist_cli_workflow(
-    workflow: str,
-    stages: list[StageResult],
+def build_training_config(
+    train_cfg: dict[str, Any],
     *,
-    params: dict[str, Any] | None = None,
-) -> None:
-    from mlfx.workflow import WorkflowResult, persist_workflow_result
-    result = WorkflowResult(
-        workflow=workflow,
-        stages=stages,
-        status=_derive_workflow_status(stages),
-        params=params or {},
-    )
-    summary_path = persist_workflow_result(result)
-    console.print(f"Workflow summary: {summary_path}")
-
-
-def _exit_on_stage_error(stage: StageResult) -> None:
-    if stage.status == "error":
-        if stage.error:
-            logging.getLogger(__name__).error("%s failed: %s", stage.stage, stage.error)
-        sys.exit(1)
-
-
-def handle_train(args: argparse.Namespace) -> None:
-    """Handle the train command."""
-    train_cfg = resolve_train_config(args)
-
-    print_resolved_train_summary(
-        profile=args.profile,
-        symbol=train_cfg["symbol"],
-        tf=train_cfg["tf"],
-        label=train_cfg["label"],
-        backend=train_cfg["backend"],
-        n_trials=train_cfg["n_trials"],
-        n_splits=train_cfg["n_splits"],
-        train_start=train_cfg["train_start"],
-        train_end=train_cfg["train_end"],
-        force=train_cfg["force"],
-    )
-
-    # Enable MLflow if flag is set
-    use_mlflow = getattr(args, "mlflow", False)
-    if use_mlflow:
-        from mlfx.config.mlflow import MLflowConfig
-        config = MLflowConfig()
-        config.setup_mlflow()
-        console.print(f"MLflow tracking enabled: {config.tracking_uri}")
-
-    cfg = TrainingConfig(
+    profile: str | None,
+    use_mlflow: bool,
+) -> TrainingConfig:
+    """Build the canonical training config from resolved CLI values."""
+    return TrainingConfig(
         symbol=train_cfg["symbol"],
         tf=train_cfg["tf"],
         label=train_cfg["label"],
@@ -84,14 +33,58 @@ def handle_train(args: argparse.Namespace) -> None:
         n_splits=train_cfg["n_splits"],
         force=train_cfg["force"],
         extra={
-            "cv_method": train_cfg["cv_method"],
-            "embargo_pct": train_cfg["embargo_pct"],
+            "cv_method": train_cfg.get("cv_method", "purged_timeseries"),
+            "embargo_pct": train_cfg.get("embargo_pct", 0.01),
             "train_start": train_cfg["train_start"],
             "train_end": train_cfg["train_end"],
-            "profile": args.profile,
+            "profile": profile,
             "use_mlflow": use_mlflow,
         },
     )
-    stage = run_train(cfg)
+
+
+def execute_train_command(
+    args: argparse.Namespace,
+    *,
+    render_summary: bool = True,
+) -> tuple[StageResult, dict[str, Any]]:
+    """Resolve and execute the train command."""
+    train_cfg = resolve_cli.resolve_train_command_config(args)
+
+    if render_summary:
+        render_cli.print_resolved_train_summary(
+            profile=getattr(args, "profile", None),
+            symbol=train_cfg["symbol"],
+            tf=train_cfg["tf"],
+            label=train_cfg["label"],
+            backend=train_cfg["backend"],
+            n_trials=train_cfg["n_trials"],
+            n_splits=train_cfg["n_splits"],
+            train_start=train_cfg["train_start"],
+            train_end=train_cfg["train_end"],
+            force=train_cfg["force"],
+        )
+
+    use_mlflow = getattr(args, "mlflow", False)
+    if use_mlflow:
+        from mlfx.config.mlflow import MLflowConfig
+
+        config = MLflowConfig()
+        config.setup_mlflow()
+        render_cli.console.print(f"MLflow tracking enabled: {config.tracking_uri}")
+
+    stage = run_train(
+        build_training_config(
+            train_cfg,
+            profile=getattr(args, "profile", None),
+            use_mlflow=use_mlflow,
+        )
+    )
+    return stage, train_cfg
+
+
+def handle_train(args: argparse.Namespace) -> None:
+    """Handle the train command."""
+    stage, _ = execute_train_command(args)
     _persist_cli_workflow("train", [stage], params=vars(args))
     _exit_on_stage_error(stage)

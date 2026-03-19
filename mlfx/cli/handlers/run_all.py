@@ -4,185 +4,28 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
 import sys
-from typing import Any
 
-from mlfx.training.backends.base import TrainingConfig
 from mlfx.workflow import StageResult
-from mlfx.workflow.results import StageStatus
 from mlfx.workflow.stages import run_batch, run_download, run_drift_then_retrain, run_pipeline_stage, run_qa
-from mlfx.workflow.orchestration import run_benchmark_stage
 
+from .._workflow_summary import (
+    make_skipped_stage as _make_skipped_stage,
+    persist_cli_workflow as _persist_cli_workflow,
+)
+from ..handlers.evaluate import execute_evaluate_command
+from ..handlers.train import build_training_config, execute_train_command
 from ..render import console
 from ..resolve import (
     resolve_batch_config,
     resolve_download_config,
     resolve_drift_config,
-    resolve_evaluate_config,
     resolve_pipeline_config,
     resolve_qa_config,
     resolve_serve_config,
     resolve_train_config,
 )
 from ..workflows import run_benchmark_stage
-
-logger = logging.getLogger(__name__)
-
-
-def _derive_workflow_status(stages: list[StageResult]) -> StageStatus:
-    if any(stage.status == "error" for stage in stages):
-        return "error"
-    if stages and all(stage.status == "skipped" for stage in stages):
-        return "skipped"
-    return "ok"
-
-
-def _persist_cli_workflow(
-    workflow: str,
-    stages: list[StageResult],
-    *,
-    params: dict[str, Any] | None = None,
-) -> None:
-    from mlfx.workflow import WorkflowResult, persist_workflow_result
-    result = WorkflowResult(
-        workflow=workflow,
-        stages=stages,
-        status=_derive_workflow_status(stages),
-        params=params or {},
-    )
-    summary_path = persist_workflow_result(result)
-    console.print(f"Workflow summary: {summary_path}")
-
-
-def _make_skipped_stage(
-    stage: str,
-    *,
-    reason: str,
-    params: dict[str, Any] | None = None,
-) -> StageResult:
-    """Create a canonical skipped stage result payload."""
-    return StageResult(
-        stage=stage,
-        status="skipped",
-        metrics={"reason": reason},
-        params=params or {},
-    )
-
-
-def _run_train_command(args: argparse.Namespace) -> StageResult:
-    """Resolve and execute the train command."""
-    from ..render import print_resolved_train_summary
-    from mlfx.workflow.stages import run_train
-
-    train_cfg = resolve_train_config(args)
-
-    print_resolved_train_summary(
-        profile=args.profile,
-        symbol=train_cfg["symbol"],
-        tf=train_cfg["tf"],
-        label=train_cfg["label"],
-        backend=train_cfg["backend"],
-        n_trials=train_cfg["n_trials"],
-        n_splits=train_cfg["n_splits"],
-        train_start=train_cfg["train_start"],
-        train_end=train_cfg["train_end"],
-        force=train_cfg["force"],
-    )
-
-    use_mlflow = getattr(args, "mlflow", False)
-    if use_mlflow:
-        from mlfx.config.mlflow import MLflowConfig
-        config = MLflowConfig()
-        config.setup_mlflow()
-        console.print(f"MLflow tracking enabled: {config.tracking_uri}")
-
-    cfg = TrainingConfig(
-        symbol=train_cfg["symbol"],
-        tf=train_cfg["tf"],
-        label=train_cfg["label"],
-        backend=train_cfg["backend"],
-        n_trials=train_cfg["n_trials"],
-        n_splits=train_cfg["n_splits"],
-        force=train_cfg["force"],
-        extra={
-            "cv_method": train_cfg["cv_method"],
-            "embargo_pct": train_cfg["embargo_pct"],
-            "train_start": train_cfg["train_start"],
-            "train_end": train_cfg["train_end"],
-            "profile": args.profile,
-            "use_mlflow": use_mlflow,
-        },
-    )
-    return run_train(cfg)
-
-
-def _run_evaluate_command(args: argparse.Namespace) -> StageResult:
-    """Resolve and execute the evaluate command."""
-    from mlfx.config.paths import DEFAULT_PATHS
-    from mlfx.workflow.stages import run_evaluate
-    from ..render import print_backtest_results, print_resolved_evaluate_summary, t
-
-    eval_cfg = resolve_evaluate_config(args)
-
-    print_resolved_evaluate_summary(
-        profile=args.profile,
-        symbol=eval_cfg["symbol"],
-        tf=eval_cfg["tf"],
-        label=eval_cfg["label"],
-        capital=eval_cfg["capital"],
-        risk=eval_cfg["risk"],
-        commission=eval_cfg["commission"],
-        tp=eval_cfg["tp"],
-        sl=eval_cfg["sl"],
-        slippage=eval_cfg["slippage"],
-        eval_start=eval_cfg["eval_start"],
-        eval_end=eval_cfg["eval_end"],
-        use_labels=eval_cfg["use_labels"],
-    )
-
-    stage = run_evaluate(
-        symbol=eval_cfg["symbol"],
-        tf=eval_cfg["tf"],
-        label=eval_cfg["label"],
-        initial_capital=eval_cfg["capital"],
-        risk_pct=eval_cfg["risk"],
-        commission=eval_cfg["commission"],
-        tp_r=eval_cfg["tp"],
-        sl_r=eval_cfg["sl"],
-        slippage=eval_cfg["slippage"],
-        eval_start=eval_cfg["eval_start"],
-        eval_end=eval_cfg["eval_end"],
-        use_labels=eval_cfg["use_labels"],
-    )
-
-    if stage.status == "error":
-        return stage
-
-    results = stage.metrics.get("results") if isinstance(stage.metrics, dict) else None
-    source_raw = stage.metrics.get("source") if isinstance(stage.metrics, dict) else None
-    baseline = stage.metrics.get("baseline") if isinstance(stage.metrics, dict) else None
-    source = {
-        "labels": "Labels (baseline)",
-        "labels_fallback": "Labels (no model, fallback)",
-        "model": "Model",
-    }.get(str(source_raw), str(source_raw) if source_raw is not None else "-")
-
-    if not results:
-        return stage
-
-    print_backtest_results(results=results, source=source, baseline=baseline)
-
-    risk_dir = f"R{int(eval_cfg['tp'] * 10)}"
-    report_mode = "labels" if source != "Model" else "model"
-    reports_dir = (
-        DEFAULT_PATHS.reports_dir(eval_cfg["symbol"], eval_cfg["tf"])
-        / eval_cfg["label"]
-        / report_mode
-        / risk_dir
-    )
-    console.print(f"\n{t('chart_path', path=reports_dir)}")
-    return stage
 
 
 def handle_run_all(args: argparse.Namespace) -> None:
@@ -303,14 +146,16 @@ def handle_run_all(args: argparse.Namespace) -> None:
     if args.skip_train:
         stages.append(_make_skipped_stage("train", reason="Skipped by --skip-train"))
     else:
-        if _append(_run_train_command(train_args)):
+        train_stage, _ = execute_train_command(train_args)
+        if _append(train_stage):
             _finish_run_all(args, stages)
             return
 
     if args.skip_evaluate:
         stages.append(_make_skipped_stage("evaluate", reason="Skipped by --skip-evaluate"))
     else:
-        if _append(_run_evaluate_command(eval_args)):
+        evaluate_stage, _ = execute_evaluate_command(eval_args)
+        if _append(evaluate_stage):
             _finish_run_all(args, stages)
             return
 
@@ -360,21 +205,10 @@ def handle_run_all(args: argparse.Namespace) -> None:
             )
         )
         train_cfg = resolve_train_config(train_args)
-        training_cfg = TrainingConfig(
-            symbol=train_cfg["symbol"],
-            tf=train_cfg["tf"],
-            label=train_cfg["label"],
-            backend=train_cfg["backend"],
-            n_trials=train_cfg["n_trials"],
-            n_splits=train_cfg["n_splits"],
-            force=train_cfg["force"],
-            extra={
-                "cv_method": train_cfg["cv_method"],
-                "embargo_pct": train_cfg["embargo_pct"],
-                "train_start": train_cfg["train_start"],
-                "train_end": train_cfg["train_end"],
-                "profile": args.profile,
-            },
+        training_cfg = build_training_config(
+            train_cfg,
+            profile=args.profile,
+            use_mlflow=False,
         )
         for drift_stage in run_drift_then_retrain(
             drift_params={

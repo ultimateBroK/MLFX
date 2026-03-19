@@ -1,7 +1,7 @@
 """Workflow orchestration helpers for MLFX.
 
-This module contains high-level orchestration functions that coordinate
-multiple workflow stages (train, evaluate, benchmark).
+This module contains high-level orchestration helpers for composite workflow
+operations that are not owned by individual CLI command handlers.
 """
 
 from __future__ import annotations
@@ -12,11 +12,6 @@ import json
 import logging
 import time
 
-from mlfx.evaluation.runner import (
-    get_baseline_metrics,
-    run_full_eval,
-    run_model_backtest,
-)
 from mlfx.workflow.results import StageResult
 from mlfx.training.backends.base import TrainingConfig
 from mlfx.training.registry import BACKEND_REGISTRY
@@ -28,200 +23,10 @@ _ALL_BACKENDS = sorted(BACKEND_REGISTRY)
 
 
 def run_profile_command(args: argparse.Namespace) -> None:
-    """Orchestrate train, evaluate, and optional benchmark using one workflow profile."""
-    from mlfx.cli.render import (
-        console,
-        print_resolved_benchmark_summary,
-        print_resolved_evaluate_summary,
-        print_resolved_train_summary,
-        print_backtest_results,
-        t,
-    )
-    from mlfx.cli.resolve import (
-        resolve_benchmark_config,
-        resolve_evaluate_command_config,
-        resolve_train_command_config,
-    )
+    """Compatibility shim for the CLI-owned run-profile workflow."""
+    from mlfx.cli.workflows import run_profile_command as cli_run_profile_command
 
-    if args.skip_train and args.skip_evaluate and args.skip_benchmark:
-        raise ValueError(
-            "run-profile cannot skip train, evaluate, and benchmark at the same time"
-        )
-
-    summary: dict[str, object] = {
-        "profile": args.profile,
-        "steps": {
-            "train": {"skipped": bool(args.skip_train)},
-            "evaluate": {"skipped": bool(args.skip_evaluate)},
-            "benchmark": {"skipped": bool(args.skip_benchmark)},
-        },
-    }
-
-    console.rule(f"[bold cyan]MLFX Run Profile — {args.profile}[/]")
-
-    # Resolve train config upfront to get backend for evaluation
-    train_args = argparse.Namespace(
-        profile=args.profile,
-        symbol=None,
-        tf=None,
-        label=None,
-        backend=None,
-        n_trials=None,
-        n_splits=None,
-        train_start=None,
-        train_end=None,
-        force=args.force,
-    )
-    train_cfg = resolve_train_command_config(train_args)
-
-    if not args.skip_train:
-        print_resolved_train_summary(
-            profile=args.profile,
-            symbol=train_cfg["symbol"],
-            tf=train_cfg["tf"],
-            label=train_cfg["label"],
-            backend=train_cfg["backend"],
-            n_trials=train_cfg["n_trials"],
-            n_splits=train_cfg["n_splits"],
-            train_start=train_cfg["train_start"],
-            train_end=train_cfg["train_end"],
-            force=train_cfg["force"],
-        )
-        console.rule(f"[bold yellow]{t('step_train')}[/]")
-        cfg = TrainingConfig(
-            symbol=train_cfg["symbol"],
-            tf=train_cfg["tf"],
-            label=train_cfg["label"],
-            backend=train_cfg["backend"],
-            n_trials=train_cfg["n_trials"],
-            n_splits=train_cfg["n_splits"],
-            force=train_cfg["force"],
-            extra={
-                "train_start": train_cfg["train_start"],
-                "train_end": train_cfg["train_end"],
-                "profile": args.profile,
-            },
-        )
-        train_metrics = run_training(cfg)
-        summary["steps"]["train"] = {
-            "skipped": False,
-            "config": train_cfg,
-            "metrics": train_metrics,
-        }
-
-    if not args.skip_evaluate:
-        eval_args = argparse.Namespace(
-            profile=args.profile,
-            symbol=None,
-            tf=None,
-            label=None,
-            capital=None,
-            risk=None,
-            commission=None,
-            tp=None,
-            sl=None,
-            slippage=None,
-            eval_start=None,
-            eval_end=None,
-            use_labels=None,
-        )
-        eval_cfg = resolve_evaluate_command_config(eval_args)
-        print_resolved_evaluate_summary(
-            profile=args.profile,
-            symbol=eval_cfg["symbol"],
-            tf=eval_cfg["tf"],
-            label=eval_cfg["label"],
-            capital=eval_cfg["capital"],
-            risk=eval_cfg["risk"],
-            commission=eval_cfg["commission"],
-            tp=eval_cfg["tp"],
-            sl=eval_cfg["sl"],
-            slippage=eval_cfg["slippage"],
-            eval_start=eval_cfg["eval_start"],
-            eval_end=eval_cfg["eval_end"],
-            use_labels=eval_cfg["use_labels"],
-        )
-        console.rule(f"[bold yellow]{t('step_evaluate')}[/]")
-
-        # Use the same backend as defined in the profile's train section
-        eval_backend = train_cfg["backend"]
-
-        eval_kw = dict(
-            symbol=eval_cfg["symbol"],
-            tf=eval_cfg["tf"],
-            label=eval_cfg["label"],
-            initial_capital=eval_cfg["capital"],
-            risk_pct=eval_cfg["risk"],
-            commission=eval_cfg["commission"],
-            tp_r=eval_cfg["tp"],
-            sl_r=eval_cfg["sl"],
-            slippage=eval_cfg["slippage"],
-            train_start=eval_cfg["eval_start"],
-            train_end=eval_cfg["eval_end"],
-            backend=eval_backend,
-        )
-
-        if eval_cfg["use_labels"]:
-            # run_full_eval doesn't accept backend parameter
-            baseline_kw = {k: v for k, v in eval_kw.items() if k != "backend"}
-            results = run_full_eval(**baseline_kw)
-            source = "Labels (baseline)"
-        else:
-            results = run_model_backtest(**eval_kw)
-            if results is not None:
-                source = "Model"
-            else:
-                baseline_kw = {k: v for k, v in eval_kw.items() if k != "backend"}
-                results = run_full_eval(**baseline_kw)
-                source = "Labels (no model, fallback)"
-
-        if results:
-            baseline = None
-            if source == "Model":
-                # Filter out backend param not accepted by get_baseline_metrics
-                baseline_kw = {k: v for k, v in eval_kw.items() if k != "backend"}
-                baseline = get_baseline_metrics(**baseline_kw)
-            print_backtest_results(results=results, source=source, baseline=baseline)
-
-        summary["steps"]["evaluate"] = {
-            "skipped": False,
-            "config": eval_cfg,
-            "source": source,
-            "results": results or {},
-        }
-
-    if not args.skip_benchmark:
-        console.rule(f"[bold yellow]{t('step_benchmark')}[/]")
-        benchmark_args = argparse.Namespace(
-            profile=args.profile,
-            symbol=None,
-            tf=None,
-            label=None,
-            backends=None,
-            n_trials=None,
-            n_splits=None,
-            train_start=None,
-            train_end=None,
-            force=None,
-        )
-        benchmark_result = run_benchmark(benchmark_args)
-        summary["steps"]["benchmark"] = {
-            "skipped": False,
-            "result": benchmark_result,
-        }
-
-    if args.json:
-        # Save JSON summary to file instead of stdout
-        from datetime import datetime
-        from mlfx.config.paths import DEFAULT_PATHS
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        profile_name = args.profile or "default"
-        json_filename = f"{timestamp}_{profile_name}_summary.json"
-        json_path = DEFAULT_PATHS.runs_root / json_filename
-        json_path.parent.mkdir(parents=True, exist_ok=True)
-        json_path.write_text(json.dumps(summary, indent=2, default=str))
-        console.print(f"JSON summary saved to: {json_path}")
+    cli_run_profile_command(args)
 
 
 def run_benchmark(args: argparse.Namespace) -> dict[str, object]:

@@ -149,15 +149,28 @@ class TestMainDispatchFlow:
         monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
         monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
         monkeypatch.setattr(
-            "mlfx.workflow.orchestration.run_training",
-            lambda config: {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61},
+            "mlfx.cli.handlers.train.run_train",
+            lambda config: __import__("mlfx.workflow", fromlist=["StageResult"]).StageResult(
+                stage="train",
+                status="ok",
+                metrics={
+                    "artifact_path": "outputs/models/fake.pkl",
+                    "best_cv_f1_macro": 0.61,
+                },
+            ),
         )
         monkeypatch.setattr(
-            "mlfx.workflow.orchestration.run_model_backtest",
-            lambda **kwargs: {"Net Profit (R)": "12.0R", "Sharpe": "1.20"},
+            "mlfx.cli.handlers.evaluate.run_evaluate",
+            lambda **kwargs: __import__("mlfx.workflow", fromlist=["StageResult"]).StageResult(
+                stage="evaluate",
+                status="ok",
+                metrics={
+                    "results": {"Net Profit (R)": "12.0R", "Sharpe": "1.20"},
+                    "source": "model",
+                    "baseline": {"total_r": 10.0},
+                },
+            ),
         )
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
-        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
         monkeypatch.setattr(
             "mlfx.workflow.orchestration.run_benchmark",
             lambda args: pytest.fail("benchmark should not run when --skip-benchmark is set"),

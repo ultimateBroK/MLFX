@@ -68,8 +68,8 @@ def main() -> None:
         handler(args)
 
 
-# Backward compatibility aliases for external imports
-# These are used by tests and external code that may import from main.py
+# Backward compatibility aliases for external imports.
+# Keep this section narrow and compatibility-only.
 from .resolve import (
     resolve_batch_config,
     resolve_download_config,
@@ -84,7 +84,7 @@ from .render import (
     print_resolved_train_summary,
     print_resolved_evaluate_summary,
 )
-from mlfx.workflow.orchestration import (
+from .workflows import (
     run_profile_command,
     run_benchmark,
     run_benchmark_stage,

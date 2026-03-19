@@ -8,6 +8,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from mlfx.workflow import StageResult
 
 
 @pytest.fixture
@@ -73,18 +74,31 @@ class TestRunProfileCommand:
         monkeypatch.setattr("mlfx.cli.resolve.resolve_evaluate_command_config", lambda args: eval_cfg)
         monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
         monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: {"total_r": 10.0})
-        monkeypatch.setattr(
-            "mlfx.workflow.orchestration.run_model_backtest",
-            lambda **kwargs: {"Net Profit (R)": "12.0R", "Win Rate": "55%"},
-        )
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "8.0R"})
 
-        def _fake_run_training(config):
+        def _fake_run_train(config):
             captured_training["config"] = config
-            return {"artifact_path": "outputs/models/fake.pkl", "best_cv_f1_macro": 0.61}
+            return StageResult(
+                stage="train",
+                status="ok",
+                metrics={
+                    "artifact_path": "outputs/models/fake.pkl",
+                    "best_cv_f1_macro": 0.61,
+                },
+            )
 
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_training", _fake_run_training)
+        monkeypatch.setattr("mlfx.cli.handlers.train.run_train", _fake_run_train)
+        monkeypatch.setattr(
+            "mlfx.cli.handlers.evaluate.run_evaluate",
+            lambda **kwargs: StageResult(
+                stage="evaluate",
+                status="ok",
+                metrics={
+                    "results": {"Net Profit (R)": "12.0R", "Win Rate": "55%"},
+                    "source": "model",
+                    "baseline": {"total_r": 10.0},
+                },
+            ),
+        )
 
         def _fake_run_benchmark(args):
             benchmark_calls.append(args)
@@ -180,10 +194,25 @@ class TestRunProfileCommand:
         monkeypatch.setattr("mlfx.cli.resolve.resolve_evaluate_command_config", lambda args: eval_cfg)
         monkeypatch.setattr("mlfx.cli.render.print_resolved_train_summary", lambda **kwargs: None)
         monkeypatch.setattr("mlfx.cli.render.print_resolved_evaluate_summary", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_training", lambda config: {"artifact_path": "fake.pkl"})
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_full_eval", lambda **kwargs: {"Net Profit (R)": "9.0R"})
-        monkeypatch.setattr("mlfx.workflow.orchestration.run_model_backtest", lambda **kwargs: None)
-        monkeypatch.setattr("mlfx.workflow.orchestration.get_baseline_metrics", lambda **kwargs: None)
+        monkeypatch.setattr(
+            "mlfx.cli.handlers.train.run_train",
+            lambda config: StageResult(
+                stage="train",
+                status="ok",
+                metrics={"artifact_path": "fake.pkl"},
+            ),
+        )
+        monkeypatch.setattr(
+            "mlfx.cli.handlers.evaluate.run_evaluate",
+            lambda **kwargs: StageResult(
+                stage="evaluate",
+                status="ok",
+                metrics={
+                    "results": {"Net Profit (R)": "9.0R"},
+                    "source": "labels",
+                },
+            ),
+        )
 
         def _unexpected_benchmark(args):
             benchmark_called["value"] = True
