@@ -11,8 +11,11 @@ dependencies = [
     "uvicorn>=0.41.0,<0.42",
     "puremagic>=2.0.0,<3",
     "pydantic-settings>=2.0.0,<3", 
-    "mlflow>=3.10.1,<4", 
-    "plotly",
+    "plotly", "evidently>=0.4.36,<0.5", 
+    "bentoml>=1.4.36,<2", 
+    "dagster>=1.12.14,<2", 
+    "dagster-webserver>=1.12.14,<2", 
+    "aiosqlite>=0.22.1,<0.23", "jupyterlab>=4.5.6,<5",
 ]
 description = "Pixi-first MLOps pipeline for FX market data ingestion, feature engineering, training, and evaluation."
 name = "MLFX"
