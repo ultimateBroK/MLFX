@@ -151,6 +151,7 @@ def parse_hour(raw: bytes, year: int, month: int, day: int, hour: int) -> pl.Dat
         return None
     return pl.DataFrame(
         records,
+
         schema=["timestamp_ms", "ask", "bid", "ask_volume", "bid_volume"],
         orient="row",
     )

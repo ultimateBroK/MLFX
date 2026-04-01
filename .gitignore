@@ -35,6 +35,8 @@ __pycache__/
 # Jupyter notebooks
 .ipynb_checkpoints
 *.ipynb
+!notebooks/mlfx_research_walkthrough.ipynb
+!notebooks/mlfx_visual_analytics.ipynb
 
 # Virtual environments
 .venv/*

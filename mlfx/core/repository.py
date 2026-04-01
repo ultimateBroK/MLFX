@@ -150,22 +150,29 @@ class ParquetDataRepository:
         start: str | None = None,
         end: str | None = None,
     ) -> pl.DataFrame | None:
-        """Load OHLCV data for a symbol and timeframe."""
+        """Load OHLCV data for a symbol and timeframe.
+
+        Uses Polars lazy streaming for memory-efficient loading of multiple
+        parquet files. Data is streamed through the pipeline and filtered
+        before collection to minimize memory usage.
+        """
         in_dir = Path(self._paths.ohlcv_dir(symbol, timeframe))
         files = sorted(in_dir.glob("*.parquet"))
         if not files:
             return None
 
-        frames = [pl.read_parquet(f) for f in files]
-        df = pl.concat(frames).sort("timestamp")
+        # Use lazy streaming API for memory-efficient loading
+        lazy_frames = [pl.scan_parquet(f) for f in files]
+        combined = pl.concat(lazy_frames)
 
-        # Apply date filters if provided
+        # Apply filters lazily before collection
         if start:
-            df = df.filter(pl.col("timestamp") >= start)
+            combined = combined.filter(pl.col("timestamp") >= start)
         if end:
-            df = df.filter(pl.col("timestamp") <= end)
+            combined = combined.filter(pl.col("timestamp") <= end)
 
-        return df
+        # Stream data through pipeline with sorting
+        return combined.sort("timestamp").collect()
 
     def load_features(
         self,
@@ -175,21 +182,29 @@ class ParquetDataRepository:
         start: str | None = None,
         end: str | None = None,
     ) -> pl.DataFrame | None:
-        """Load feature data for a symbol and timeframe."""
+        """Load feature data for a symbol and timeframe.
+
+        Uses Polars lazy streaming for memory-efficient loading of multiple
+        parquet files. Data is streamed through the pipeline and filtered
+        before collection to minimize memory usage.
+        """
         in_dir = Path(self._paths.features_dir(symbol, timeframe))
         files = sorted(in_dir.glob("*.parquet"))
         if not files:
             return None
 
-        frames = [pl.read_parquet(f) for f in files]
-        df = pl.concat(frames).sort("timestamp")
+        # Use lazy streaming API for memory-efficient loading
+        lazy_frames = [pl.scan_parquet(f) for f in files]
+        combined = pl.concat(lazy_frames)
 
+        # Apply filters lazily before collection
         if start:
-            df = df.filter(pl.col("timestamp") >= start)
+            combined = combined.filter(pl.col("timestamp") >= start)
         if end:
-            df = df.filter(pl.col("timestamp") <= end)
+            combined = combined.filter(pl.col("timestamp") <= end)
 
-        return df
+        # Stream data through pipeline with sorting
+        return combined.sort("timestamp").collect()
 
     def load_labels(
         self,
@@ -199,21 +214,29 @@ class ParquetDataRepository:
         start: str | None = None,
         end: str | None = None,
     ) -> pl.DataFrame | None:
-        """Load labeled data for a symbol and timeframe."""
+        """Load labeled data for a symbol and timeframe.
+
+        Uses Polars lazy streaming for memory-efficient loading of multiple
+        parquet files. Data is streamed through the pipeline and filtered
+        before collection to minimize memory usage.
+        """
         in_dir = Path(self._paths.labels_dir(symbol, timeframe))
         files = sorted(in_dir.glob("*.parquet"))
         if not files:
             return None
 
-        frames = [pl.read_parquet(f) for f in files]
-        df = pl.concat(frames).sort("timestamp")
+        # Use lazy streaming API for memory-efficient loading
+        lazy_frames = [pl.scan_parquet(f) for f in files]
+        combined = pl.concat(lazy_frames)
 
+        # Apply filters lazily before collection
         if start:
-            df = df.filter(pl.col("timestamp") >= start)
+            combined = combined.filter(pl.col("timestamp") >= start)
         if end:
-            df = df.filter(pl.col("timestamp") <= end)
+            combined = combined.filter(pl.col("timestamp") <= end)
 
-        return df
+        # Stream data through pipeline with sorting
+        return combined.sort("timestamp").collect()
 
     def save_features(
         self,
@@ -367,14 +390,16 @@ class FileSystemModelRepository:
                     if backend and meta_backend != backend:
                         continue
 
-                    results.append({
-                        "symbol": meta_symbol,
-                        "timeframe": meta_tf,
-                        "label": meta_label,
-                        "backend": meta_backend,
-                        "metadata": metadata,
-                        "path": str(meta_file.parent),
-                    })
+                    results.append(
+                        {
+                            "symbol": meta_symbol,
+                            "timeframe": meta_tf,
+                            "label": meta_label,
+                            "backend": meta_backend,
+                            "metadata": metadata,
+                            "path": str(meta_file.parent),
+                        }
+                    )
             except (json.JSONDecodeError, KeyError):
                 continue
 

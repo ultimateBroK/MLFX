@@ -113,3 +113,20 @@ def fake_feature_df(fake_feature_cols) -> pl.DataFrame:
     data["tick_count"] = rng.integers(100, 1000, size=_N_ROWS).tolist()
     data["label_10"] = rng.integers(-2, 3, size=_N_ROWS).tolist()
     return pl.DataFrame(data)
+
+
+# Import additional synthetic fixtures
+from tests.fixtures.synthetic import (
+    generate_synthetic_ohlcv,
+    generate_synthetic_ticks,
+    generate_synthetic_features,
+    generate_multi_month_data,
+    sample_ohlcv_large,
+    sample_ohlcv_month,
+    sample_ticks_large,
+    sample_features_large,
+    multi_month_fixture,
+    mock_project_paths,
+    synthetic_ohlcv_generator,
+    synthetic_features_generator,
+)

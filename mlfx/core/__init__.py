@@ -2,7 +2,7 @@
 
 This module provides the foundational building blocks for the MLFX system:
 - Domain models: Symbol, Timeframe, Label, DataKey, ModelKey, etc.
-- Exceptions: Structured error hierarchy for consistent error handling
+- Exceptions: 8 essential error classes for consistent error handling
 - Repository: Data access patterns for clean separation of concerns
 
 Example usage:
@@ -14,7 +14,7 @@ Example usage:
         DataKey,
         ModelKey,
         MLFXError,
-        DataNotFoundError,
+        DataError,
         ParquetDataRepository,
         FileSystemModelRepository,
     )
@@ -32,8 +32,8 @@ Example usage:
     # Handle errors
     try:
         ...
-    except DataNotFoundError as e:
-        print(f"Data not found: {e.details}")
+    except DataError as e:
+        print(f"Data error: {e.details}")
 """
 
 from __future__ import annotations
@@ -50,35 +50,14 @@ from .domain import (
     TrainingHyperparams,
 )
 from .exceptions import (
-    BackendNotFoundError,
     ConfigError,
-    ConfigNotFoundError,
-    ConfigValidationError,
-    DataDownloadError,
     DataError,
-    DataNotFoundError,
-    DataParseError,
-    DataValidationError,
-    DriftDetectionError,
-    FeatureError,
-    FeaturePreparationError,
     MLFXError,
     ModelError,
-    ModelInferenceError,
-    ModelLoadError,
-    ModelNotFoundError,
-    ModelSaveError,
-    MonitoringError,
     PipelineError,
-    PipelineStageError,
-    PredictionError,
     RegistryError,
-    RegistryReadError,
-    RegistryWriteError,
-    ServingError,
-    TrainingConfigError,
-    TrainingDataError,
     TrainingError,
+    ValidationError,
 )
 from .repository import (
     DEFAULT_DATA_REPO,
@@ -100,44 +79,15 @@ __all__ = [
     "Symbol",
     "Timeframe",
     "TrainingHyperparams",
-    # Exceptions - Base
+    # Exceptions - 8 essential classes
     "MLFXError",
-    # Exceptions - Data
     "DataError",
-    "DataNotFoundError",
-    "DataValidationError",
-    "DataDownloadError",
-    "DataParseError",
-    # Exceptions - Model
     "ModelError",
-    "ModelNotFoundError",
-    "ModelLoadError",
-    "ModelSaveError",
-    "ModelInferenceError",
-    # Exceptions - Training
     "TrainingError",
-    "TrainingConfigError",
-    "TrainingDataError",
-    "BackendNotFoundError",
-    # Exceptions - Pipeline
-    "PipelineError",
-    "PipelineStageError",
-    "FeatureError",
-    # Exceptions - Config
     "ConfigError",
-    "ConfigNotFoundError",
-    "ConfigValidationError",
-    # Exceptions - Registry
+    "PipelineError",
     "RegistryError",
-    "RegistryWriteError",
-    "RegistryReadError",
-    # Exceptions - Serving
-    "ServingError",
-    "PredictionError",
-    "FeaturePreparationError",
-    # Exceptions - Monitoring
-    "MonitoringError",
-    "DriftDetectionError",
+    "ValidationError",
     # Repository
     "DataRepository",
     "ModelRepository",
