@@ -17,8 +17,11 @@ The runner:
 
 from __future__ import annotations
 
+import datetime
+import json
 import logging
 import time
+from pathlib import Path
 from typing import Any
 
 from mlfx.training.backends.base import TrainingConfig
@@ -56,12 +59,28 @@ def run_training(
         config.backend,
         config.symbol,
         config.tf,
-        config.label_col,
+        config.label,
     )
     t0 = time.perf_counter()
 
     runner = get_backend_runner(config.backend)
     kwargs = get_runner_kwargs(config)
+
+    train_start = config.extra.get("train_start")
+    train_end = config.extra.get("train_end")
+
+    if config.backend == "lstm":
+        from mlfx.training.data import prepare_tabular_data
+        prepare_kwargs: dict[str, Any] = {}
+        if train_start is not None:
+            prepare_kwargs["train_start"] = train_start
+        if train_end is not None:
+            prepare_kwargs["train_end"] = train_end
+
+        prepared = prepare_tabular_data(config.symbol, config.tf, config.label, **prepare_kwargs)
+        if prepared is not None:
+            X, y, feature_cols = prepared
+            kwargs.update({"X": X, "y": y, "feature_cols": feature_cols})
 
     run_id: str | None = None
     if enable_tracking:
@@ -79,7 +98,13 @@ def run_training(
     metrics["elapsed_seconds"] = round(elapsed, 2)
 
     if run_id:
-        _end_tracking_run(run_id, status="FINISHED", metrics=metrics, config=config)
+        # Filter metrics for tracking: only numeric types, exclude n_samples
+        filtered_metrics = {
+            k: v
+            for k, v in metrics.items()
+            if isinstance(v, (int, float)) and k not in ("n_samples",)
+        }
+        _end_tracking_run(run_id, status="FINISHED", metrics=filtered_metrics, config=config)
 
     if enable_registry and metrics:
         _register_artifact(config, metrics)
@@ -96,6 +121,7 @@ def run_training(
         elapsed,
         summary,
     )
+    _append_metrics_log(config, summary)
     return metrics
 
 
@@ -106,19 +132,23 @@ def run_training(
 
 def _start_tracking_run(config: TrainingConfig) -> str | None:
     try:
-        from mlfx.tracking.tracker import get_tracker
         from mlfx.config.paths import DEFAULT_PATHS
+        from mlfx.tracking.tracker import get_tracker
 
-        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
+        tracker = get_tracker(
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label
+        )
         return tracker.start_run(
-            run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label_col}",
+            run_name=f"{config.backend}_{config.symbol}_{config.tf}_{config.label}",
             params={
                 "backend": config.backend,
                 "symbol": config.symbol,
                 "tf": config.tf,
-                "label_col": config.label_col,
+                "label": config.label,
                 "n_trials": config.n_trials,
                 "n_splits": config.n_splits,
+                "cv_method": config.extra.get("cv_method", "purged_timeseries"),
+                "embargo_pct": config.extra.get("embargo_pct", 0.01),
                 **config.extra,
             },
         )
@@ -133,17 +163,27 @@ def _end_tracking_run(
     metrics: dict[str, Any],
     config: TrainingConfig,
 ) -> None:
-    try:
-        from mlfx.tracking.tracker import get_tracker
-        from mlfx.config.paths import DEFAULT_PATHS
+    """End a tracking run with pre-filtered metrics.
 
-        tracker = get_tracker(runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf))
-        loggable = {
-            k: v
-            for k, v in metrics.items()
-            if isinstance(v, (int, float)) and k not in ("n_samples",)
-        }
-        tracker.log_metrics(run_id, loggable)
+    Parameters
+    ----------
+    run_id:
+        The run ID returned by start_run.
+    status:
+        Run status: "FINISHED" or "FAILED".
+    metrics:
+        Pre-filtered metrics dict (already contains only loggable types).
+    config:
+        Training configuration for run context.
+    """
+    try:
+        from mlfx.config.paths import DEFAULT_PATHS
+        from mlfx.tracking.tracker import get_tracker
+
+        tracker = get_tracker(
+            runs_dir=DEFAULT_PATHS.runs_dir(config.symbol, config.tf) / config.label
+        )
+        tracker.log_metrics(run_id, metrics)
         tracker.end_run(run_id, status=status)
     except Exception as exc:
         logger.debug("Tracking end-run failed: %s", exc)
@@ -164,9 +204,35 @@ def _register_artifact(config: TrainingConfig, metrics: dict[str, Any]) -> None:
             backend=config.backend,
             symbol=config.symbol,
             tf=config.tf,
-            label_col=config.label_col,
+            label=config.label,
             metrics=metrics,
             artifact_path=artifact_path,
         )
     except Exception as exc:
         logger.debug("Model registry update failed: %s", exc)
+
+
+def _append_metrics_log(config: TrainingConfig, summary: dict[str, Any]) -> None:
+    """Append a one-line JSON entry to outputs/runs/{symbol}/{tf}/metrics_log.jsonl.
+
+    The file is append-only so historical runs are preserved.
+    Failures are silently swallowed to avoid interrupting the training workflow.
+    """
+    try:
+        from mlfx.config.paths import DEFAULT_PATHS  # noqa: PLC0415
+
+        log_path: Path = (
+            DEFAULT_PATHS.runs_dir(config.symbol, config.tf)
+            / config.label
+            / "metrics_log.jsonl"
+        )
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "backend": config.backend,
+            **summary,
+        }
+        with log_path.open("a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("metrics_log append failed: %s", exc)

@@ -5,7 +5,8 @@ formats:
 - sklearn/nixtla objects exposing ``predict(X)``
 - MLForecast (uses underlying LGBMClassifier + preprocess)
 - dict payloads containing ``clf`` and ``scaler`` (online SGD backend)
-- PyTorch state_dict payloads (LSTM, BiLSTM, CNN-LSTM, Transformer)
+- PyTorch state_dict payloads (LSTM)
+- MLflow Model Registry models
 
 Security
 --------
@@ -16,12 +17,15 @@ arbitrary code if the file is tampered with.
 
 from __future__ import annotations
 
+import logging
 import pickle
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import polars as pl
+
+logger = logging.getLogger(__name__)
 
 
 def load_artifact(artifact_path: str) -> Any:
@@ -46,6 +50,99 @@ def load_artifact(artifact_path: str) -> Any:
         return pickle.load(file_handle)  # noqa: S301  # trusted paths only
 
 
+def load_from_mlflow(
+    model_name: str,
+    version: str | int | None = None,
+    stage: Literal["Staging", "Production", "Archived", "None"] | None = None,
+    tracking_uri: str | None = None,
+) -> Any:
+    """Load a model from MLflow Model Registry.
+
+    Parameters
+    ----------
+    model_name
+        Registered model name.
+    version
+        Specific version number. If None, uses stage to determine version.
+    stage
+        Stage to load from ("Production", "Staging", etc.). Ignored if version is provided.
+        Defaults to "Production" if both version and stage are None.
+    tracking_uri
+        MLflow tracking URI. If None, uses default from config.
+
+    Returns
+    -------
+    Any
+        The loaded model artifact.
+
+    Raises
+    ------
+    ImportError
+        If MLflow is not installed.
+    ValueError
+        If model is not found.
+    """
+    try:
+        import mlflow  # noqa: PLC0415
+        from mlflow.tracking import MlflowClient  # noqa: PLC0415
+
+        from mlfx.config.mlflow import get_mlflow_config
+
+        config = get_mlflow_config(tracking_uri=tracking_uri)
+        config.setup_mlflow()
+
+        client = MlflowClient()
+
+        # Determine which version to load
+        if version:
+            model_version = client.get_model_version(model_name, str(version))
+        else:
+            target_stage = stage or "Production"
+            # Use search_model_versions instead of deprecated get_latest_versions
+            filter_string = f"name='{model_name}'"
+            versions = list(client.search_model_versions(filter_string, max_results=100))
+            # Filter by stage if specified
+            if target_stage and target_stage != "None":
+                versions = [v for v in versions if v.current_stage == target_stage]
+            if not versions:
+                # Fall back to any version
+                versions = list(client.search_model_versions(filter_string, max_results=100))
+            if not versions:
+                raise ValueError(f"No versions found for model: {model_name}")
+            # Get the latest version (highest version number)
+            model_version = max(versions, key=lambda v: int(v.version))
+
+        # Download and load the model
+        model_uri = f"models:/{model_name}/{model_version.version}"
+
+        # Try to load as MLflow pyfunc model first
+        try:
+            return mlflow.pyfunc.load_model(model_uri)
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Fall back to downloading artifacts and loading manually
+        import tempfile  # noqa: PLC0415
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            local_path = mlflow.artifacts.download_artifacts(
+                artifact_uri=model_uri,
+                dst_path=tmp_dir,
+            )
+            # Look for model files in the downloaded directory
+            local_path = Path(local_path)
+            for pattern in ["*.pkl", "*.pt", "*.pth", "model.pkl"]:
+                matches = list(local_path.rglob(pattern))
+                if matches:
+                    return load_artifact(str(matches[0]))
+
+        raise ValueError(f"Could not find model artifact in {model_uri}")
+
+    except ImportError as e:
+        logger.error("MLflow not installed. Run: pixi add mlflow")
+        raise ImportError("MLflow is required to load models from registry") from e
+
+
 def _is_mlforecast(model: Any) -> bool:
     """Check if model is an MLForecast instance (has models_ and preprocess)."""
     return (
@@ -58,7 +155,7 @@ def _is_mlforecast(model: Any) -> bool:
 def _predict_mlforecast(
     model: Any,
     df: pl.DataFrame,
-    label_col: str,
+    label: str,
     feature_cols: list[str],
 ) -> tuple[np.ndarray, pl.Series]:
     """Run prediction for MLForecast using preprocess + underlying model.
@@ -69,9 +166,9 @@ def _predict_mlforecast(
     Returns (predictions, ds_series) where ds_series has timestamps for each
     prediction (preprocess may drop rows, so length matches preds).
     """
-    from mlfx.training.backends.mlforecast import prepare_nixtla_df
+    from mlfx.training.backends.mlf import prepare_nixtla_df
 
-    subset, _ = prepare_nixtla_df(df, label_col)
+    subset, _ = prepare_nixtla_df(df, label)
     if subset.is_empty():
         return np.array([], dtype=np.int64), pl.Series("ds", [])
     df_pd = subset.to_pandas()
@@ -88,20 +185,20 @@ def predict_labels(
     X: np.ndarray,
     *,
     df: pl.DataFrame | None = None,
-    label_col: str | None = None,
+    label: str | None = None,
     feature_cols: list[str] | None = None,
 ) -> np.ndarray:
     """Run prediction with best-effort adaptation by artifact type.
 
     Returns class labels in backend-native encoding (typically 0..4).
 
-    For MLForecast models, pass df, label_col, and feature_cols to use
+    For MLForecast models, pass df, label, and feature_cols to use
     preprocess + underlying model (MLForecast.predict is for forecasting only).
     """
     # MLForecast: use preprocess + underlying model, not predict(horizon).
     if _is_mlforecast(model):
-        if df is not None and label_col and feature_cols:
-            preds, ds_series = _predict_mlforecast(model, df, label_col, feature_cols)
+        if df is not None and label and feature_cols:
+            preds, ds_series = _predict_mlforecast(model, df, label, feature_cols)
             if len(preds) == 0:
                 return np.full(len(df), 2, dtype=np.int64)  # neutral for all
             pred_lookup = pl.DataFrame({"ds": ds_series, "_pred": preds})

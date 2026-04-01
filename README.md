@@ -1,86 +1,177 @@
 # MLFX
 
-`MLFX` là một pipeline MLOps nghiên cứu dữ liệu thị trường, tập trung vào 5 giai đoạn chính:
-- tải tick data lịch sử từ Dukascopy
-- chuẩn hóa thành OHLCV theo nhiều timeframe
-- sinh feature kỹ thuật và feature theo ngữ cảnh ICT
-- gắn nhãn phục vụ huấn luyện
-- train, evaluate và xuất báo cáo
+> Local-first, Pixi-first MLOps pipeline for market data research, feature engineering, forecasting, evaluation, and serving.
 
-Repo được vận hành theo hướng `Pixi-first`. Mọi lệnh thường ngày nên chạy qua `pixi run`.
+[![Python](https://img.shields.io/badge/python-3.13+-3776AB?logo=python&logoColor=white)](#requirements)
+[![Pixi](https://img.shields.io/badge/workflow-pixi-7A4DFF)](#quickstart)
+[![Platform](https://img.shields.io/badge/platform-linux--64-1793D1?logo=linux&logoColor=white)](#requirements)
+[![Docs](https://img.shields.io/badge/docs-bilingual-brightgreen)](docs/README.md)
+[![FastAPI](https://img.shields.io/badge/api-FastAPI-009688?logo=fastapi&logoColor=white)](#highlights)
+[![Polars](https://img.shields.io/badge/data-Polars-CD792C?logo=polars&logoColor=white)](#highlights)
+[![PyTorch](https://img.shields.io/badge/dl-PyTorch-EE4C2C?logo=pytorch&logoColor=white)](#available-backends)
+[![LightGBM](https://img.shields.io/badge/gbm-LightGBM-02569B)](#available-backends)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/ultimateBroK/MLFX?style=social)](https://github.com/ultimateBroK/MLFX/stargazers)
 
-## Tài liệu
+MLFX is an open-source, local-first framework for building market-data ML pipelines that are actually pleasant to run, debug, compare, and extend.
 
-- Tiếng Việt:
-  - [README.md](README.md)
-  - [NOOB_GUIDE.md](docs/NOOB_GUIDE.md)
-  - [USAGE_GUIDE.md](docs/USAGE_GUIDE.md)
-  - [EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md)
-  - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-  - [GLOSSARY.md](docs/GLOSSARY.md)
-  - [TODO.md](docs/TODO.md)
-- English:
-  - [README.md](docs/en/README.md)
-  - [NOOB_GUIDE.md](docs/en/NOOB_GUIDE.md)
-  - [USAGE_GUIDE.md](docs/en/USAGE_GUIDE.md)
-  - [EVALUATION_GUIDE.md](docs/en/EVALUATION_GUIDE.md)
-  - [TROUBLESHOOTING.md](docs/en/TROUBLESHOOTING.md)
-  - [GLOSSARY.md](docs/en/GLOSSARY.md)
-  - [TODO.md](docs/en/TODO.md)
+Build once, then iterate fast:
 
-## Yêu cầu môi trường
+- 📥 Ingest historical tick data
+- 🧪 Validate and resample it into OHLCV
+- 🧩 Engineer features and labels
+- 🤖 Train multiple forecasting backends
+- 📊 Benchmark and evaluate results
+- 🚀 Serve predictions and monitor drift
 
-- Pixi đã được cài trên máy
-- Linux 64-bit là platform hiện được pin trong `pyproject.toml`
-- Python được quản lý bởi Pixi, không cần tự tạo `uv` hoặc `venv` riêng cho workflow chuẩn
+Whether you're a solo quant, ML engineer, or systems-minded trader, MLFX gives you a reproducible workflow without forcing you into a cloud platform or a notebook-only mess.
 
-Cài môi trường:
+> ⭐ If MLFX is useful to you, give the repo a star — it helps more builders discover the project.
+
+## Table of contents
+
+- [MLFX](#mlfx)
+  - [Table of contents](#table-of-contents)
+  - [Why MLFX?](#why-mlfx)
+  - [What you can do with it](#what-you-can-do-with-it)
+  - [Use cases](#use-cases)
+  - [Core workflow](#core-workflow)
+    - [What each step means](#what-each-step-means)
+  - [Highlights](#highlights)
+  - [Available backends](#available-backends)
+  - [Quickstart](#quickstart)
+    - [Requirements](#requirements)
+    - [Install environment](#install-environment)
+    - [Run a minimal end-to-end flow](#run-a-minimal-end-to-end-flow)
+  - [Common commands](#common-commands)
+    - [Command reference](#command-reference)
+  - [Project structure](#project-structure)
+  - [Generated artifacts](#generated-artifacts)
+  - [Documentation](#documentation)
+    - [Start here](#start-here)
+    - [Recommended reading](#recommended-reading)
+  - [Who is this for?](#who-is-this-for)
+  - [Current direction](#current-direction)
+  - [Contributing](#contributing)
+  - [Author](#author)
+  - [License](#license)
+
+---
+
+## Why MLFX?
+
+Most projects in this space force you to choose between:
+
+- **Quick scripts or notebooks** that are fast to start but hard to maintain long-term
+- **Trading frameworks** that are strong at execution but less opinionated about ML workflows
+- **Hosted MLOps platforms** that are convenient but reduce control
+
+MLFX aims for a more balanced middle ground:
+
+- 🏠 **Local-first** — your data, models, artifacts, and workflow stay under your control
+- 🔁 **Reproducible** — config-driven, Pixi-managed, CLI-first operation
+- 🧱 **Modular** — ingestion, pipeline, training, evaluation, serving, and monitoring are separated cleanly
+- 🔬 **Research-friendly** — easy to compare backends, inspect artifacts, and iterate
+- 🌍 **Open-source approachable** — readable project structure, documented workflows, and bilingual docs
+
+---
+
+## What you can do with it
+
+With MLFX, you can:
+
+- 📈 Ingest historical market data from Dukascopy
+- ⏱️ Resample raw ticks into multi-timeframe OHLCV datasets
+- 🛠️ Build technical and context-aware features
+- 🏷️ Generate labels for supervised learning
+- ⚙️ Train and compare multiple model families
+- 🧾 Run backtests and export reports
+- 🌐 Serve inference through an API
+- 🚨 Detect feature drift in production-like workflows
+
+---
+
+## Use cases
+
+MLFX is especially useful for workflows like:
+
+- 💱 **FX research pipelines** — build repeatable experiments on Dukascopy data
+- 🥇 **Model benchmarking** — compare classical ML, deep learning, and forecasting backends in one place
+- 🧪 **Feature engineering experiments** — test indicators, labels, and transformations without rebuilding the stack
+- 🌐 **Inference API prototyping** — move from offline research to serving with less friction
+- 📉 **Monitoring and drift checks** — inspect whether live-like data is drifting away from your training baseline
+
+---
+
+## Core workflow
+
+```text
+download
+  -> qa
+  -> pipeline
+  -> train
+  -> evaluate
+  -> benchmark
+  -> serve / batch-predict
+  -> drift
+```
+
+### What each step means
+
+- `download` — fetch raw tick data from Dukascopy
+- `qa` — inspect raw data for gaps and anomalies
+- `pipeline` — build OHLCV, features, and labels
+- `train` — train a selected backend and persist artifacts
+- `evaluate` — backtest outputs and generate reports
+- `benchmark` — compare multiple backends consistently
+- `serve` — start the inference API
+- `batch-predict` — export offline prediction results
+- `drift` — compare recent feature distributions against a reference baseline
+
+---
+
+## Highlights
+
+- ✨ Unified CLI: `mlfx`
+- 🟣 Pixi-first developer workflow
+- 📥 Historical tick ingestion
+- 🧪 QA + resampling + labeling pipeline
+- 🤖 Multiple training backends
+- 📊 Evaluation + reporting + benchmark flow
+- ⚡ FastAPI serving layer
+- 👀 Drift monitoring workflow
+- 🌐 Bilingual documentation: English + Vietnamese
+
+---
+
+## Available backends
+
+| Backend | Description |
+| --- | --- |
+| `mlf` | MLForecast + LightGBM baseline |
+| `lstm` | PyTorch LSTM |
+| `sgd` | Online `SGDClassifier` baseline |
+| `stats` | Statistical forecasting baselines |
+
+MLFX is designed so you can compare these approaches inside one consistent project structure instead of rebuilding the same plumbing every time.
+
+---
+
+## Quickstart
+
+### Requirements
+
+- Linux `x86_64` / `linux-64`
+- [Pixi](https://pixi.sh/) installed
+- No separate `venv` or `uv` setup needed for the standard workflow
+
+### Install environment
 
 ```bash
 pixi install
 ```
 
-## Entrypoint chính
-
-- `pixi run mlfx` cho CLI hợp nhất
-- `pixi run mlfx-tui` cho Textual TUI
-- `pixi run test` để chạy toàn bộ test suite
-- `pixi run verify` để chạy bộ test smoke/contract trọng tâm
-- `pixi run clean-generated` để dọn cache và generated artifacts an toàn
-
-## Luồng vận hành chuẩn (MLOps pipeline)
-
-```text
-download  →  qa  →  pipeline  →  train  →  evaluate
-                                   ↓            ↓
-                               tracking       reports
-                               registry
-                                   ↓
-                              serve / batch-predict
-                                   ↓
-                                drift
-```
-
-Ý nghĩa từng bước:
-- `download`: tải raw tick data từ Dukascopy
-- `qa`: audit raw data để phát hiện gap hoặc dữ liệu bất thường
-- `pipeline`: resample → feature engineering → labeling
-- `train`: huấn luyện backend đã chọn (kết quả được track và register tự động)
-- `evaluate`: backtest model (hoặc labels nếu chưa train) và sinh báo cáo; in metrics ra console
-- `serve`: khởi động FastAPI inference server
-- `batch-predict`: export predictions parquet (dùng khi deploy; xem kết quả dùng `evaluate`)
-- `drift`: so sánh phân phối feature live vs training để phát hiện drift
-- `models`: liệt kê các model version đã đăng ký
-
-## Bắt đầu nhanh
-
-Chạy TUI:
-
-```bash
-pixi run mlfx-tui
-```
-
-Hoặc chạy hoàn toàn bằng CLI:
+### Run a minimal end-to-end flow
 
 ```bash
 pixi run mlfx download --symbol XAUUSD --asset-class fx --start-year 2024
@@ -89,86 +180,184 @@ pixi run mlfx train --symbol XAUUSD --tf 1H --label label_10 --backend mlf
 pixi run mlfx evaluate --symbol XAUUSD --tf 1H --label label_10 --tp 1.5 --sl 1.0
 ```
 
-Sau `evaluate`, CLI in bảng metrics và đường dẫn biểu đồ. Mặc định backtest **model** nếu đã train.
+After `evaluate`, MLFX prints summary metrics and points you to generated report artifacts.
 
-## Backend huấn luyện hiện có
+For the full onboarding flow, read:
 
-| Key | Mô tả |
-|---|---|
-| `mlf` | MLForecast + LightGBM (default) |
-| `lstm` | PyTorch LSTM với HPO Optuna |
-| `bilstm` | Bidirectional LSTM |
-| `transformer` | PyTorch Transformer encoder |
-| `cnn_lstm` | CNN + LSTM hybrid |
-| `sgd` | Online SGDClassifier (sklearn) |
-| `stats` | StatsForecast baseline (AutoARIMA, SeasonalNaive) |
-| `neuralforecast` | NeuralForecast (NHiTS, NBEATS) |
+- English: [docs/en/getting-started/QUICKSTART.md](docs/en/getting-started/QUICKSTART.md)
+- Tiếng Việt: [docs/vi/getting-started/QUICKSTART.md](docs/vi/getting-started/QUICKSTART.md)
 
-Chi tiết tham số và ví dụ đầy đủ nằm trong [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md).
+---
 
-## Cấu trúc dự án (MLOps)
+## Common commands
+
+```bash
+pixi run mlfx
+pixi run test
+pixi run verify
+pixi run clean-generated
+```
+
+### Command reference
+
+- `pixi run mlfx` — unified CLI entrypoint
+- `pixi run test` — run the full test suite
+- `pixi run verify` — run core smoke/contract checks
+- `pixi run clean-generated` — safely remove common generated artifacts and caches
+
+---
+
+## Project structure
 
 ```text
 MLFX/
 ├── mlfx/
-│   ├── app/            # CLI và TUI
-│   ├── config/         # path policy và config loader
-│   ├── ingestion/      # downloader Dukascopy
-│   ├── pipeline/       # qa, resampling, feature engineering, labeling
-│   ├── features/       # feature modules theo domain (indicators)
-│   ├── training/
-│   │   ├── backends/           # Backend implementations (mlf, lstm, transformer, ...)
-│   │   │   └── base.py         # BackendRunner protocol, TrainingConfig, TrainResult
-│   │   ├── data.py             # Dataset loading helpers
-│   │   ├── feature_selection.py# Feature selection helpers
-│   │   ├── artifacts.py        # Artifact persistence helpers
-│   │   ├── config.py           # Public TrainingConfig/TrainResult aliases
-│   │   ├── runner.py           # High-level orchestrator (track + register)
-│   │   └── registry.py         # Backend key → module:function map
-│   ├── evaluation/     # backtest, reporting, evaluation runner
-│   ├── tracking/       # Experiment tracking (MLflow / file-based fallback)
-│   ├── registry/       # Model registry (JSON-backed, MLflow-extensible)
-│   ├── serving/        # FastAPI real-time API + batch inference
-│   └── monitoring/     # Feature drift detection + structured JSON logging
-├── docs/               # tài liệu tiếng Việt
-├── docs/en/            # tài liệu tiếng Anh
-├── data/               # raw, ohlcv, features, labels
-├── outputs/
-│   ├── models/         # registry.json + {symbol}/{tf}/ (model artifacts)
-│   ├── reports/        # {symbol}/{tf}/ (HTML/PNG backtest reports)
-│   ├── runs/           # {symbol}/{tf}/ (file-tracker run JSONs)
-│   ├── predictions/    # {symbol}/{tf}/ (batch inference results)
-│   └── monitoring/     # {symbol}/{tf}/ (drift reference snapshots + alerts)
-├── Dockerfile          # multi-stage container image
-├── docker-compose.yml  # API server + optional MLflow server
-├── config.toml         # giá trị mặc định cho CLI/TUI
-└── pyproject.toml      # package metadata, Pixi config, tasks
+│   ├── cli/            # unified CLI entrypoint and commands
+│   ├── config/         # config loading and path policy
+│   ├── ingestion/      # historical data download
+│   ├── pipeline/       # qa, resampling, features, labels
+│   ├── features/       # feature modules
+│   ├── training/       # backend training system
+│   ├── evaluation/     # backtesting and reports
+│   ├── tracking/       # experiment tracking
+│   ├── registry/       # model registry
+│   ├── serving/        # FastAPI inference layer
+│   └── monitoring/     # drift detection and monitoring
+├── docs/               # bilingual documentation hub
+├── data/               # raw and processed datasets
+├── outputs/            # models, reports, predictions, monitoring outputs
+├── tests/              # tests and integration coverage
+├── Dockerfile
+├── docker-compose.yml
+├── config.toml
+└── pyproject.toml
 ```
 
-## Artifacts chính
+---
 
-- `data/raw/{symbol}/`: raw tick data và file state download
-- `data/ohlcv/{symbol}/{tf}/`: parquet sau resample
-- `data/features/{symbol}/{tf}/`: parquet đã thêm feature
-- `data/labels/{symbol}/{tf}/`: parquet đã gắn nhãn
-- `outputs/models/{symbol}/{tf}/`: model artifacts, metrics, metadata train
-- `outputs/reports/{symbol}/{tf}/`: HTML/PNG reports từ evaluate
+## Generated artifacts
 
-## Chính sách cleanup
+MLFX keeps outputs organized so experiments stay inspectable and reusable:
 
-- `data/raw/` nên được giữ lại nếu muốn tái tạo pipeline mà không tải lại dữ liệu
-- `data/ohlcv/`, `data/features/`, `data/labels/`, `outputs/`, `lightning_logs/`, `.pixi-cache/`, `.cache/` là phần có thể tái sinh
-- dùng `pixi run clean-generated` khi muốn dọn generated artifacts và cache phổ biến trong workspace
+- `data/raw/{symbol}/` — downloaded raw tick data
+- `data/ohlcv/{symbol}/{tf}/` — resampled OHLCV parquet files
+- `data/features/{symbol}/{tf}/` — feature datasets
+- `data/labels/{symbol}/{tf}/` — labeled datasets
+- `outputs/models/{symbol}/{tf}/{label}/` — trained model artifacts and metadata
+- `outputs/reports/{symbol}/{tf}/{label}/{mode}/R{tp*10}/` — evaluation reports grouped by label, source (`model` or `labels`), and risk setting
+- `outputs/predictions/{symbol}/{tf}/{label}/` — batch prediction outputs
+- `outputs/monitoring/{symbol}/{tf}/` — drift references and alerts
 
-## Bước tiếp theo nên đọc
+---
 
-- [docs/NOOB_GUIDE.md](docs/NOOB_GUIDE.md) nếu mới vào repo
-- [docs/USAGE_GUIDE.md](docs/USAGE_GUIDE.md) nếu cần chạy từng lệnh cụ thể
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) mô tả kiến trúc MLOps chi tiết
-- [docs/EVALUATION_GUIDE.md](docs/EVALUATION_GUIDE.md) nếu muốn hiểu report và metrics
-- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) nếu đang gặp lỗi môi trường hoặc dữ liệu
+## Documentation
 
-## Tác giả
+### Start here
 
-Hieu Nguyen  
+- Docs hub: [docs/README.md](docs/README.md)
+- English docs: [docs/en/README.md](docs/en/README.md)
+- Vietnamese docs: [docs/vi/README.md](docs/vi/README.md)
+
+### Recommended reading
+
+**If you're new**
+- [English Quickstart](docs/en/getting-started/QUICKSTART.md)
+- [Vietnamese Quickstart](docs/vi/getting-started/QUICKSTART.md)
+- [Beginner Guide (EN)](docs/en/getting-started/NOOB_GUIDE.md)
+- [Beginner Guide (VI)](docs/vi/getting-started/NOOB_GUIDE.md)
+
+**If you want to use the CLI**
+- [Usage Guide (EN)](docs/en/guides/USAGE_GUIDE.md)
+- [Usage Guide (VI)](docs/vi/guides/USAGE_GUIDE.md)
+
+**If you want to understand evaluation**
+- [Evaluation Guide (EN)](docs/en/guides/EVALUATION_GUIDE.md)
+- [Evaluation Guide (VI)](docs/vi/guides/EVALUATION_GUIDE.md)
+
+**If you want architecture details**
+- [Architecture (EN)](docs/en/architecture/ARCHITECTURE.md)
+- [Architecture (VI)](docs/vi/architecture/ARCHITECTURE.md)
+- [Backend Comparison (EN)](docs/en/architecture/BACKEND_COMPARISON.md)
+- [Backend Comparison (VI)](docs/vi/architecture/BACKEND_COMPARISON.md)
+
+**Project planning**
+- [Roadmap (EN)](docs/en/meta/ROADMAP.md)
+- [Roadmap (VI)](docs/vi/meta/ROADMAP.md)
+- [TODO (EN)](docs/en/meta/TODO.md)
+- [TODO (VI)](docs/vi/meta/TODO.md)
+
+---
+
+## Who is this for?
+
+MLFX is a good fit if you are:
+
+- A solo quant or researcher who wants a structured local workflow
+- An engineer tired of rewriting data/training/evaluation glue code
+- Someone comparing classical ML, deep learning, and forecasting backends
+- An open-source user who values control, reproducibility, and inspectable artifacts
+
+MLFX may be less ideal if you only want:
+
+- A plug-and-play trading bot with near-zero setup
+- A cloud-managed SaaS workflow
+- An execution-only framework without ML experimentation needs
+
+---
+
+## Current direction
+
+MLFX already covers the core research loop well.
+
+The next major improvements are around:
+
+- Serving reliability
+- Cleaner inference contracts
+- Retry and failure isolation
+- Stronger observability
+- Broader backend experimentation
+- Improved benchmark consistency
+
+See the roadmap for details:
+
+- [English roadmap](docs/en/meta/ROADMAP.md)
+- [Vietnamese roadmap](docs/vi/meta/ROADMAP.md)
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+If you like the direction of the project, a ⭐ on GitHub is one of the easiest ways to support it.
+
+Good contribution areas include:
+
+- New model backends
+- Feature engineering improvements
+- Live data adapters
+- Evaluation/reporting improvements
+- Serving hardening
+- Documentation polish
+- Tests and reproducibility improvements
+
+If you're exploring the repo for the first time, start with:
+
+- [docs/README.md](docs/README.md)
+- [docs/en/getting-started/QUICKSTART.md](docs/en/getting-started/QUICKSTART.md)
+- [docs/en/architecture/ARCHITECTURE.md](docs/en/architecture/ARCHITECTURE.md)
+
+---
+
+## Author
+
+**Hieu Nguyen**  
 GitHub: [@ultimateBroK](https://github.com/ultimateBroK)
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0.
+
+See [LICENSE](LICENSE) for details.

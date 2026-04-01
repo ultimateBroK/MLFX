@@ -17,24 +17,88 @@ from .reporting import generate_full_report
 logger = logging.getLogger(__name__)
 
 
+def _log_eval_to_mlflow(
+    symbol: str,
+    tf: str,
+    label: str,
+    metrics: dict[str, float],
+    report_dir: Path,
+    eval_type: str = "labels",
+    backend: str | None = None,
+) -> None:
+    """Log evaluation results to MLflow if available."""
+    try:
+        import mlflow  # noqa: PLC0415
+
+        from mlfx.config.mlflow import get_mlflow_config
+
+        config = get_mlflow_config()
+        if not config.is_mlflow_available():
+            return
+
+        config.setup_mlflow()
+
+        # Set experiment for this evaluation
+        experiment_name = config.experiment_name(
+            symbol=symbol, tf=tf, label=label, backend=backend
+        )
+        mlflow.set_experiment(f"{experiment_name}/evaluation")
+
+        # Start evaluation run
+        run_name = f"eval_{eval_type}_{symbol}_{tf}_{label}"
+        with mlflow.start_run(run_name=run_name):
+            # Log params
+            mlflow.log_params({
+                "symbol": symbol,
+                "tf": tf,
+                "label": label,
+                "eval_type": eval_type,
+                "backend": backend or "none",
+            })
+
+            # Log metrics
+            mlflow.log_metrics(metrics)
+
+            # Log report directory as artifacts
+            if report_dir.exists():
+                for artifact in report_dir.iterdir():
+                    if artifact.is_file():
+                        mlflow.log_artifact(str(artifact), artifact_path="reports")
+
+        logger.debug("Logged evaluation to MLflow: %s", run_name)
+
+    except ImportError:
+        logger.debug("MLflow not installed; skipping evaluation logging.")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to log evaluation to MLflow: %s", exc)
+
+
 def get_baseline_metrics(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
     tp_r: float = 1.5,
     sl_r: float = 1.0,
     slippage: float = 0.0,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, float] | None:
     """Run backtest on labels and return raw metrics (no report). For baseline comparison."""
-    df = load_labelled_dataset(symbol, tf, paths=paths)
-    if df is None or df.is_empty() or label_col not in df.columns:
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
+    if df is None or df.is_empty() or label not in df.columns:
         return None
-    df_mapped = df.with_columns(map_ordinal_to_signal(pl.col(label_col)).alias("_bt_signal"))
+    df_mapped = df.with_columns(map_ordinal_to_signal(pl.col(label)).alias("_bt_signal"))
     trades = simulate_trades(
         df_mapped,
         signal_col="_bt_signal",
@@ -49,7 +113,7 @@ def get_baseline_metrics(
 def run_full_eval(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -57,11 +121,19 @@ def run_full_eval(
     sl_r: float = 1.0,
     slippage: float = 0.0,
     out_dir: str | Path | None = None,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> dict[str, str]:
     """Run backtest on all labeled parquet files for one symbol/timeframe."""
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or df.is_empty():
         logger.error("No labeled data found for %s %s", symbol, tf)
         return {}
@@ -70,7 +142,7 @@ def run_full_eval(
         df,
         symbol=symbol,
         tf=tf,
-        label_col=label_col,
+        label=label,
         initial_capital=initial_capital,
         risk_pct=risk_pct,
         commission=commission,
@@ -87,7 +159,7 @@ def run_dataset_eval(
     *,
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -96,6 +168,7 @@ def run_dataset_eval(
     slippage: float = 0.0,
     out_dir: str | Path | None = None,
     paths: ProjectPaths = DEFAULT_PATHS,
+    log_to_mlflow: bool = True,
 ) -> dict[str, str]:
     """Run backtest/report generation for a provided labelled dataset.
 
@@ -106,7 +179,7 @@ def run_dataset_eval(
         return {}
 
     df_mapped = df.with_columns(
-        map_ordinal_to_signal(pl.col(label_col)).alias("_bt_signal")
+        map_ordinal_to_signal(pl.col(label)).alias("_bt_signal")
     )
     trades = simulate_trades(
         df_mapped,
@@ -122,9 +195,25 @@ def run_dataset_eval(
         risk_pct=risk_pct,
     )
 
-    report_dir = (Path(out_dir) / symbol / tf) if out_dir is not None else paths.reports_dir(symbol, tf)
-    out_name = f"{label_col}_R{int(tp_r * 10)}"
+    risk_dir = f"R{int(tp_r * 10)}"
+    report_dir = (
+        Path(out_dir) / symbol / tf / label / "labels" / risk_dir
+        if out_dir is not None
+        else paths.reports_dir(symbol, tf) / label / "labels" / risk_dir
+    )
+    out_name = f"{label}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
+
+    # Log to MLflow
+    if log_to_mlflow:
+        _log_eval_to_mlflow(
+            symbol=symbol,
+            tf=tf,
+            label=label,
+            metrics=metrics,
+            report_dir=report_dir,
+            eval_type="labels",
+        )
 
     return {
         "Total Trades": f"{metrics['total_trades']}",
@@ -142,7 +231,7 @@ def run_dataset_eval(
 def run_model_backtest(
     symbol: str,
     tf: str,
-    label_col: str,
+    label: str,
     initial_capital: float = 10000.0,
     risk_pct: float = 1.0,
     commission: float = 0.1,
@@ -150,24 +239,35 @@ def run_model_backtest(
     sl_r: float = 1.0,
     slippage: float = 0.0,
     out_dir: str | Path | None = None,
+    train_start: str | None = None,
+    train_end: str | None = None,
     *,
+    backend: str | None = None,
     paths: ProjectPaths = DEFAULT_PATHS,
+    log_to_mlflow: bool = True,
 ) -> dict[str, str] | None:
     """Run backtest on model predictions (not labels).
 
-    Loads the best registered model, predicts on the dataset, then backtests.
+    Loads the best registered model for the given backend (or any backend if None),
+    predicts on the dataset, then backtests.
     Returns None if no model is registered or inference fails.
     """
-    df = load_labelled_dataset(symbol, tf, paths=paths)
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        paths=paths,
+        train_start=train_start,
+        train_end=train_end,
+    )
     if df is None or df.is_empty():
         logger.error("No labeled data found for %s %s", symbol, tf)
         return None
 
     from mlfx.serving.core import resolve_and_predict
 
-    result = resolve_and_predict(symbol, tf, label_col, df)
+    result = resolve_and_predict(symbol, tf, label, df, backend=backend)
     if result is None:
-        logger.warning("No registered model for %s/%s/%s — run train first", symbol, tf, label_col)
+        logger.warning("No registered model for %s/%s/%s — run train first", symbol, tf, label)
         return None
 
     predictions: np.ndarray
@@ -189,9 +289,26 @@ def run_model_backtest(
         risk_pct=risk_pct,
     )
 
-    report_dir = (Path(out_dir) / symbol / tf) if out_dir else paths.reports_dir(symbol, tf)
-    out_name = f"model_{label_col}_R{int(tp_r * 10)}"
+    risk_dir = f"R{int(tp_r * 10)}"
+    report_dir = (
+        Path(out_dir) / symbol / tf / label / "model" / risk_dir
+        if out_dir
+        else paths.reports_dir(symbol, tf) / label / "model" / risk_dir
+    )
+    out_name = f"model_{label}_R{int(tp_r * 10)}"
     generate_full_report(symbol, tf, df, trades, out_name, report_dir)
+
+    # Log to MLflow
+    if log_to_mlflow:
+        _log_eval_to_mlflow(
+            symbol=symbol,
+            tf=tf,
+            label=label,
+            metrics=metrics,
+            report_dir=report_dir,
+            eval_type="model",
+            backend=backend,
+        )
 
     return {
         "Total Trades": f"{metrics['total_trades']}",

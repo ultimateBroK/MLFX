@@ -11,26 +11,43 @@ import numpy as np
 import polars as pl
 from sklearn.metrics import f1_score
 from statsforecast import StatsForecast
-from statsforecast.models import AutoARIMA, MSTL, SeasonalNaive
+from statsforecast.models import MSTL, AutoARIMA, SeasonalNaive
 
-from mlfx.training.data import build_model_output_path, load_labelled_dataset
+from mlfx.training._utils import set_seed
 from mlfx.training.artifacts import save_pickle_artifact
+from mlfx.training.data import build_model_output_path, load_labelled_dataset
 
 logger = logging.getLogger(__name__)
 
+# Timeframe -> Pandas frequency string.
+_TF_FREQ: dict[str, str] = {
+    "1m": "1min",
+    "5m": "5min",
+    "15m": "15min",
+    "30m": "30min",
+    "1H": "h",
+    "2H": "2h",
+    "4H": "4h",
+    "1D": "D",
+}
 
-def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, list[str]]:
+
+def prepare_nixtla_df(
+    df: pl.DataFrame,
+    label: str,
+    symbol: str = "XAUUSD",
+) -> tuple[pl.DataFrame, list[str]]:
     """Format dataframe for Nixtla StatsForecast (unique_id, ds, y).
 
     Returns (df, feature_cols). StatsForecast uses only unique_id, ds, y;
     feature_cols is empty for API consistency with MLForecast.
     """
-    subset = df.select(["timestamp", label_col]).drop_nulls()
-    unique_id_col = pl.lit("XAUUSD").alias("unique_id")
+    subset = df.select(["timestamp", label]).drop_nulls()
+    unique_id_col = pl.lit(symbol).alias("unique_id")
     ds_col = pl.col("timestamp").alias("ds")
 
     # Map labels {-2, -1, 0, 1, 2} to {0, 1, 2, 3, 4}.
-    y_col = (pl.col(label_col) + 2).cast(pl.Float64).alias("y")
+    y_col = (pl.col(label) + 2).cast(pl.Float64).alias("y")
 
     subset = subset.with_columns([unique_id_col, ds_col, y_col])
     return subset.select(["unique_id", "ds", "y"]), []
@@ -39,16 +56,18 @@ def prepare_nixtla_df(df: pl.DataFrame, label_col: str) -> tuple[pl.DataFrame, l
 def train_stats_baseline(
     df_nixtla: pl.DataFrame,
     n_splits: int = 5,
+    season_length: int = 24,
+    freq: str = "h",
 ) -> tuple[StatsForecast, dict]:
     models = [
-        AutoARIMA(season_length=24),
-        SeasonalNaive(season_length=24),
-        MSTL(season_length=24),
+        AutoARIMA(season_length=season_length),
+        SeasonalNaive(season_length=season_length),
+        MSTL(season_length=season_length),
     ]
 
     sf = StatsForecast(
         models=models,
-        freq="1h",
+        freq=freq,
         n_jobs=-1,
     )
 
@@ -104,15 +123,21 @@ def save_model(sf: StatsForecast, metrics: dict, path) -> None:
 def run_stats(
     symbol: str = "XAUUSD",
     tf: str = "1H",
-    label_col: str = "label_10",
+    label: str = "label_10",
     n_splits: int = 5,
+    season_length: int = 24,
     force: bool = False,
+    seed: int = 42,
+    train_start: str | None = None,
+    train_end: str | None = None,
 ) -> dict:
     """Train StatsForecast baseline (AutoARIMA, SeasonalNaive, MSTL). Returns metrics dict or {} if skipped."""
+    set_seed(seed)
     out_path = build_model_output_path(
-        f"stats_baseline_{label_col}",
+        f"stats_baseline_{label}",
         symbol,
         tf,
+        label,
         suffix=".pkl",
     )
 
@@ -120,13 +145,19 @@ def run_stats(
         logger.info("StatsForecast baseline exists at %s", out_path)
         return {}
 
-    df = load_labelled_dataset(symbol, tf)
-    if df is None or label_col not in df.columns:
+    df = load_labelled_dataset(
+        symbol,
+        tf,
+        train_start=train_start,
+        train_end=train_end,
+    )
+    if df is None or label not in df.columns:
         return {}
 
-    df_nixtla, _ = prepare_nixtla_df(df, label_col)
+    df_nixtla, _ = prepare_nixtla_df(df, label, symbol=symbol)
     df_nixtla = df_nixtla.tail(5000)
-    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits)
+    freq = _TF_FREQ.get(tf, "h")
+    sf, metrics = train_stats_baseline(df_nixtla, n_splits=n_splits, season_length=season_length, freq=freq)
     save_model(sf, metrics, out_path)
     metrics["artifact_path"] = str(out_path)
     return metrics
@@ -150,7 +181,7 @@ def main() -> None:
     run_stats(
         symbol=args.symbol,
         tf=args.tf,
-        label_col=args.label,
+        label=args.label,
         n_splits=args.n_splits,
         force=args.force,
     )

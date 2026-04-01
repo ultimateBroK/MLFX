@@ -49,6 +49,7 @@ def save_reference(
     tf: str,
     *,
     out_dir: Path | None = None,
+    log_to_mlflow: bool = True,
 ) -> Path:
     """Compute and persist per-feature statistics for drift reference.
 
@@ -66,6 +67,8 @@ def save_reference(
         Identifiers used to scope the reference file name.
     out_dir:
         Output directory.  Defaults to ``outputs/monitoring/<symbol>/<tf>/``.
+    log_to_mlflow:
+        Whether to log the reference to MLflow.
 
     Returns
     -------
@@ -97,7 +100,62 @@ def save_reference(
     out_path = base / _REFERENCE_FILENAME
     out_path.write_text(json.dumps(reference, indent=2))
     logger.info("Drift reference saved → %s  (%d features)", out_path, len(reference["features"]))
+
+    # Log to MLflow
+    if log_to_mlflow:
+        _log_reference_to_mlflow(reference, out_path, symbol, tf)
+
     return out_path
+
+
+def _log_reference_to_mlflow(
+    reference: dict[str, Any],
+    reference_path: Path,
+    symbol: str,
+    tf: str,
+) -> None:
+    """Log drift reference to MLflow."""
+    try:
+        import mlflow  # noqa: PLC0415
+
+        from mlfx.config.mlflow import get_mlflow_config
+
+        config = get_mlflow_config()
+        if not config.is_mlflow_available():
+            return
+
+        config.setup_mlflow()
+
+        # Set experiment
+        experiment_name = f"{config.experiment_prefix}/monitoring/drift"
+        mlflow.set_experiment(experiment_name)
+
+        # Start run
+        with mlflow.start_run(run_name=f"drift_reference_{symbol}_{tf}"):
+            # Log params
+            mlflow.log_params({
+                "symbol": symbol,
+                "tf": tf,
+                "n_features": len(reference.get("features", {})),
+            })
+
+            # Log reference file as artifact
+            mlflow.log_artifact(str(reference_path), artifact_path="drift_reference")
+
+            # Log summary metrics
+            for col, stats in reference.get("features", {}).items():
+                safe_col = col.replace("/", "_").replace(" ", "_")
+                mlflow.log_metrics({
+                    f"feature.{safe_col}.mean": stats["mean"],
+                    f"feature.{safe_col}.std": stats["std"],
+                })
+
+        logger.debug("Logged drift reference to MLflow")
+
+    except ImportError:
+        logger.debug("MLflow not installed; skipping drift reference logging.")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to log drift reference to MLflow: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +206,7 @@ class DriftDetector:
         threshold_ks: float = 0.1,
         threshold_psi: float = 0.2,
         min_samples: int = 30,
+        log_to_mlflow: bool = True,
     ) -> dict[str, Any]:
         """Compute drift metrics for each feature and classify drift.
 
@@ -161,6 +220,8 @@ class DriftDetector:
             PSI threshold above which a feature is *drifted*.
         min_samples:
             Minimum live samples required to run the test.
+        log_to_mlflow:
+            Whether to log the drift report to MLflow.
 
         Returns
         -------
@@ -208,7 +269,66 @@ class DriftDetector:
             )
         else:
             logger.info("No feature drift detected (%d features tested).", len(results))
+
+        # Log to MLflow
+        if log_to_mlflow:
+            self._log_drift_to_mlflow(report)
+
         return report
+
+    def _log_drift_to_mlflow(self, report: dict[str, Any]) -> None:
+        """Log drift detection report to MLflow."""
+        try:
+            import mlflow  # noqa: PLC0415
+
+            from mlfx.config.mlflow import get_mlflow_config
+
+            config = get_mlflow_config()
+            if not config.is_mlflow_available():
+                return
+
+            config.setup_mlflow()
+
+            symbol = self._ref.get("symbol", "unknown")
+            tf = self._ref.get("tf", "unknown")
+
+            # Set experiment
+            experiment_name = f"{config.experiment_prefix}/monitoring/drift"
+            mlflow.set_experiment(experiment_name)
+
+            # Start run
+            with mlflow.start_run(run_name=f"drift_detection_{symbol}_{tf}"):
+                # Log params
+                mlflow.log_params({
+                    "symbol": symbol,
+                    "tf": tf,
+                })
+
+                # Log summary metrics
+                mlflow.log_metrics({
+                    "n_tested": report["n_tested"],
+                    "n_drifted": report["n_drifted"],
+                    "drift_ratio": report["n_drifted"] / max(report["n_tested"], 1),
+                })
+
+                # Log per-feature metrics
+                for col, metrics in report.get("metrics", {}).items():
+                    safe_col = col.replace("/", "_").replace(" ", "_")
+                    mlflow.log_metrics({
+                        f"drift.{safe_col}.ks_stat": metrics["ks_stat"],
+                        f"drift.{safe_col}.psi": metrics["psi"],
+                    })
+
+                # Set tag for drifted features
+                if report["drifted_features"]:
+                    mlflow.set_tag("drifted_features", ",".join(report["drifted_features"]))
+
+            logger.debug("Logged drift report to MLflow")
+
+        except ImportError:
+            logger.debug("MLflow not installed; skipping drift report logging.")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to log drift report to MLflow: %s", exc)
 
 
 # ---------------------------------------------------------------------------

@@ -29,9 +29,12 @@ class DownloadRuntimeConfig:
     symbol: str
     start_year: int
     start_month: int
+    end_year: int | None
+    end_month: int | None
     asset_class: str
     concurrency: int
     force: bool
+    skip_current_month: bool
     output_dir: Path
     state_file: Path
 
@@ -44,6 +47,9 @@ def build_download_config(
     concurrency: int,
     force: bool,
     *,
+    end_year: int | None = None,
+    end_month: int | None = None,
+    skip_current_month: bool = False,
     paths: ProjectPaths = DEFAULT_PATHS,
 ) -> DownloadRuntimeConfig:
     """Build an immutable runtime config for the downloader."""
@@ -51,12 +57,37 @@ def build_download_config(
         symbol=symbol,
         start_year=start_year,
         start_month=start_month,
+        end_year=end_year,
+        end_month=end_month,
         asset_class=asset_class,
         concurrency=concurrency,
         force=force,
+        skip_current_month=skip_current_month,
         output_dir=paths.raw_data_dir(symbol),
         state_file=paths.state_file(symbol),
     )
+
+
+def list_available_raw_months(
+    symbol: str,
+    *,
+    paths: ProjectPaths = DEFAULT_PATHS,
+) -> list[tuple[int, int]]:
+    """Return list of (year, month) from YYYY-MM.parquet files in raw dir."""
+    raw_dir = paths.raw_data_dir(symbol)
+    if not raw_dir.exists():
+        return []
+    result: list[tuple[int, int]] = []
+    for p in raw_dir.glob("????-??.parquet"):
+        stem = p.stem
+        if len(stem) == 7 and stem[4] == "-":
+            try:
+                y, m = int(stem[:4]), int(stem[5:7])
+                if 1 <= m <= 12:
+                    result.append((y, m))
+            except ValueError:
+                continue
+    return sorted(result)
 
 
 def load_state(state_file: Path) -> dict[str, dict[str, int]]:
@@ -120,6 +151,7 @@ def parse_hour(raw: bytes, year: int, month: int, day: int, hour: int) -> pl.Dat
         return None
     return pl.DataFrame(
         records,
+
         schema=["timestamp_ms", "ask", "bid", "ask_volume", "bid_volume"],
         orient="row",
     )
@@ -312,6 +344,15 @@ def repair_month(
     return len(df), still_missing
 
 
+def _infer_state_from_file(file_path: Path) -> tuple[int, int]:
+    """Read row count from parquet file. Returns (rows, missing_hours=0)."""
+    try:
+        df = pl.read_parquet(file_path)
+        return len(df), 0
+    except Exception:
+        return -1, 0
+
+
 def run_download_job(
     symbol: str,
     asset_class: str,
@@ -320,8 +361,11 @@ def run_download_job(
     concurrency: int,
     force: bool,
     *,
+    end_year: int | None = None,
+    end_month: int | None = None,
+    skip_current_month: bool = False,
     paths: ProjectPaths = DEFAULT_PATHS,
-) -> None:
+) -> bool:
     """Download, validate, and repair monthly tick parquet files for one symbol."""
     config = build_download_config(
         symbol,
@@ -330,25 +374,40 @@ def run_download_job(
         asset_class,
         concurrency,
         force,
+        end_year=end_year,
+        end_month=end_month,
+        skip_current_month=skip_current_month,
         paths=paths,
     )
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     now = datetime.now()
+    effective_end_year = config.end_year if config.end_year is not None else now.year
+    effective_end_month = config.end_month if config.end_month is not None else now.month
+
     state = migrate_old_markers(
         config.output_dir,
         config.state_file,
         load_state(config.state_file),
     )
 
-    for year in range(config.start_year, now.year + 1):
+    for year in range(config.start_year, effective_end_year + 1):
         month_start = config.start_month if year == config.start_year else 1
-        month_end = now.month if year == now.year else 12
+        month_end = (
+            effective_end_month
+            if year == effective_end_year
+            else 12
+        )
         for month in range(month_start, month_end + 1):
             key = f"{year}-{month:02d}"
             file_path = config.output_dir / f"{key}.parquet"
             is_past = not (year == now.year and month == now.month)
+            is_current_month = year == now.year and month == now.month
             entry = state.get(key)
+
+            if config.skip_current_month and is_current_month:
+                logger.info("Skip     %s  (current month, skip_current_month=True)", key)
+                continue
 
             if (
                 is_past
@@ -358,6 +417,13 @@ def run_download_job(
                 and not config.force
             ):
                 logger.info("Skip     %s  rows=%10s  missing=0", key, f"{entry['rows']:,}")
+                continue
+
+            if file_path.exists() and entry is None and is_past and not config.force:
+                rows, _ = _infer_state_from_file(file_path)
+                state[key] = {"rows": rows, "missing_hours": 0}
+                save_state(config.state_file, state)
+                logger.info("Skip     %s  rows=%10s  (inferred from file, no state)", key, f"{rows:,}")
                 continue
 
             if file_path.exists():
@@ -384,3 +450,4 @@ def run_download_job(
                 rows = len(df) if df is not None else 0
                 state[key] = {"rows": rows, "missing_hours": timed_out}
                 save_state(config.state_file, state)
+    return True

@@ -11,23 +11,11 @@ from pathlib import Path
 import polars as pl
 
 from mlfx.config.paths import DEFAULT_PATHS, ProjectPaths
-
-FEATURE_BLACKLIST = {
-    "timestamp",
-    "open",
-    "high",
-    "low",
-    "close",
-    "tick_count",
-    "close_ahead_5",
-    "close_ahead_10",
-    "close_ahead_20",
-    "label_5",
-    "label_10",
-    "label_20",
-}
-
-NUMERIC_DTYPES = (pl.Float64, pl.Float32, pl.Int64, pl.Int32, pl.Int16, pl.Int8)
+from mlfx.features.columns import (
+    FEATURE_BLACKLIST,
+    NUMERIC_DTYPES,
+    select_numeric_feature_columns as _select_numeric_feature_columns,
+)
 
 
 def load_feature_dataset(
@@ -51,9 +39,4 @@ def select_numeric_feature_columns(
     blacklist: set[str] | None = None,
 ) -> list[str]:
     """Select numeric model-input columns while excluding raw target/price fields."""
-    active_blacklist = blacklist or FEATURE_BLACKLIST
-    return [
-        column
-        for column in df.columns
-        if column not in active_blacklist and df[column].dtype in NUMERIC_DTYPES
-    ]
+    return _select_numeric_feature_columns(df, blacklist=blacklist)

@@ -1,4 +1,4 @@
-"""Shared sequence creation and training for PyTorch sequence-based backends (LSTM, BiLSTM, CNN-LSTM, Transformer)."""
+"""Shared sequence creation and training for PyTorch sequence-based backends (LSTM)."""
 
 from __future__ import annotations
 
@@ -143,7 +143,10 @@ def create_sequences(
     """
     n = len(X)
     if n <= seq_len:
-        raise ValueError(f"Need n > seq_len ({n} <= {seq_len})")
+        raise ValueError(
+            f"Dataset too small: {len(X)} rows ≤ seq_len={seq_len}. "
+            f"Need >{seq_len} rows after dropping nulls."
+        )
 
     n_seqs = n - seq_len
     X_seq = np.lib.stride_tricks.as_strided(

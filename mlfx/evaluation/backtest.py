@@ -130,6 +130,199 @@ def simulate_trades(
     return pl.DataFrame(trades)
 
 
+def calculate_rolling_sharpe(
+    returns: np.ndarray,
+    window: int = 20,
+    annualization_factor: float = 252.0,
+) -> np.ndarray:
+    """Calculate rolling Sharpe ratio from returns array.
+
+    Args:
+        returns: Array of period returns (in R-multiples).
+        window: Rolling window size.
+        annualization_factor: Factor to annualize (default 252 for daily).
+
+    Returns:
+        Array of rolling Sharpe ratios (NaN for insufficient data).
+    """
+    if len(returns) < window:
+        return np.full(len(returns), np.nan)
+
+    rolling_sharpe = np.full(len(returns), np.nan)
+
+    for i in range(window - 1, len(returns)):
+        window_returns = returns[i - window + 1 : i + 1]
+        mean_ret = np.mean(window_returns)
+        std_ret = np.std(window_returns)
+
+        if std_ret > 0:
+            rolling_sharpe[i] = (mean_ret / std_ret) * np.sqrt(annualization_factor)
+
+    return rolling_sharpe
+
+
+def analyze_drawdowns(equity_curve: np.ndarray) -> dict[str, object]:
+    """Analyze drawdown events from equity curve.
+
+    Args:
+        equity_curve: Array of cumulative equity values.
+
+    Returns:
+        Dictionary with drawdown analysis including:
+        - drawdowns: Array of drawdown values at each point
+        - peak_indices: Indices where new peaks were reached
+        - trough_indices: Indices of drawdown troughs
+        - events: List of drawdown event dicts with start, trough, end, magnitude, duration, recovery
+        - max_drawdown: Maximum drawdown value
+        - avg_drawdown: Average drawdown during drawdown periods
+        - avg_recovery: Average recovery time in bars
+    """
+    if len(equity_curve) == 0:
+        return {
+            "drawdowns": np.array([]),
+            "peak_indices": np.array([]),
+            "trough_indices": np.array([]),
+            "events": [],
+            "max_drawdown": 0.0,
+            "avg_drawdown": 0.0,
+            "avg_recovery": 0.0,
+        }
+
+    # Calculate running peak and drawdown
+    peak = np.maximum.accumulate(equity_curve)
+    drawdowns = peak - equity_curve
+
+    # Find peak indices (where equity equals running peak)
+    peak_indices = np.where(equity_curve == peak)[0]
+
+    # Find drawdown events
+    events: list[dict] = []
+    in_drawdown = False
+    dd_start = 0
+    dd_trough_idx = 0
+    dd_trough_val = 0.0
+
+    for i in range(len(equity_curve)):
+        if drawdowns[i] > 0 and not in_drawdown:
+            # Start of new drawdown
+            in_drawdown = True
+            dd_start = i
+            dd_trough_idx = i
+            dd_trough_val = equity_curve[i]
+        elif drawdowns[i] > 0 and in_drawdown:
+            # Continue drawdown, track trough
+            if equity_curve[i] < dd_trough_val:
+                dd_trough_idx = i
+                dd_trough_val = equity_curve[i]
+        elif drawdowns[i] == 0 and in_drawdown:
+            # End of drawdown (recovery)
+            dd_magnitude = peak[dd_start] - dd_trough_val
+            if dd_magnitude > 0:
+                events.append({
+                    "start_idx": dd_start,
+                    "trough_idx": dd_trough_idx,
+                    "end_idx": i,
+                    "magnitude": dd_magnitude,
+                    "duration": dd_trough_idx - dd_start,
+                    "recovery": i - dd_trough_idx,
+                    "total_bars": i - dd_start,
+                })
+            in_drawdown = False
+
+    # Handle case where still in drawdown at end
+    if in_drawdown and dd_trough_idx > dd_start:
+        dd_magnitude = peak[dd_start] - dd_trough_val
+        events.append({
+            "start_idx": dd_start,
+            "trough_idx": dd_trough_idx,
+            "end_idx": len(equity_curve) - 1,
+            "magnitude": dd_magnitude,
+            "duration": dd_trough_idx - dd_start,
+            "recovery": len(equity_curve) - 1 - dd_trough_idx,
+            "total_bars": len(equity_curve) - dd_start,
+            "ongoing": True,
+        })
+
+    # Find trough indices
+    trough_indices = np.array([e["trough_idx"] for e in events]) if events else np.array([])
+
+    # Calculate statistics
+    max_drawdown = float(np.max(drawdowns)) if len(drawdowns) > 0 else 0.0
+    dd_values = drawdowns[drawdowns > 0]
+    avg_drawdown = float(np.mean(dd_values)) if len(dd_values) > 0 else 0.0
+    recoveries = [e["recovery"] for e in events if e.get("recovery", 0) > 0 and not e.get("ongoing", False)]
+    avg_recovery = float(np.mean(recoveries)) if recoveries else 0.0
+
+    return {
+        "drawdowns": drawdowns,
+        "peak_indices": peak_indices,
+        "trough_indices": trough_indices,
+        "events": events,
+        "max_drawdown": max_drawdown,
+        "avg_drawdown": avg_drawdown,
+        "avg_recovery": avg_recovery,
+    }
+
+
+def calculate_confidence_intervals(
+    returns: np.ndarray,
+    levels: tuple[float, float] = (0.68, 0.95),
+    n_bootstrap: int = 1000,
+    seed: int | None = None,
+) -> dict[str, np.ndarray]:
+    """Calculate confidence intervals for equity curve using bootstrap.
+
+    Args:
+        returns: Array of period returns (in R-multiples).
+        levels: Confidence levels (default 68% and 95%).
+        n_bootstrap: Number of bootstrap samples.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Dictionary with:
+        - equity_mean: Mean equity curve
+        - lower_68, upper_68: 68% CI bounds
+        - lower_95, upper_95: 95% CI bounds
+    """
+    if len(returns) == 0:
+        return {
+            "equity_mean": np.array([]),
+            "lower_68": np.array([]),
+            "upper_68": np.array([]),
+            "lower_95": np.array([]),
+            "upper_95": np.array([]),
+        }
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    n = len(returns)
+
+    # Generate bootstrap samples
+    bootstrap_equities = np.zeros((n_bootstrap, n))
+    for i in range(n_bootstrap):
+        sample_idx = np.random.choice(n, size=n, replace=True)
+        sample_returns = returns[sample_idx]
+        bootstrap_equities[i] = np.cumsum(sample_returns)
+
+    # Calculate statistics
+    equity_mean = np.mean(bootstrap_equities, axis=0)
+
+    # Calculate percentiles for each level
+    lower_68 = np.percentile(bootstrap_equities, (1 - 0.68) / 2 * 100, axis=0)
+    upper_68 = np.percentile(bootstrap_equities, (1 + 0.68) / 2 * 100, axis=0)
+    lower_95 = np.percentile(bootstrap_equities, (1 - 0.95) / 2 * 100, axis=0)
+    upper_95 = np.percentile(bootstrap_equities, (1 + 0.95) / 2 * 100, axis=0)
+
+    return {
+        "equity_mean": equity_mean,
+        "lower_68": lower_68,
+        "upper_68": upper_68,
+        "lower_95": lower_95,
+        "upper_95": upper_95,
+    }
+
+
 def compute_metrics(
     trades_df: pl.DataFrame,
     initial_capital: float = 10000.0,
@@ -191,4 +384,11 @@ def compute_metrics(
     }
 
 
-__all__ = ["compute_metrics", "map_ordinal_to_signal", "simulate_trades"]
+__all__ = [
+    "compute_metrics",
+    "map_ordinal_to_signal",
+    "simulate_trades",
+    "calculate_rolling_sharpe",
+    "analyze_drawdowns",
+    "calculate_confidence_intervals",
+]

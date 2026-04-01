@@ -7,7 +7,7 @@ Usage::
 
     from mlfx.serving.batch import run_batch_inference
 
-    result = run_batch_inference(symbol="XAUUSD", tf="1H", label_col="label_10")
+    result = run_batch_inference(symbol="XAUUSD", tf="1H", label="label_10")
     print(result)
 """
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def run_batch_inference(
     symbol: str = "XAUUSD",
     tf: str = "1H",
-    label_col: str = "label_10",
+    label: str = "label_10",
     output_path: Path | None = None,
     *,
     paths: ProjectPaths = DEFAULT_PATHS,
@@ -50,22 +50,22 @@ def run_batch_inference(
     if df is None or df.is_empty():
         logger.error("No labelled data found for %s %s", symbol, tf)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
-    if label_col not in df.columns:
-        logger.error("Label column %s not found in dataset", label_col)
+    if label not in df.columns:
+        logger.error("Label column %s not found in dataset", label)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
-    result = resolve_and_predict(symbol, tf, label_col, df)
+    result = resolve_and_predict(symbol, tf, label, df)
     if result is None:
-        logger.error("No registered model or inference failed for %s/%s/%s", symbol, tf, label_col)
+        logger.error("No registered model or inference failed for %s/%s/%s", symbol, tf, label)
         return {"rows": 0, "artifact_path": "", "output_path": ""}
 
     predictions, artifact_path, _ = result
     result_df = df.with_columns(pl.Series("prediction", predictions.tolist(), dtype=pl.Int8))
 
-    out_dir = output_path or paths.predictions_dir(symbol, tf)
+    out_dir = output_path or (paths.predictions_dir(symbol, tf) / label)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / f"{label_col}_predictions.parquet"
+    out_file = out_dir / "predictions.parquet"
     result_df.write_parquet(out_file)
     logger.info("Batch inference complete: %d rows → %s", len(result_df), out_file)
 
@@ -74,4 +74,3 @@ def run_batch_inference(
         "artifact_path": artifact_path,
         "output_path": str(out_file),
     }
-

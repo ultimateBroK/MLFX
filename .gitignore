@@ -16,6 +16,9 @@ logs/*
 /download.log
 /lightning_logs/
 /outputs
+/docs/storings
+/mlruns
+/mlflow.db
 
 # Tooling and test caches
 .pytest_cache/
@@ -32,6 +35,8 @@ __pycache__/
 # Jupyter notebooks
 .ipynb_checkpoints
 *.ipynb
+!notebooks/mlfx_research_walkthrough.ipynb
+!notebooks/mlfx_visual_analytics.ipynb
 
 # Virtual environments
 .venv/*
@@ -44,10 +49,12 @@ venv/
 .env.*.local
 
 # Local editor and agent state
-.agent/*
+.agents/*
 .cursor/*
 .vscode/*
 .qoder/
 .github/*
 
-task.md
+AGENTS.md
+
+/thesis

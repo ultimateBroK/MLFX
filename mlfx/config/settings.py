@@ -2,53 +2,31 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+import tomllib
 from pathlib import Path
 from typing import Any
-import tomllib
 
 from .paths import DEFAULT_PATHS
+from .schema import AppConfig
 
+def _load_raw_config_data(config_file: Path | None = None) -> dict[str, Any]:
+    """Load raw TOML config data.
 
-DEFAULT_CONFIG: dict[str, dict[str, Any]] = {
-    "download": {
-        "symbol": "XAUUSD",
-        "asset_class": "fx",
-        "start_year": 2015,
-        "start_month": 1,
-        "concurrency": 20,
-    },
-    "pipeline": {
-        "symbol": "XAUUSD",
-        "timeframe": "1H",
-        "pivot_type": "traditional",
-        "pivot_anchor": "daily",
-    },
-    "train": {
-        "symbol": "XAUUSD",
-        "timeframe": "1H",
-        "label_col": "label_10",
-        "backend": "mlf",
-        "n_trials": 30,
-        "n_splits": 5,
-    },
-    "backtest": {
-        "symbol": "XAUUSD",
-        "timeframe": "1H",
-        "label_col": "label_10",
-    },
-}
-
-
-def load_config(config_file: Path | None = None) -> dict[str, dict[str, Any]]:
-    """Load and merge runtime config with built-in defaults."""
+    The config file is mandatory. All unknown keys in the TOML are silently
+    ignored by the Pydantic models (``extra='ignore'``).
+    """
     target = config_file or DEFAULT_PATHS.config_file
     if not target.exists():
-        return {section: values.copy() for section, values in DEFAULT_CONFIG.items()}
-
+        raise FileNotFoundError(
+            f"config.toml not found at {target}. Create one (see repo root config.toml)."
+        )
     with target.open("rb") as handle:
-        data = tomllib.load(handle)
+        return tomllib.load(handle)
 
-    merged: dict[str, dict[str, Any]] = {}
-    for section, defaults in DEFAULT_CONFIG.items():
-        merged[section] = {**defaults, **data.get(section, {})}
-    return merged
+
+@lru_cache(maxsize=1)
+def load_config(config_file: Path | None = None) -> AppConfig:
+    """Load and validate config.toml into a single AppConfig object."""
+    data = _load_raw_config_data(config_file)
+    return AppConfig.model_validate(data)
